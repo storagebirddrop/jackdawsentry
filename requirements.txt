@@ -18,15 +18,15 @@ alembic==1.12.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
-cryptography==41.0.8
+cryptography>=41.0.0
 
 # =============================================================================
 # Blockchain Dependencies
 # =============================================================================
 
 # Bitcoin
-bitcoin==0.1.0
-python-bitcoinrpc==1.0.2
+bitcoinlib==0.6.0
+python-bitcoinrpc==1.0
 
 # Ethereum/EVM
 web3==6.11.3
