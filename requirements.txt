@@ -1,0 +1,207 @@
+# =============================================================================
+# Core Dependencies
+# =============================================================================
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database Drivers
+neo4j==5.14.1
+psycopg2-binary==2.9.9
+redis==5.0.1
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+cryptography==41.0.8
+
+# =============================================================================
+# Blockchain Dependencies
+# =============================================================================
+
+# Bitcoin
+bitcoin==0.1.0
+python-bitcoinrpc==1.0.2
+
+# Ethereum/EVM
+web3==6.11.3
+eth-abi==4.3.0
+eth-account==0.9.0
+eth-utils==2.2.0
+
+# Solana
+solana==0.30.2
+solders==0.18.1
+anchorpy==0.18.0
+
+# Tron
+tronpy==0.4.0
+
+# XRPL (Ripple)
+xrpl-py==2.5.0
+
+# Stellar
+stellar-sdk==9.2.0
+
+# =============================================================================
+# Data Processing & Analysis
+# =============================================================================
+
+# Data Manipulation
+pandas==2.1.4
+numpy==1.25.2
+polars==0.20.3
+
+# Machine Learning
+scikit-learn==1.3.2
+xgboost==2.0.3
+tensorflow==2.15.0
+torch==2.1.1
+
+# Graph Analysis
+networkx==3.2.1
+igraph==0.11.3
+graph-tool==2.45
+
+# =============================================================================
+# Compliance & Intelligence
+# =============================================================================
+
+# Sanctions & Screening
+requests==2.31.0
+aiohttp==3.9.1
+beautifulsoup4==4.12.2
+selenium==4.15.2
+
+# Dark Web Monitoring
+torpy==0.3.0
+stem==1.8.0
+
+# =============================================================================
+# Utilities & Tools
+# =============================================================================
+
+# Configuration
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Logging & Monitoring
+structlog==23.2.0
+prometheus-client==0.19.0
+sentry-sdk==1.38.0
+
+# Async Support
+asyncio==3.4.3
+aiofiles==23.2.1
+asyncpg==0.29.0
+
+# Date & Time
+python-dateutil==2.8.2
+pytz==2023.3
+
+# =============================================================================
+# Testing & Development
+# =============================================================================
+
+# Testing Framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# Code Quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Development Tools
+pre-commit==3.6.0
+jupyter==1.0.0
+ipython==8.17.2
+
+# =============================================================================
+# Documentation
+# =============================================================================
+
+# Documentation Generation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+mkdocs-mermaid2-plugin==1.1.1
+
+# API Documentation
+fastapi-users==12.1.2
+fastapi-pagination==0.12.13
+
+# =============================================================================
+# Performance & Optimization
+# =============================================================================
+
+# Caching
+hiredis==2.2.3
+diskcache==5.6.3
+
+# Performance Profiling
+py-spy==0.3.14
+memory-profiler==0.61.0
+
+# =============================================================================
+# Security & Compliance
+# =============================================================================
+
+# GDPR Compliance
+gdpr==0.4.0
+privacy==0.3.0
+
+# Encryption
+cryptography==41.0.8
+pycryptodome==3.19.0
+
+# =============================================================================
+# Data Visualization (Optional)
+# =============================================================================
+
+# Graph Visualization
+plotly==5.17.0
+dash==2.14.2
+bokeh==3.3.0
+
+# Statistical Visualization
+seaborn==0.13.0
+matplotlib==3.8.2
+
+# =============================================================================
+# Additional Utilities
+# =============================================================================
+
+# HTTP Clients
+httpx==0.25.2
+httpcore==1.0.2
+
+# JSON Processing
+orjson==3.9.10
+ujson==5.8.0
+
+# Text Processing
+nltk==3.8.1
+spacy==3.7.2
+
+# File Processing
+openpyxl==3.1.2
+python-docx==1.1.0
+reportlab==4.0.7
+
+# =============================================================================
+# Version Pinning for Stability
+# =============================================================================
+
+# Ensure reproducible builds
+setuptools==69.0.2
+wheel==0.42.0
+pip==23.3.2
