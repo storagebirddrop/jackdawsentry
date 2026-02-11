@@ -125,6 +125,29 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/analysis/statistics` - Analysis statistics
 - `POST /api/v1/analysis/enrich` - Enrich address data
 
+### Intelligence (21 endpoints)
+- `POST /api/v1/intelligence/comprehensive-analysis` - Comprehensive multi-platform analysis
+- `POST /api/v1/intelligence/mcp-analysis` - AI-powered blockchain analysis (MCP)
+- `POST /api/v1/intelligence/professional-tools` - Professional tools analysis
+- `POST /api/v1/intelligence/osint-workflows` - Structured OSINT investigation
+- `POST /api/v1/intelligence/academic-research` - Academic research validation
+- `POST /api/v1/intelligence/blocksci-analysis` - BlockSci high-performance analysis
+- `POST /api/v1/intelligence/blokbustr-monitoring` - BlokBustr address monitoring
+- `POST /api/v1/intelligence/blokbustr-exploration` - BlokBustr transaction exploration
+- `POST /api/v1/intelligence/blokbustr-identification` - BlokBustr address identification
+- `POST /api/v1/intelligence/amrita-forensics` - Amrita educational forensics
+- `GET /api/v1/intelligence/amrita-modules` - List Amrita educational modules
+- `POST /api/v1/intelligence/court-ready-report` - Generate court-ready evidence report
+- `GET /api/v1/integration/status` - Integration system status
+- `POST /api/v1/integration/cleanup` - Cleanup old analyses
+- `GET /api/v1/intelligence/capabilities` - Available integration capabilities
+- `POST /api/v1/mcp/execute` - Execute MCP command
+- `GET /api/v1/mcp/investigation/{id}` - Get MCP investigation status
+- `GET /api/v1/professional-tools/status` - Professional tools status
+- `POST /api/v1/osint/start-investigation` - Start OSINT investigation
+- `GET /api/v1/osint/investigation/{id}` - Get OSINT investigation status
+- `POST /api/v1/osint/generate-report` - Generate OSINT investigation report
+
 ### 🛡️ Compliance Endpoints (7)
 - `POST /api/v1/compliance/check` - Compliance check
 - `POST /api/v1/compliance/reports` - Generate compliance reports

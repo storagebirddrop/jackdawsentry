@@ -213,6 +213,30 @@ Icon
 .LSOverride
 
 # =============================================================================
+# Integration and Intelligence (exclude from version control)
+# =============================================================================
+integration_cache/
+blokbustr_cache/
+amrita_forensics_cache/
+academic_research_cache/
+mcp_cache/
+professional_tools_cache/
+osint_workflows_cache/
+
+# Academic Research
+blocksci_data/
+academic_papers/
+research_data/
+validation_results/
+benchmark_data/
+
+# Forensics Data
+forensics_investigations/
+forensics_evidence/
+forensics_reports/
+educational_modules/
+
+# =============================================================================
 # Frontend Development (exclude from version control)
 # =============================================================================
 frontend/dist/

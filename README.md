@@ -178,7 +178,7 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-### �️ **Frontend Dashboard (Production Ready)**
+### 🖥️ **Frontend Dashboard (Production Ready)**
 
 #### Modern Web Dashboard
 - **Responsive Design**: Mobile-first responsive layout with Tailwind CSS
@@ -201,7 +201,71 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **Security**: XSS protection and secure coding practices
 - **Mobile Support**: Full responsive design for all devices
 
-### �🔍 **Advanced Analysis Engine**
+### 🧠 **Intelligence Integration (Production Ready)**
+
+#### Multi-Platform Intelligence Integration
+- **AI-Powered Analysis**: Model Context Protocol (MCP) integration with real-time blockchain data access
+- **Professional Tools**: Integration with Chainalysis, Elliptic, CipherBlade, Arkham Intelligence
+- **OSINT Workflows**: Structured investigation methodologies from Legendary Crypto OSINT
+- **Academic Research**: Peer-reviewed algorithms from Awesome Blockchain Papers
+- **BlockSci Integration**: High-performance blockchain science tool from Princeton University
+- **BlokBustr Integration**: Blockchain forensics platform with comprehensive monitoring capabilities
+- **Amrita Forensics**: Educational blockchain forensics framework with multi-currency support
+- **Court-Ready Reports**: Professional evidence collection with cryptographic verification
+- **Comprehensive Analysis**: Unified risk assessment across multiple intelligence sources
+
+#### Integration Capabilities
+- **Real-Time Data Access**: Live blockchain queries via AI assistants
+- **Multi-Source Correlation**: Cross-platform intelligence aggregation
+- **Evidence Collection**: Cryptographically verifiable evidence from all sources
+- **Risk Assessment**: Weighted risk scoring with confidence levels
+- **Legal Compliance**: GDPR-compliant analysis with proper attribution
+
+#### Technical Implementation
+- **MCP Integration**: Etherscan API V2 server for AI-powered analysis
+- **Professional APIs**: Chainalysis Reactor, Elliptic, CipherBlade, Arkham platforms
+- **OSINT Platforms**: Blockstream, WalletExplorer, Etherscan, Breadcrumbs integration
+- **Academic Validation**: Research-backed algorithms and methodologies
+- **BlockSci Integration**: High-performance blockchain science queries and analysis
+- **BlokBustr Integration**: Comprehensive forensics platform with monitoring services
+- **Amrita Forensics**: Educational framework with multi-currency investigation modules
+- **Central Manager**: Unified integration manager with comprehensive analysis engine
+
+#### References and Attribution
+- **MCP Integration**: Inspired by FUCKIN-DANS-ASS MIT-licensed implementation
+- **Professional Tools**: Based on On-Chain-Investigations-Tools-List MIT-licensed methodologies
+- **OSINT Workflows**: Structured workflows from Legendary Crypto OSINT MIT-licensed content
+- **Academic Research**: Algorithms from Awesome Blockchain Papers MIT-licensed collection
+- **Etherscan Labels**: Community-driven dataset from brianleect/etherscan-labels
+- **BlockSci Integration**: High-performance blockchain science tool from Princeton University
+- **BlokBustr Integration**: Blockchain forensics platform from AbdelH2O/blokbustr (MIT License)
+- **Amrita Forensics**: Educational blockchain forensics from Amrita-TIFAC-Cyber-Blockchain
+
+#### Credits and Acknowledgments
+The Jackdaw Sentry project incorporates significant contributions from the open-source community and academic research community. We extend our sincere gratitude to:
+
+**MIT-Licensed Contributors:**
+- **FUCKIN-DANS-ASS** - For pioneering MCP integration and AI-powered blockchain analysis
+- **Legendary Crypto OSINT** - For comprehensive OSINT workflows and investigation methodologies
+- **On-Chain-Investigations-Tools-List** - For professional tool integration approaches and best practices
+- **Awesome Blockchain Papers** - For curating academic research and peer-reviewed algorithms
+- **brianleect/etherscan-labels** - For maintaining the Etherscan labels dataset
+- **AbdelH2O/blokbustr** - For developing the comprehensive BlokBustr blockchain forensics platform
+- **Amrita-TIFAC-Cyber-Blockchain** - For creating educational blockchain forensics framework and methodologies
+
+**Academic and Research Institutions:**
+- **Princeton University BlockSci Team** - For developing BlockSci, the high-performance blockchain science platform
+- **USENIX Security** - For publishing cutting-edge blockchain security research
+- **Financial Cryptography and Data Security** - For academic validation of blockchain analysis
+- **ACM Conference on Computer and Communications Security** - For peer-reviewed blockchain research
+
+**Community Contributors:**
+- **Open Source Community** - For developing and maintaining the tools and platforms we integrate with
+- **Security Researchers** - For providing threat intelligence and best practices
+- **Academic Researchers** - For advancing the state of blockchain science and analysis
+
+**Special Thanks:**
+To all contributors who have shared their expertise and code to advance blockchain intelligence and analysis capabilities. Your contributions make Jackdaw Sentry a comprehensive, enterprise-grade platform that serves the global blockchain community.
 
 ### ✅ **PRODUCTION-READY ML-POWERED ANALYSIS (6 Engines)**
 
