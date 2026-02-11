@@ -212,6 +212,8 @@ compliance_reports/
 sar_reports/
 investigations/
 case_files/
+gdpr_requests/
+data_subject_requests/
 
 # =============================================================================
 # API Keys & Secrets
@@ -220,6 +222,8 @@ api_keys.txt
 secrets.txt
 credentials.json
 .auth_tokens
+.jwt_tokens
+oauth_tokens
 
 # =============================================================================
 # Monitoring & Metrics
@@ -228,6 +232,7 @@ metrics/
 monitoring/
 prometheus_data/
 grafana_data/
+*.metrics
 
 # =============================================================================
 # Local Development
