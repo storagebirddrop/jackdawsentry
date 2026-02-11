@@ -100,6 +100,17 @@ Authorization: Bearer <your_jwt_token>
 - `GET /info` - Application information  
 - `GET /metrics` - Performance metrics
 
+### Frontend (2 endpoints)
+- `GET /` - Main dashboard page
+- `GET /compliance` - Compliance dashboard page
+- `GET /analysis` - Analysis dashboard page
+- `GET /intelligence` - Intelligence dashboard page
+- `GET /reports` - Reports dashboard page
+- `GET /admin` - System administration page
+
+### WebSocket (1 endpoint)
+- `WS /ws/dashboard` - Real-time dashboard updates
+
 ### Analysis (12 endpoints)
 - `POST /api/v1/analysis/address` - Comprehensive address analysis
 - `POST /api/v1/analysis/transaction` - Transaction analysis
