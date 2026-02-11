@@ -66,22 +66,70 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Jackdaw Sentry API...")
+    await stop_background_tasks()
     await close_databases()
     logger.info("Application shutdown complete")
 
 
 async def start_background_tasks():
-    """Start background collection and analysis tasks"""
+    """Start background collection and analysis tasks with error handling"""
     from src.collectors.manager import CollectorManager
     from src.analysis.manager import AnalysisManager
     
-    # Start blockchain collectors
-    collector_manager = CollectorManager()
-    await collector_manager.start_all()
+    tasks = []
     
-    # Start analysis engine
-    analysis_manager = AnalysisManager()
-    await analysis_manager.start()
+    try:
+        # Start blockchain collectors
+        logger.info("Starting blockchain collectors...")
+        collector_manager = CollectorManager()
+        await collector_manager.start_all()
+        tasks.append(collector_manager)
+        logger.info("✅ Blockchain collectors started")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to start blockchain collectors: {e}")
+        # Continue with other tasks even if collectors fail
+    
+    try:
+        # Start analysis engine
+        logger.info("Starting analysis engine...")
+        analysis_manager = AnalysisManager()
+        await analysis_manager.start()
+        tasks.append(analysis_manager)
+        logger.info("✅ Analysis engine started")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to start analysis engine: {e}")
+        # Continue with other tasks even if analysis fails
+    
+    # Store task references for monitoring and cleanup
+    if hasattr(start_background_tasks, '_tasks'):
+        start_background_tasks._tasks.extend(tasks)
+    else:
+        start_background_tasks._tasks = tasks
+    
+    logger.info(f"✅ Background tasks started: {len(tasks)} managers running")
+
+
+async def stop_background_tasks():
+    """Stop all background tasks gracefully"""
+    if not hasattr(start_background_tasks, '_tasks'):
+        return
+    
+    logger.info("Stopping background tasks...")
+    
+    for task in start_background_tasks._tasks:
+        try:
+            if hasattr(task, 'stop_all'):
+                await task.stop_all()
+            elif hasattr(task, 'stop'):
+                await task.stop()
+            logger.info(f"✅ Stopped task: {type(task).__name__}")
+        except Exception as e:
+            logger.error(f"❌ Failed to stop task {type(task).__name__}: {e}")
+    
+    start_background_tasks._tasks.clear()
+    logger.info("✅ All background tasks stopped")
 
 
 # Create FastAPI application
