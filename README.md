@@ -2,7 +2,7 @@
 
 🚀 **Production-Ready Enterprise Blockchain Analysis Platform**
 
-Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed for freelance crypto compliance investigators. It provides cross-chain stablecoin tracking across 15+ blockchains, Lightning Network analysis, and full EU regulatory compliance (GDPR/DORA/MiCA/AMLR).
+Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed for freelance crypto compliance investigators. It provides cross-chain stablecoin tracking across 15+ blockchains, Lightning Network analysis, and full EU regulatory compliance (GDPR/DORA/MiCA/AMLR) with advanced compliance workflows, automation, and mobile support.
 
 ## 🎯 Production Status
 
@@ -12,6 +12,11 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 ✅ **Database Migrations** - Automated schema management  
 ✅ **Comprehensive Testing** - Unit, integration, and performance tests  
 ✅ **Monitoring & Logging** - GDPR-compliant observability system  
+✅ **Compliance Suite** - Full regulatory compliance with EU framework  
+✅ **Mobile Support** - Responsive mobile interface with touch optimization  
+✅ **Advanced Analytics** - Real-time dashboards and data visualization  
+✅ **Workflow Automation** - Automated compliance workflows and rules  
+✅ **Training System** - Complete training program with certification  
 
 ## 🚀 Quick Start
 
@@ -560,7 +565,10 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 - [Database Schema](docs/database/README.md) - Database design
 - [Deployment Guide](docs/deployment.md) - Production deployment
 - [Security Guide](docs/security.md) - Security best practices
-- [Compliance Guide](docs/compliance.md) - Regulatory compliance
+- [Compliance Guide](docs/compliance/README.md) - Regulatory compliance
+- [Compliance User Guide](docs/compliance/user-guide.md) - User documentation
+- [Compliance Developer Guide](docs/compliance/developer-guide.md) - Developer documentation
+- [Compliance Training](docs/training/compliance-training.md) - Training materials
 
 ## � Performance
 

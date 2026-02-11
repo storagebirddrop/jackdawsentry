@@ -2,7 +2,7 @@
 
 🚀 **Production-Ready REST API for Multi-Chain Blockchain Analysis and Compliance**
 
-Complete RESTful API with 68 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection, 13 stablecoin tracking, and comprehensive regulatory reporting capabilities.
+Complete RESTful API with 68 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection, 13 stablecoin tracking, comprehensive regulatory reporting capabilities, advanced analytics, mobile support, and workflow automation.
 
 ## 🚀 Getting Started
 
@@ -100,9 +100,11 @@ Authorization: Bearer <your_jwt_token>
 - `GET /info` - Application information  
 - `GET /metrics` - Performance metrics
 
-### Frontend (2 endpoints)
+### 📊 Frontend (2 endpoints)
 - `GET /` - Main dashboard page
 - `GET /compliance` - Compliance dashboard page
+- `GET /compliance/analytics` - Compliance analytics page
+- `GET /compliance/mobile` - Mobile compliance page
 - `GET /analysis` - Analysis dashboard page
 - `GET /intelligence` - Intelligence dashboard page
 - `GET /reports` - Reports dashboard page
@@ -148,8 +150,9 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/osint/investigation/{id}` - Get OSINT investigation status
 - `POST /api/v1/osint/generate-report` - Generate OSINT investigation report
 
-### 🛡️ Compliance Endpoints (19)
+### � Compliance Endpoints (19)
 - `POST /api/v1/compliance/check` - Compliance check
+- `GET /api/v1/compliance/dashboard` - Compliance dashboard data
 - `POST /api/v1/compliance/reports` - Generate compliance reports
 - `GET /api/v1/compliance/sanctions` - Sanctions screening
 - `GET /api/v1/compliance/rules` - Compliance rules
@@ -166,6 +169,68 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/compliance/risk/summary` - Get risk assessment summary
 - `POST /api/v1/compliance/audit/log` - Log audit event
 - `GET /api/v1/compliance/audit/events` - Get audit events
+
+### 📈 Analytics Endpoints (12)
+- `GET /api/v1/compliance/analytics/dashboard` - Analytics dashboard data
+- `POST /api/v1/compliance/analytics/report` - Generate analytics report
+- `GET /api/v1/compliance/analytics/reports/{report_id}` - Get analytics report
+- `GET /api/v1/compliance/analytics/reports` - List analytics reports
+- `GET /api/v1/compliance/analytics/metrics` - Get analytics metrics
+- `GET /api/v1/compliance/analytics/charts` - Get analytics charts
+- `GET /api/v1/compliance/analytics/insights` - Get analytics insights
+- `GET /api/v1/compliance/analytics/recommendations` - Get analytics recommendations
+- `GET /api/v1/compliance/analytics/statistics` - Get analytics statistics
+- `POST /api/v1/compliance/analytics/download/{report_id}` - Download analytics report
+- `DELETE /api/v1/compliance/analytics/report/{report_id}` - Delete analytics report
+- `POST /api/v1/compliance/analytics/refresh` - Refresh analytics data
+
+### 📤 Export Endpoints (8)
+- `POST /api/v1/compliance/export/request` - Create export request
+- `GET /api/v1/compliance/export/status/{export_id}` - Get export status
+- `GET /api/v1/compliance/export/download/{export_id}` - Download export file
+- `GET /api/v1/compliance/export/list` - List exports
+- `DELETE /api/v1/compliance/export/{export_id}` - Delete export
+- `POST /api/v1/compliance/export/cleanup` - Cleanup old exports
+- `GET /api/v1/compliance/export/statistics` - Export statistics
+- `GET /api/v1/compliance/export/templates` - Get export templates
+
+### 🤖 Workflow Automation Endpoints (10)
+- `GET /api/v1/compliance/workflows` - List workflows
+- `POST /api/v1/compliance/workflows` - Create workflow
+- `GET /api/v1/compliance/workflows/{workflow_id}` - Get workflow details
+- `POST /api/v1/compliance/workflows/{workflow_id}/trigger` - Trigger workflow
+- `GET /api/v1/compliance/workflows/{workflow_id}/status` - Get workflow status
+- `PUT /api/v1/compliance/workflows/{workflow_id}/enable` - Enable workflow
+- `PUT /api/v1/compliance/workflows/{workflow_id}/disable` - Disable workflow
+- `GET /api/v1/compliance/workflows/statistics` - Workflow statistics
+- `POST /api/v1/compliance/workflows/scheduler/start` - Start workflow scheduler
+
+### 📱 Mobile Endpoints (6)
+- `GET /api/v1/compliance/mobile/dashboard` - Mobile dashboard data
+- `GET /api/v1/compliance/mobile/alerts` - Mobile alerts
+- `GET /api/v1/compliance/mobile/settings` - Mobile settings
+- `POST /api/v1/compliance/mobile/notifications` - Send mobile notification
+- `GET /api/v1/compliance/mobile/offline-data` - Get offline data
+- `POST /api/v1/compliance/mobile/sync` - Sync mobile data
+
+### 🔒 Rate Limiting Endpoints (8)
+- `GET /api/v1/compliance/rate-limit/status/{user_id}` - Get user rate limit status
+- `GET /api/v1/compliance/rate-limit/violations` - Get rate limit violations
+- `POST /api/v1/compliance/rate-limit/clear-violations` - Clear old violations
+- `GET /api/v1/compliance/rate-limit/statistics` - Rate limiting statistics
+- `POST /api/v1/compliance/rate-limit/rules` - Create rate limit rule
+- `PUT /api/v1/compliance/rate-limit/rules/{rule_id}` - Update rate limit rule
+- `DELETE /api/v1/compliance/rate-limit/rules/{rule_id}` - Delete rate limit rule
+
+### 📊 Visualization Endpoints (10)
+- `GET /api/v1/compliance/visualization/list` - List visualizations
+- `POST /api/v1/compliance/visualization/generate/{viz_id}` - Generate visualization
+- `GET /api/v1/compliance/visualization/data/{viz_id}` - Get visualization data
+- `POST /api/v1/compliance/visualization/export/{viz_id}` - Export visualization
+- `DELETE /api/v1/compliance/visualization/{viz_id}` - Delete visualization
+- `GET /api/v1/compliance/visualization/statistics` - Visualization statistics
+- `POST /api/v1/compliance/visualization/custom` - Create custom visualization
+- `GET /api/v1/compliance/visualization/cache/clear` - Clear visualization cache
 
 ### 🕵️ Investigation Endpoints (6)
 - `POST /api/v1/investigations` - Create investigation
@@ -469,9 +534,8 @@ LOG_FILE_PATH=/app/logs
 
 ### Version History
 - **v1.0.0** - Initial production release with 56 endpoints
-- **v1.5.0** - Compliance framework with 68 endpoints (current)
-- **v1.6.0** - Planned: GraphQL API, enhanced filtering
-- **v2.0.0** - Planned: Real-time streaming, advanced analytics
+- **v1.5.0** - Compliance framework with 68 endpoints
+- **v1.6.0** - Enhanced compliance with analytics, mobile, automation, and visualization (current)
 
 ## 🚀 Performance
 

@@ -237,10 +237,10 @@ forensics_reports/
 educational_modules/
 
 # =============================================================================
-# Compliance and Regulatory (exclude from version control)
+# Compliance and Regulatory Data (GDPR PROTECTED - NEVER COMMIT)
 # =============================================================================
-compliance_reports/
-regulatory_submissions/
+compliance/
+regulatory_reports/
 case_evidence/
 audit_logs/
 risk_assessments/
@@ -248,6 +248,48 @@ compliance_cache/
 regulatory_data/
 sanctions_lists/
 watchlists/
+training_records/
+certification_records/
+mobile_cache/
+visualization_cache/
+workflow_data/
+export_files/
+backup_files/
+
+# =============================================================================
+# Mobile Application Data (GDPR PROTECTED - NEVER COMMIT)
+# =============================================================================
+mobile_data/
+app_cache/
+offline_data/
+user_preferences/
+notification_settings/
+session_data/
+analytics_cache/
+
+# =============================================================================
+# Training and Education Materials (exclude from container)
+# =============================================================================
+training/
+course_materials/
+certification_records/
+workshop_materials/
+video_tutorials/
+assessment_results/
+training_logs/
+
+# =============================================================================
+# Analytics and Visualization Data (exclude from container)
+# =============================================================================
+analytics_data/
+visualization_cache/
+chart_data/
+report_data/
+dashboard_cache/
+performance_metrics/
+compliance_analytics/
+risk_analytics/
+audit_analytics/
 
 # Compliance Temporary Files
 compliance_temp/

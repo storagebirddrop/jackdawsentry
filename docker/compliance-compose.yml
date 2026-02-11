@@ -1,0 +1,382 @@
+# Jackdaw Sentry Compliance Services Docker Compose
+# Dedicated configuration for compliance microservices
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Compliance API Service
+  # =============================================================================
+  compliance-api:
+    build:
+      context: ..
+      dockerfile: docker/compliance.Dockerfile
+    container_name: jackdawsentry_compliance_api
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - COMPLIANCE_SERVICE_PORT=8001
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=jackdaw_sentry_neo4j_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=jackdawsentry_compliance
+      - POSTGRES_USER=jackdawsentry_user
+      - POSTGRES_PASSWORD=jackdawsentry_pg_password
+      - COMPLIANCE_LOG_LEVEL=INFO
+      - REGULATORY_REPORTING_ENABLED=true
+      - CASE_MANAGEMENT_ENABLED=true
+      - AUDIT_TRAIL_ENABLED=true
+      - RISK_ASSESSMENT_ENABLED=true
+      - COMPLIANCE_CACHE_TTL=3600
+      - COMPLIANCE_BATCH_SIZE=100
+    volumes:
+      - ../logs/compliance:/app/logs
+      - ../data/compliance:/app/data/compliance
+      - ../uploads/compliance:/app/uploads/compliance
+      - ../cache/compliance:/app/cache/compliance
+      - ../config/compliance:/app/config/compliance
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Compliance Worker Service (Background Processing)
+  # =============================================================================
+  compliance-worker:
+    build:
+      context: ..
+      dockerfile: docker/compliance.Dockerfile
+    container_name: jackdawsentry_compliance_worker
+    restart: unless-stopped
+    environment:
+      - COMPLIANCE_SERVICE_MODE=worker
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=jackdaw_sentry_neo4j_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=jackdawsentry_compliance
+      - POSTGRES_USER=jackdawsentry_user
+      - POSTGRES_PASSWORD=jackdawsentry_pg_password
+      - COMPLIANCE_LOG_LEVEL=INFO
+      - WORKER_CONCURRENCY=4
+      - WORKER_QUEUE=complianceQueue
+      - WORKER_BATCH_SIZE=50
+    volumes:
+      - ../logs/compliance:/app/logs
+      - ../data/compliance:/app/data/compliance
+      - ../cache/compliance:/app/cache/compliance
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import asyncio; from src.compliance.worker import health_check; asyncio.run(health_check())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Compliance Scheduler Service (Periodic Tasks)
+  # =============================================================================
+  compliance-scheduler:
+    build:
+      context: ..
+      dockerfile: docker/compliance.Dockerfile
+    container_name: jackdawsentry_compliance_scheduler
+    restart: unless-stopped
+    environment:
+      - COMPLIANCE_SERVICE_MODE=scheduler
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=jackdaw_sentry_neo4j_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=jackdawsentry_compliance
+      - POSTGRES_USER=jackdawsentry_user
+      - POSTGRES_PASSWORD=jackdawsentry_pg_password
+      - COMPLIANCE_LOG_LEVEL=INFO
+      - SCHEDULER_ENABLED=true
+      - DEADLINE_CHECK_INTERVAL=300
+      - DATA_RETENTION_INTERVAL=3600
+      - CACHE_CLEANUP_INTERVAL=1800
+    volumes:
+      - ../logs/compliance:/app/logs
+      - ../data/compliance:/app/data/compliance
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import asyncio; from src.compliance.scheduler import health_check; asyncio.run(health_check())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Compliance Monitoring Service
+  # =============================================================================
+  compliance-monitoring:
+    build:
+      context: ..
+      dockerfile: docker/compliance.Dockerfile
+    container_name: jackdawsentry_compliance_monitoring
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - COMPLIANCE_SERVICE_MODE=monitoring
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=jackdaw_sentry_neo4j_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=jackdawsentry_compliance
+      - POSTGRES_USER=jackdawsentry_user
+      - POSTGRES_PASSWORD=jackdawsentry_pg_password
+      - COMPLIANCE_LOG_LEVEL=INFO
+      - MONITORING_PORT=8002
+      - ALERT_WEBHOOK_URL=http://alertmanager:9093/api/v1/alerts
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_INTERVAL=60
+    volumes:
+      - ../logs/compliance:/app/logs
+      - ../config/compliance/monitoring:/app/config/monitoring
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Neo4j Database (Compliance Instance)
+  # =============================================================================
+  neo4j:
+    image: neo4j:5.14-community
+    container_name: jackdawsentry_compliance_neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/jackdaw_sentry_neo4j_password
+      NEO4J_dbms_memory_heap_initial__size: 1G
+      NEO4J_dbms_memory_heap_max__size: 2G
+      NEO4J_dbms_memory_pagecache_size: 1G
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*,gds.*
+      NEO4J_dbms_security_procedures_allowlist: apoc.*,gds.*
+      NEO4J_dbms_logs_debug_level: INFO
+      NEO4J_dbms_default_database=compliance
+    volumes:
+      - neo4j_compliance_data:/data
+      - neo4j_compliance_logs:/logs
+      - neo4j_compliance_import:/var/lib/neo4j/import
+      - neo4j_compliance_plugins:/plugins
+      - ./neo4j/init:/docker-entrypoint-initdb.d
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD-SHELL", "neo4j status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =============================================================================
+  # PostgreSQL (Compliance Database)
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: jackdawsentry_compliance_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: jackdawsentry_compliance
+      POSTGRES_USER: jackdawsentry_user
+      POSTGRES_PASSWORD: jackdawsentry_pg_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_compliance_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jackdawsentry_user -d jackdawsentry_compliance"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =============================================================================
+  # Redis (Compliance Cache)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: jackdawsentry_compliance_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass jackdaw_sentry_redis_password
+    volumes:
+      - redis_compliance_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "jackdaw_sentry_redis_password", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =============================================================================
+  # Prometheus (Compliance Metrics)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jackdawsentry_compliance_prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_compliance_data:/prometheus
+    depends_on:
+      - compliance-api
+      - compliance-monitoring
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Grafana (Compliance Dashboard)
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jackdawsentry_compliance_grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=compliance_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_compliance_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Alertmanager (Compliance Alerts)
+  # =============================================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: jackdawsentry_compliance_alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_compliance_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - compliance_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  compliance_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  neo4j_compliance_data:
+    driver: local
+  neo4j_compliance_logs:
+    driver: local
+  neo4j_compliance_import:
+    driver: local
+  neo4j_compliance_plugins:
+    driver: local
+  postgres_compliance_data:
+    driver: local
+  redis_compliance_data:
+    driver: local
+  prometheus_compliance_data:
+    driver: local
+  grafana_compliance_data:
+    driver: local
+  alertmanager_compliance_data:
+    driver: local
