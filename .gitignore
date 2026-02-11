@@ -237,6 +237,25 @@ forensics_reports/
 educational_modules/
 
 # =============================================================================
+# Compliance and Regulatory (exclude from version control)
+# =============================================================================
+compliance_reports/
+regulatory_submissions/
+case_evidence/
+audit_logs/
+risk_assessments/
+compliance_cache/
+regulatory_data/
+sanctions_lists/
+watchlists/
+
+# Compliance Temporary Files
+compliance_temp/
+regulatory_temp/
+audit_temp/
+risk_temp/
+
+# =============================================================================
 # Frontend Development (exclude from version control)
 # =============================================================================
 frontend/dist/

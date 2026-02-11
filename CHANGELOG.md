@@ -5,6 +5,41 @@ All notable changes to Jackdaw Sentry will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2024-01-20
+
+### ✅ **COMPLIANCE FEATURE IMPLEMENTATION COMPLETED**
+
+#### 🛡️ **Comprehensive Compliance Framework**
+- **Regulatory Reporting Integration**: Multi-jurisdictional support for USA FINCEN, UK FCA, Singapore MAS, EU AMLD
+- **Case Management & Evidence Tracking**: Full lifecycle case management with chain-of-custody evidence tracking
+- **Audit Trail & Compliance Logging**: Immutable audit events with hash chaining for integrity verification
+- **Automated Risk Assessment Workflows**: AI-powered risk scoring with configurable thresholds and escalation procedures
+
+#### Regulatory Capabilities
+- **Multi-Jurisdictional Reports**: SAR, CTR, STR, AML, CTF, sanctions, and risk assessment reports
+- **Automated Submission**: Simulated regulatory API integration with status tracking
+- **Deadline Management**: Automated deadline monitoring and compliance alerts
+- **Report Templates**: Standardized templates for different regulatory requirements
+
+#### Risk Assessment Features
+- **Real-Time Scoring**: Automated risk factor analysis across multiple categories
+- **Threshold Monitoring**: Configurable risk thresholds with automatic escalation
+- **Workflow Management**: Structured assessment workflows with approval processes
+- **Comprehensive Analytics**: Risk trends, patterns, and statistical reporting
+
+#### API Integration
+- **19 New Compliance Endpoints**: Complete REST API for all compliance operations
+- **Regulatory Reporting**: Create and manage multi-jurisdictional regulatory reports
+- **Case Management**: Full CRUD operations for compliance cases and evidence
+- **Risk Assessment**: Automated risk scoring with comprehensive factor analysis
+- **Audit Trail**: Immutable logging with cryptographic integrity verification
+
+#### Technical Implementation
+- **Neo4j Persistence**: Graph database for complex compliance relationships
+- **Redis Caching**: High-performance caching for risk assessments and escalations
+- **Async Processing**: Scalable asynchronous compliance workflows
+- **Immutable Logging**: Cryptographically secure audit trail with hash chaining
+
 ## [1.4.0] - 2024-01-19
 
 ### ✅ **ACADEMIC INTEGRATIONS COMPLETED**

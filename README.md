@@ -7,7 +7,7 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 ## 🎯 Production Status
 
 ✅ **FULLY PRODUCTION-READY** - All critical components implemented and tested  
-✅ **56 API Endpoints** - Complete REST API with authentication & authorization  
+✅ **68 API Endpoints** - Complete REST API with authentication & authorization  
 ✅ **Docker Deployment** - Production containerization with orchestration  
 ✅ **Database Migrations** - Automated schema management  
 ✅ **Comprehensive Testing** - Unit, integration, and performance tests  
@@ -56,7 +56,7 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Nginx Proxy   │    │   FastAPI App   │    │   Background    │
-│   (Load Balancer)│───▶│   (56 Endpoints)│───▶│   Tasks         │
+│   (Load Balancer)│───▶│   (68 Endpoints)│───▶│   Tasks         │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
@@ -66,7 +66,7 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 API Endpoints (56 Total)
+## 📊 API Endpoints (68 Total)
 
 ### Core Endpoints
 - `GET /health` - System health check
@@ -79,10 +79,20 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - `GET /api/v1/analysis/risk-score` - Risk scoring
 - `POST /api/v1/analysis/patterns` - Pattern detection
 
-### Compliance (7 endpoints)
+### Compliance (19 endpoints)
 - `POST /api/v1/compliance/check` - Compliance check
 - `POST /api/v1/compliance/reports` - Generate reports
 - `GET /api/v1/compliance/sanctions` - Sanctions screening
+- `POST /api/v1/compliance/regulatory/reports` - Create regulatory report
+- `GET /api/v1/compliance/regulatory/reports/{report_id}` - Get regulatory report
+- `POST /api/v1/compliance/cases` - Create compliance case
+- `GET /api/v1/compliance/cases/{case_id}` - Get compliance case
+- `POST /api/v1/compliance/cases/{case_id}/evidence` - Add evidence to case
+- `POST /api/v1/compliance/risk/assessments` - Create risk assessment
+- `GET /api/v1/compliance/risk/assessments/{assessment_id}` - Get risk assessment
+- `GET /api/v1/compliance/risk/summary` - Get risk assessment summary
+- `POST /api/v1/compliance/audit/log` - Log audit event
+- `GET /api/v1/compliance/audit/events` - Get audit events
 
 ### Investigations (6 endpoints)
 - `POST /api/v1/investigations` - Create investigation
@@ -178,7 +188,33 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-### 🖥️ **Frontend Dashboard (Production Ready)**
+### �️ **Compliance & Regulatory Reporting (Production Ready)**
+
+#### Comprehensive Compliance Framework
+- **Regulatory Reporting Integration**: Multi-jurisdictional support for USA FINCEN, UK FCA, Singapore MAS, EU AMLD, and more
+- **Case Management & Evidence Tracking**: Full lifecycle case management with chain-of-custody evidence tracking
+- **Audit Trail & Compliance Logging**: Immutable audit events with hash chaining for integrity verification
+- **Automated Risk Assessment Workflows**: AI-powered risk scoring with configurable thresholds and escalation procedures
+
+#### Regulatory Capabilities
+- **Multi-Jurisdictional Reports**: SAR, CTR, STR, AML, CTF, sanctions, and risk assessment reports
+- **Automated Submission**: Simulated regulatory API integration with status tracking
+- **Deadline Management**: Automated deadline monitoring and compliance alerts
+- **Report Templates**: Standardized templates for different regulatory requirements
+
+#### Risk Assessment Features
+- **Real-Time Scoring**: Automated risk factor analysis across multiple categories
+- **Threshold Monitoring**: Configurable risk thresholds with automatic escalation
+- **Workflow Management**: Structured assessment workflows with approval processes
+- **Comprehensive Analytics**: Risk trends, patterns, and statistical reporting
+
+#### Technical Implementation
+- **Neo4j Persistence**: Graph database for complex compliance relationships
+- **Redis Caching**: High-performance caching for risk assessments and escalations
+- **Async Processing**: Scalable asynchronous compliance workflows
+- **Immutable Logging**: Cryptographically secure audit trail with hash chaining
+
+### ��️ **Frontend Dashboard (Production Ready)**
 
 #### Modern Web Dashboard
 - **Responsive Design**: Mobile-first responsive layout with Tailwind CSS

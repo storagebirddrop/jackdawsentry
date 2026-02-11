@@ -2,7 +2,7 @@
 
 🚀 **Production-Ready REST API for Multi-Chain Blockchain Analysis and Compliance**
 
-Complete RESTful API with 56 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection and 13 stablecoin tracking.
+Complete RESTful API with 68 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection, 13 stablecoin tracking, and comprehensive regulatory reporting capabilities.
 
 ## 🚀 Getting Started
 
@@ -93,7 +93,7 @@ Authorization: Bearer <your_jwt_token>
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-## 📊 Complete API Endpoints (56 Total)
+## 📊 Complete API Endpoints (68 Total)
 
 ### 🔧 System Endpoints (3)
 - `GET /health` - System health check
@@ -148,7 +148,7 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/osint/investigation/{id}` - Get OSINT investigation status
 - `POST /api/v1/osint/generate-report` - Generate OSINT investigation report
 
-### 🛡️ Compliance Endpoints (7)
+### 🛡️ Compliance Endpoints (19)
 - `POST /api/v1/compliance/check` - Compliance check
 - `POST /api/v1/compliance/reports` - Generate compliance reports
 - `GET /api/v1/compliance/sanctions` - Sanctions screening
@@ -156,6 +156,16 @@ Authorization: Bearer <your_jwt_token>
 - `POST /api/v1/compliance/rules` - Create compliance rule
 - `GET /api/v1/compliance/watchlist` - Watchlist management
 - `GET /api/v1/compliance/statistics` - Compliance statistics
+- `POST /api/v1/compliance/regulatory/reports` - Create regulatory report
+- `GET /api/v1/compliance/regulatory/reports/{report_id}` - Get regulatory report
+- `POST /api/v1/compliance/cases` - Create compliance case
+- `GET /api/v1/compliance/cases/{case_id}` - Get compliance case
+- `POST /api/v1/compliance/cases/{case_id}/evidence` - Add evidence to case
+- `POST /api/v1/compliance/risk/assessments` - Create risk assessment
+- `GET /api/v1/compliance/risk/assessments/{assessment_id}` - Get risk assessment
+- `GET /api/v1/compliance/risk/summary` - Get risk assessment summary
+- `POST /api/v1/compliance/audit/log` - Log audit event
+- `GET /api/v1/compliance/audit/events` - Get audit events
 
 ### 🕵️ Investigation Endpoints (6)
 - `POST /api/v1/investigations` - Create investigation
@@ -459,7 +469,8 @@ LOG_FILE_PATH=/app/logs
 
 ### Version History
 - **v1.0.0** - Initial production release with 56 endpoints
-- **v1.1.0** - Planned: GraphQL API, enhanced filtering
+- **v1.5.0** - Compliance framework with 68 endpoints (current)
+- **v1.6.0** - Planned: GraphQL API, enhanced filtering
 - **v2.0.0** - Planned: Real-time streaming, advanced analytics
 
 ## 🚀 Performance
