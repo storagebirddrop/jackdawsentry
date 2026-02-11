@@ -18,23 +18,24 @@ Complete guide for deploying Jackdaw Sentry in production environments with Dock
 ## 🔧 Prerequisites
 
 ### System Requirements
-- **CPU**: 4+ cores (8+ recommended for production)
-- **RAM**: 8GB+ (16GB+ recommended for production)
-- **Storage**: 100GB+ SSD (500GB+ for full blockchain data)
+- **CPU**: 8+ cores (16+ recommended for multi-chain production)
+- **RAM**: 16GB+ (32GB+ recommended for full blockchain data)
+- **Storage**: 500GB+ SSD (1TB+ for full blockchain data)
 - **Network**: Stable internet connection for blockchain RPC calls
 - **OS**: Linux (Ubuntu 20.04+, CentOS 8+, RHEL 8+)
 
 ### Software Requirements
 - **Docker**: 20.10+ with Docker Compose 2.0+
-- **Python**: 3.14+ (if running locally)
+- **Python**: 3.14+
 - **Git**: For source code management
 - **SSL Certificate**: For HTTPS (recommended)
 
-### External Services
-- **PostgreSQL**: 13+ (or managed service)
-- **Neo4j**: 5.0+ (or managed service)
-- **Redis**: 6.0+ (or managed service)
-- **Blockchain RPC Endpoints**: For each supported blockchain
+### Blockchain RPC Requirements
+- **Bitcoin**: Full node or RPC endpoint
+- **Ethereum EVM**: Ethereum, BSC, Polygon, Arbitrum, Base, Avalanche RPC endpoints
+- **Solana**: Solana RPC endpoint
+- **Tron**: Tron RPC endpoint
+- **Lightning Network**: LND node (optional, for Lightning Network analysis)
 
 ## 🌍 Environment Setup
 
@@ -48,9 +49,67 @@ cd jackdaw-sentry
 ```bash
 # Copy environment template
 cp .env.example .env
+# Edit .env with your configuration
+```
 
-# Edit with your configuration
-nano .env
+### 3. Multi-Chain Blockchain Configuration
+```bash
+# =============================================================================
+# Multi-Chain Blockchain RPC Configuration
+# =============================================================================
+
+# Bitcoin Configuration
+BITCOIN_RPC_URL=http://localhost:8332
+BITCOIN_RPC_USER=your_bitcoin_rpc_user
+BITCOIN_RPC_PASSWORD=your_bitcoin_rpc_password
+BITCOIN_NETWORK=mainnet
+
+# Lightning Network Configuration (Optional)
+LND_RPC_URL=localhost:10009
+LND_MACAROON_PATH=/path/to/lnd/admin.macaroon
+LND_TLS_CERT_PATH=/path/to/lnd/tls.cert
+
+# Ethereum EVM Configuration
+ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/YOUR_INFURA_KEY
+ETHEREUM_NETWORK=mainnet
+
+BSC_RPC_URL=https://bsc-dataseed.binance.org
+BSC_NETWORK=mainnet
+
+POLYGON_RPC_URL=https://polygon-rpc.com
+POLYGON_NETWORK=mainnet
+
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+ARBITRUM_NETWORK=mainnet
+
+BASE_RPC_URL=https://mainnet.base.org
+BASE_NETWORK=mainnet
+
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+AVALANCHE_NETWORK=mainnet
+
+# Alternative Blockchains
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_NETWORK=mainnet
+
+TRON_RPC_URL=https://api.trongrid.io
+TRON_NETWORK=mainnet
+
+# Optional Additional Blockchains
+XRPL_RPC_URL=https://xrplcluster.com
+XRPL_NETWORK=mainnet
+
+STELLAR_RPC_URL=https://horizon.stellar.org
+STELLAR_NETWORK=public
+
+SEI_RPC_URL=https://rpc.sei-apis.com
+SEI_NETWORK=mainnet
+
+HYPERLIQUID_RPC_URL=https://api.hyperliquid.xyz/info
+HYPERLIQUID_NETWORK=mainnet
+
+PLASMA_RPC_URL=https://rpc.plasma.network
+PLASMA_NETWORK=mainnet
 ```
 
 ### 3. Required Environment Variables

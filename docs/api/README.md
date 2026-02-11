@@ -1,8 +1,8 @@
 # Jackdaw Sentry API Documentation
 
-🚀 **Production-Ready REST API for Blockchain Analysis and Compliance**
+🚀 **Production-Ready REST API for Multi-Chain Blockchain Analysis and Compliance**
 
-Complete RESTful API with 56 endpoints for blockchain analysis, compliance workflows, and investigation management. Fully authenticated, GDPR-compliant, and production-tested.
+Complete RESTful API with 56 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection and 13 stablecoin tracking.
 
 ## 🚀 Getting Started
 
@@ -26,6 +26,72 @@ POST /api/v1/auth/login
 # Use token in subsequent requests
 Authorization: Bearer <your_jwt_token>
 ```
+
+## 📊 Multi-Chain Blockchain Support
+
+### ✅ **PRODUCTION-READY BLOCKCHAINS (10+ Networks)**
+
+#### Bitcoin Ecosystem
+- **Bitcoin (BTC)** - Core Bitcoin with Lightning Network support
+  - Lightning Network channel state monitoring + payment routing analysis
+  - Real-time mempool monitoring with high-value transaction alerts
+  - UTXO tracking and comprehensive transaction analysis
+
+#### Ethereum EVM Ecosystem
+- **Ethereum (ETH)** - Native Ethereum with full ERC-20 support
+  - USDT, USDC, EURC, EURT stablecoin tracking
+  - Smart contract interaction analysis
+  - Pending transaction monitoring
+- **BSC (BNB)** - Binance Smart Chain
+  - USDT, USDC, BUSD stablecoin tracking
+  - Low-fee transaction analysis
+  - DeFi ecosystem monitoring
+- **Polygon (MATIC)** - Ethereum scaling solution
+  - USDT, USDC stablecoin tracking
+  - Fast transaction processing
+  - Bridge and DEX monitoring
+- **Arbitrum (ARB)** - Ethereum L2 scaling
+  - USDT, USDC stablecoin tracking
+  - Optimistic rollup analysis
+  - Cross-bridge transaction tracking
+- **Base** - Coinbase L2 network
+  - USDC stablecoin tracking
+  - Coinbase ecosystem integration
+  - Fast, low-cost transactions
+- **Avalanche (AVAX)** - High-performance smart contracts
+  - USDT, USDC stablecoin tracking
+  - Avalanche C-Chain monitoring
+  - Subnet transaction analysis
+
+#### Alternative Blockchains
+- **Solana (SOL)** - High-performance blockchain
+  - USDT, USDC SPL token tracking
+  - Slot-based block processing
+  - Program interaction analysis
+- **Tron (TRX)** - High-throughput blockchain
+  - USDT TRC-20 stablecoin tracking
+  - TRX native coin monitoring
+  - Smart contract interaction analysis
+
+### 🎯 **Stablecoin Coverage (13 Stablecoins)**
+
+#### USD-Pegged Stablecoins
+- **USDT (Tether)** - Bitcoin, Ethereum, Tron, Solana, Polygon, Arbitrum, Base, Avalanche
+- **USDC (Circle)** - Ethereum, BSC, Polygon, Arbitrum, Base, Avalanche, Solana
+- **USDe (Ethena)** - Ethereum ecosystem
+- **USDS (Sky)** - Ethereum ecosystem
+- **USD1 (First Digital)** - Ethereum ecosystem
+- **BUSD (Binance)** - BSC ecosystem
+- **A7A5 (A7)** - Ethereum ecosystem
+
+#### EUR-Pegged Stablecoins
+- **EURC (Circle)** - Ethereum ecosystem
+- **EURT (Tether)** - Ethereum ecosystem
+- **EURS (Stasis)** - Ethereum ecosystem
+
+#### Regional Stablecoins
+- **RLUSD (Ripple)** - XRP Ledger ecosystem
+- **BRZ (Brazilian Real)** - Ethereum ecosystem
 
 ## 📊 Complete API Endpoints (56 Total)
 
