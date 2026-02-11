@@ -212,6 +212,31 @@ Icon
 .AppleDouble
 .LSOverride
 
+# =============================================================================
+# Analysis & Machine Learning (exclude from version control)
+# =============================================================================
+analysis_cache/
+ml_models/
+*.pkl
+*.joblib
+*.h5
+*.pb
+*.pt
+*.pth
+*.ckpt
+*.model
+*.onnx
+*.tflite
+training_data/
+model_cache/
+ml_cache/
+analysis_results/
+*.analysis
+pattern_cache/
+cluster_cache/
+risk_cache/
+
+# =============================================================================
 # Linux
 *~
 .fuse_hidden*

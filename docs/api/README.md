@@ -100,11 +100,15 @@ Authorization: Bearer <your_jwt_token>
 - `GET /info` - Application information  
 - `GET /metrics` - Performance metrics
 
-### 🔍 Analysis Endpoints (8)
-- `POST /api/v1/analysis/address` - Analyze blockchain address
-- `POST /api/v1/analysis/transaction` - Analyze transaction
+### Analysis (12 endpoints)
+- `POST /api/v1/analysis/address` - Comprehensive address analysis
+- `POST /api/v1/analysis/transaction` - Transaction analysis
 - `GET /api/v1/analysis/risk-score` - Get address risk score
-- `POST /api/v1/analysis/patterns` - Detect transaction patterns
+- `POST /api/v1/analysis/patterns` - ML pattern detection
+- `POST /api/v1/analysis/flow` - Transaction flow analysis
+- `POST /api/v1/analysis/stablecoin-flows` - Stablecoin flow analysis
+- `POST /api/v1/analysis/mixer-detection` - Mixer usage analysis
+- `POST /api/v1/analysis/address-clustering` - Address clustering analysis
 - `GET /api/v1/analysis/transaction-patterns` - Transaction pattern analysis
 - `POST /api/v1/analysis/batch` - Batch analysis
 - `GET /api/v1/analysis/statistics` - Analysis statistics

@@ -5,6 +5,82 @@ All notable changes to Jackdaw Sentry will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-01-16
+
+### ✅ **ANALYSIS ENGINE ENHANCEMENT COMPLETED**
+
+#### 🧠 **ML-Powered Analysis Engine (6 Engines)**
+- **Cross-Chain Transaction Analysis Engine** - Multi-chain pattern detection and flow analysis
+  - Transaction flow tracking across 10+ blockchains
+  - Bridge and DEX usage detection
+  - Comprehensive risk scoring with confidence levels
+  - Real-time pattern recognition and alerting
+- **Stablecoin Flow Tracking System** - Complete stablecoin movement analysis
+  - 13 stablecoins supported across all blockchains
+  - Bridge flow analysis and DEX flow tracking
+  - Cross-chain flow detection and risk assessment
+  - Volume intelligence and pattern identification
+- **Money Laundering Pattern Detection** - 14 ML patterns for AML compliance
+  - Structuring, Layering, Integration detection
+  - Circular Trading, Mixer Usage, Privacy Tools
+  - Bridge Hopping, DEX Hopping, High Frequency
+  - Round Amounts, Off-Peak Hours, Synchronized Transfers
+- **Mixer & Privacy Tool Detection** - Comprehensive privacy tool identification
+  - Multiple mixers: Tornado Cash, Wasabi, JoinMarket, Samourai, Whirlpool
+  - Privacy tools: Aztec, Ironfish, Monero, Zcash, Dash
+  - Cross-chain mixer detection and usage analysis
+  - Risk assessment and pattern identification
+- **ML-Powered Address Clustering & Risk Scoring** - Advanced address intelligence
+  - 15+ behavioral and temporal features
+  - ML-based risk assessment with confidence levels
+  - Similarity-based address clustering
+  - Cluster types: Exchange, Mixer, Privacy Tool, Institutional, Retail, Whale
+- **Enhanced Analysis Manager** - Unified analysis orchestration
+  - Single entry point for all analysis engines
+  - Comprehensive analysis combining all engines
+  - Redis-based caching for performance
+  - Health monitoring and metrics collection
+
+#### 🔍 **Advanced Analysis Capabilities**
+- **Feature Engineering** - Behavioral, temporal, and network features
+- **Pattern Recognition** - Automated suspicious behavior detection
+- **Address Intelligence** - Comprehensive address profiling
+- **Risk Assessment** - Multi-factor risk scoring with confidence
+- **Flow Analysis** - Complete transaction flow visualization
+- **Real-Time Processing** - Live analysis with immediate results
+
+#### 📊 **Machine Learning Features**
+- **Behavioral Analysis** - Transaction frequency, amount variance, counterparty diversity
+- **Temporal Patterns** - Off-peak hours, high-frequency periods, synchronized transfers
+- **Cross-Chain Activity** - Multi-chain behavior analysis
+- **Risk Indicators** - Mixer usage, privacy tools, large transactions
+- **Network Analysis** - Cluster connections, graph metrics
+- **Clustering Algorithm** - Similarity-based address grouping
+
+#### 🚀 **Production Enhancements**
+- **Caching System** - Redis-based performance optimization
+- **Health Monitoring** - Engine health and performance monitoring
+- **Metrics Collection** - Real-time analysis metrics
+- **API Integration** - Seamless REST API integration
+- **Error Recovery** - Robust error handling and recovery
+- **Scalability** - Async processing for high throughput
+
+#### 📈 **API Enhancements**
+- **12 Analysis Endpoints** - Comprehensive analysis API coverage
+- **Batch Analysis** - Multiple address/transaction analysis
+- **Real-Time Alerts** - Automatic suspicious activity alerts
+- **Statistics API** - System-wide analysis statistics
+- **Enrichment API** - Address data enrichment
+- **Pattern API** - Transaction pattern analysis
+
+#### 🛡️ **Compliance Improvements**
+- **Evidence Collection** - Detailed evidence for each pattern
+- **Severity Classification** - Low to Critical risk levels
+- **Audit Trails** - Complete analysis logging
+- **GDPR Compliance** - Data protection and privacy
+- **Risk Classification** - Standardized risk assessment
+- **Recommendations** - Actionable insights for investigation
+
 ## [1.0.0] - 2024-01-15
 
 ### ✅ **PRODUCTION RELEASE - MULTI-CHAIN DATA COLLECTION COMPLETED**

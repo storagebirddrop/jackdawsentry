@@ -178,6 +178,107 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
+### 🔍 **Advanced Analysis Engine**
+
+### ✅ **PRODUCTION-READY ML-POWERED ANALYSIS (6 Engines)**
+
+#### Cross-Chain Transaction Analysis Engine
+- **Multi-Chain Pattern Detection**: Identifies patterns across 10+ blockchains
+- **Transaction Flow Analysis**: Tracks complete transaction paths between addresses
+- **Bridge & DEX Detection**: Identifies cross-chain bridge and DEX usage
+- **Risk Scoring**: Calculates comprehensive risk scores for transactions
+- **Pattern Recognition**: Detects 10+ suspicious transaction patterns
+- **Real-Time Analysis**: Live transaction monitoring and analysis
+
+#### Stablecoin Flow Tracking System
+- **13 Stablecoins Supported**: Complete tracking across all supported blockchains
+- **Bridge Flow Analysis**: Monitors stablecoin movements across bridges
+- **DEX Flow Tracking**: Tracks stablecoin swaps across DEXs
+- **Cross-Chain Flow Detection**: Identifies multi-chain stablecoin flows
+- **Risk Assessment**: Calculates flow-specific risk scores
+- **Volume Intelligence**: Real-time stablecoin volume monitoring
+
+#### Money Laundering Pattern Detection
+- **14 ML Patterns**: Comprehensive AML pattern detection
+  - Structuring, Layering, Integration
+  - Circular Trading, Mixer Usage, Privacy Tools
+  - Bridge Hopping, DEX Hopping, High Frequency
+  - Round Amounts, Off-Peak Hours, Synchronized Transfers
+- **Risk Scoring**: Pattern-specific risk assessment
+- **Evidence Collection**: Detailed evidence for each pattern
+- **Severity Classification**: Low to Critical severity levels
+- **Automated Detection**: Real-time pattern identification
+
+#### Mixer & Privacy Tool Detection
+- **Multiple Mixers**: Tornado Cash, Wasabi, JoinMarket, Samourai, Whirlpool
+- **Privacy Tools**: Aztec, Ironfish, Monero, Zcash, Dash, etc.
+- **Usage Analysis**: Comprehensive mixer usage statistics
+- **Risk Assessment**: Mixer-specific risk scoring
+- **Pattern Identification**: Mixing and privacy usage patterns
+- **Cross-Chain Coverage**: Mixer detection across all supported blockchains
+
+#### ML-Powered Address Clustering & Risk Scoring
+- **Feature Extraction**: 15+ behavioral and temporal features
+- **Risk Scoring**: ML-based risk assessment with confidence levels
+- **Address Clustering**: Groups similar addresses together
+- **Cluster Types**: Exchange, Mixer, Privacy Tool, Institutional, Retail, Whale, etc.
+- **Recommendations**: Actionable recommendations based on risk level
+- **Confidence Scoring**: Reliability assessment for predictions
+
+#### Enhanced Analysis Manager
+- **Unified Interface**: Single entry point for all analysis engines
+- **Comprehensive Analysis**: Combines all engines for complete picture
+- **Caching System**: Redis-based caching for performance
+- **Health Monitoring**: Engine health and performance monitoring
+- **Metrics Collection**: Real-time analysis metrics
+- **API Integration**: Seamless integration with REST API
+
+### 🧠 **Machine Learning Capabilities**
+
+#### Feature Engineering
+- **Behavioral Features**: Transaction frequency, amount variance, counterparty diversity
+- **Temporal Patterns**: Off-peak hours, high-frequency periods, synchronized transfers
+- **Cross-Chain Activity**: Multi-chain behavior analysis
+- **Risk Indicators**: Mixer usage, privacy tools, large transactions
+- **Network Analysis**: Cluster connections, graph metrics
+
+#### Pattern Recognition
+- **AML Patterns**: 14 distinct money laundering patterns
+- **Suspicious Behavior**: Automated detection of anomalous activities
+- **Risk Classification**: Very Low to Critical risk levels
+- **Evidence Collection**: Detailed evidence for compliance reporting
+- **Confidence Scoring**: Reliability assessment for each detection
+
+#### Address Intelligence
+- **Clustering Algorithm**: Similarity-based address grouping
+- **Risk Assessment**: ML-powered risk scoring with multiple factors
+- **Behavioral Analysis**: Comprehensive address behavior profiling
+- **Cluster Types**: Exchange, Mixer, Privacy Tool, Institutional, Retail, Whale
+- **Recommendations**: Actionable insights for investigation
+
+### 📊 **Analysis Capabilities**
+
+#### Transaction Analysis
+- **Real-Time Processing**: Live transaction analysis as they occur
+- **Cross-Chain Tracking**: Complete transaction flow across blockchains
+- **Pattern Detection**: Automatic identification of suspicious patterns
+- **Risk Scoring**: Comprehensive risk assessment with confidence levels
+- **Alert Generation**: Automatic alerts for high-risk transactions
+
+#### Address Analysis
+- **Comprehensive Profiling**: Complete address behavior analysis
+- **Risk Assessment**: ML-powered risk scoring with detailed factors
+- **Cluster Affiliation**: Address clustering and group identification
+- **Historical Analysis**: Long-term behavior pattern analysis
+- **Cross-Chain Activity**: Multi-chain address behavior tracking
+
+#### Flow Analysis
+- **Transaction Paths**: Complete transaction flow visualization
+- **Cross-Chain Flows**: Multi-chain transaction tracking
+- **Stablecoin Flows**: Dedicated stablecoin movement analysis
+- **Bridge & DEX Tracking**: Cross-chain service usage monitoring
+- **Risk Assessment**: Flow-specific risk scoring and analysis
+
 ### 🔍 **Real-Time Monitoring Capabilities**
 
 #### Transaction Monitoring
