@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > live external services (blockchain RPC, ML models, third-party APIs).
 > See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
+### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions (in progress)
+
+- **Roadmap**: Added M9 milestone to `docs/roadmap.md` with 14 tasks, design decisions, and gate criteria
+- Live blockchain RPC lookup, Cytoscape.js transaction graph explorer, OFAC/EU sanctions screening — implementation pending
+
 ### Initial Admin Setup Flow
 
 - **Setup router** (`src/api/routers/setup.py`): Unauthenticated `GET /api/v1/setup/status` (checks if admin exists) and `POST /api/v1/setup/initialize` (creates first admin); locked after first admin is created (409 Conflict)

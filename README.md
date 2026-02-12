@@ -14,6 +14,7 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 ⚠️ **Business Logic** — Core routers wired to Neo4j/engines; collectors and ML engines are scaffolded  
 ✅ **Testing** — 196 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows, load testing)  
 ✅ **Frontend** — 8-page dashboard with dark mode, JWT auth, shared nav, Chart.js visualizations (M8)  
+⏳ **M9 "It traces"** — Live blockchain RPC lookup, Cytoscape.js transaction graph explorer, OFAC/EU sanctions screening  
 
 See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 

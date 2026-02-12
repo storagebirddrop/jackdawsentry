@@ -4,7 +4,7 @@ This roadmap captures the remaining work required to reach a genuinely productio
 
 ## How to read this
 
-- **M0–M8**: nine milestones, executed in order.
+- **M0–M9**: ten milestones, executed in order.
 - Each milestone has a **gate** — a concrete test that proves it is complete.
 - Items reference specific files so work can be tracked at the PR level.
 
@@ -310,10 +310,44 @@ _Full code review across M0–M8, documentation accuracy pass, and repo hygiene 
 
 ---
 
+## M9 — "It traces" ⏳ IN PROGRESS
+
+_Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Chainalysis Reactor-style), and automated OFAC/EU sanctions screening._
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Lightweight RPC client layer (`src/collectors/rpc/`) — EVM + Bitcoin first, then Solana/Tron/XRPL | ⬚ |
+| 2 | Update blockchain router with Neo4j → live RPC fallback + caching | ⬚ |
+| 3 | New `GET /{chain}/tx/{hash}`, `GET /{chain}/address/{address}` endpoints | ⬚ |
+| 4 | Graph query API (`src/api/routers/graph.py`) — expand, trace, search, cluster endpoints | ⬚ |
+| 5 | Neo4j variable-length path queries for graph traversal (max 500 nodes) | ⬚ |
+| 6 | Frontend graph explorer — Cytoscape.js, standalone `/graph` page | ⬚ |
+| 7 | Graph tab embedded in `/analysis` page (shared `graph.js` module) | ⬚ |
+| 8 | Sanctions service (`src/services/sanctions.py`) — OFAC SDN + EU list ingestion | ⬚ |
+| 9 | PostgreSQL `sanctioned_addresses` table + migration | ⬚ |
+| 10 | Sanctions API (`src/api/routers/sanctions.py`) — screen, lookup, sync endpoints | ⬚ |
+| 11 | Scheduled sanctions sync (OFAC every 6h, EU every 12h) | ⬚ |
+| 12 | Graph + analysis integration — sanctioned address badges, red borders in graph | ⬚ |
+| 13 | Update Nginx routes, nav.js sidebar, CSP for Cytoscape CDN | ⬚ |
+| 14 | Update docs (README, CHANGELOG, deployment guide) | ⬚ |
+
+### Design decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| **Graph library** | Cytoscape.js | Purpose-built for graph viz; 8+ layouts, compound nodes, declarative API; D3 would require building all graph interactions from scratch |
+| **RPC strategy** | Public RPCs, upgradeable | Config already has per-chain RPC URLs; rate-limited via Redis; swap to paid/self-hosted later |
+| **Dual graph access** | `/graph` + `/analysis` tab | Standalone for deep investigation; embedded for quick visual expansion from search results |
+| **Sanctions source** | OFAC SDN XML + EU Consolidated | Free, public, covers BTC/ETH/XMR/LTC/USDT/USDC/TRX/ARB/BSC; nightly pre-parsed lists available via GitHub |
+
+**Gate**: (1) `GET /api/v1/blockchain/ethereum/tx/{hash}` returns live RPC data for a tx not in Neo4j; (2) `/graph` page renders interactive Cytoscape.js graph with expand-on-click; (3) Graph tab in `/analysis` shows visual expansion; (4) `POST /api/v1/sanctions/screen` returns match results against synced OFAC list; (5) sanctioned nodes show red border + warning in graph view.
+
+---
+
 ## Ordering rationale
 
 ```
-M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cleanup
+M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cleanup → M9
 ```
 
 - **M0 → M1**: Can't build a Docker image if Python can't import the app.
@@ -324,6 +358,7 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - **M5 → M6**: Frontend must consume the tested API before we can meaningfully load-test realistic user flows.
 - **M6 → M7**: Load testing requires a working frontend auth flow to generate realistic traffic patterns.
 - **M7 → M8**: UI polish and dark mode require a validated, performant API and frontend auth flow.
+- **M8 → M9**: Live blockchain lookups, graph visualization, and sanctions screening require a polished, authenticated frontend and a proven data layer.
 
 ---
 
