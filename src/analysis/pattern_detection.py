@@ -842,7 +842,7 @@ class MLPatternDetector:
                             description=m.get('description', ''),
                         ))
                     except (KeyError, ValueError, TypeError) as exc:
-                        logger.warning("Failed to deserialize PatternMatch: %s — raw data: %r", exc, m)
+                        logger.warning("Failed to deserialize PatternMatch: %s — pattern_type=%s", exc, m.get('pattern_type', 'unknown'))
                 return AddressPatternProfile(
                     address=profile_data['address'],
                     blockchain=profile_data['blockchain'],

@@ -180,9 +180,13 @@ class CrossChainAnalyzer:
         if isinstance(ts, datetime):
             return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
         if isinstance(ts, str):
-            if ts.endswith('Z'):
-                ts = ts[:-1] + '+00:00'
-            return datetime.fromisoformat(ts)
+            try:
+                if ts.endswith('Z'):
+                    ts = ts[:-1] + '+00:00'
+                result = datetime.fromisoformat(ts)
+                return result if result.tzinfo else result.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return datetime.now(timezone.utc)
         return datetime.now(timezone.utc)
 
     async def analyze_transaction(self, tx_hash: str, blockchain: str) -> Optional[CrossChainTransaction]:
