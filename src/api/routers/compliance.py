@@ -335,6 +335,17 @@ async def create_compliance_rule(
         now = datetime.now(timezone.utc)
 
         async with get_neo4j_session() as session:
+            # Check for duplicate rule name
+            dup_result = await session.run(
+                "MATCH (r:ComplianceRule {name: $name}) RETURN r LIMIT 1",
+                name=request.name,
+            )
+            if await dup_result.single():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A compliance rule named '{request.name}' already exists",
+                )
+
             await session.run(
                 """
                 CREATE (r:ComplianceRule {
@@ -387,6 +398,8 @@ async def create_compliance_rule(
             timestamp=now,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Rule creation failed: {e}")
         raise ComplianceException(
@@ -469,50 +482,44 @@ async def get_compliance_statistics(
         # Aggregate from Neo4j
         try:
             async with get_neo4j_session() as session:
-                # Count risk assessments
-                ra_result = await session.run(
-                    "MATCH (a:RiskAssessment) RETURN count(a) AS total, "
-                    "count(CASE WHEN a.risk_level IN ['high','severe'] THEN 1 END) AS flagged"
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (a:RiskAssessment)
+                    WITH count(a) AS total_risk_assessments,
+                         count(CASE WHEN a.risk_level IN ['high','severe'] THEN 1 END) AS flagged_assessments
+                    OPTIONAL MATCH (rr:RegulatoryReport)
+                    WITH total_risk_assessments, flagged_assessments,
+                         count(rr) AS reports_generated
+                    OPTIONAL MATCH (cr:ComplianceRule)
+                    WITH total_risk_assessments, flagged_assessments, reports_generated,
+                         count(cr) AS total_rules,
+                         count(CASE WHEN cr.enabled = true THEN 1 END) AS enabled_rules
+                    OPTIONAL MATCH (c:Case)
+                    WITH total_risk_assessments, flagged_assessments, reports_generated,
+                         total_rules, enabled_rules,
+                         count(c) AS total_cases,
+                         count(CASE WHEN c.status = 'open' THEN 1 END) AS open_cases
+                    OPTIONAL MATCH (e:AuditEvent)
+                    RETURN total_risk_assessments, flagged_assessments,
+                           reports_generated, total_rules, enabled_rules,
+                           total_cases, open_cases,
+                           count(e) AS total_audit_events
+                    """
                 )
-                ra_record = await ra_result.single()
-                stats["total_risk_assessments"] = ra_record["total"] if ra_record else 0
-                stats["flagged_assessments"] = ra_record["flagged"] if ra_record else 0
-
-                # Count regulatory reports
-                rr_result = await session.run(
-                    "MATCH (r:RegulatoryReport) RETURN count(r) AS total"
-                )
-                rr_record = await rr_result.single()
-                stats["reports_generated"] = rr_record["total"] if rr_record else 0
-
-                # Count compliance rules
-                cr_result = await session.run(
-                    "MATCH (r:ComplianceRule) RETURN count(r) AS total, "
-                    "count(CASE WHEN r.enabled = true THEN 1 END) AS enabled"
-                )
-                cr_record = await cr_result.single()
-                stats["total_rules"] = cr_record["total"] if cr_record else 0
-                stats["enabled_rules"] = cr_record["enabled"] if cr_record else 0
-
-                # Count cases
-                case_result = await session.run(
-                    "MATCH (c:Case) RETURN count(c) AS total, "
-                    "count(CASE WHEN c.status = 'open' THEN 1 END) AS open_cases"
-                )
-                case_record = await case_result.single()
-                stats["total_cases"] = case_record["total"] if case_record else 0
-                stats["open_cases"] = case_record["open_cases"] if case_record else 0
-
-                # Count audit events
-                ae_result = await session.run(
-                    "MATCH (e:AuditEvent) RETURN count(e) AS total"
-                )
-                ae_record = await ae_result.single()
-                stats["total_audit_events"] = ae_record["total"] if ae_record else 0
+                record = await result.single()
+                if record:
+                    stats["total_risk_assessments"] = record["total_risk_assessments"]
+                    stats["flagged_assessments"] = record["flagged_assessments"]
+                    stats["reports_generated"] = record["reports_generated"]
+                    stats["total_rules"] = record["total_rules"]
+                    stats["enabled_rules"] = record["enabled_rules"]
+                    stats["total_cases"] = record["total_cases"]
+                    stats["open_cases"] = record["open_cases"]
+                    stats["total_audit_events"] = record["total_audit_events"]
 
         except Exception as db_err:
-            logger.warning(f"Statistics DB aggregation failed: {db_err}")
-            stats["db_error"] = str(db_err)
+            logger.error(f"Statistics DB aggregation failed: {db_err}")
+            stats["db_error"] = "database_error"
 
         return {
             "success": True,

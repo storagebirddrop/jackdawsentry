@@ -151,15 +151,22 @@ class AutomatedRiskAssessmentEngine:
     def __init__(self):
         self.neo4j_session = None
         self.redis_client = None
+        self._initialized = False
         self.workflows = self._initialize_workflows()
         self.thresholds = self._initialize_thresholds()
         self.risk_models = self._initialize_risk_models()
 
     async def initialize(self):
-        """Initialize database connections and load configurations."""
+        """Initialize database connections and load configurations.
+
+        Idempotent: subsequent calls return immediately if already initialized.
+        """
+        if self._initialized:
+            return
         self.neo4j_session = await get_neo4j_session()
         self.redis_client = await get_redis_connection()
         await self._load_configurations()
+        self._initialized = True
 
     async def create_risk_assessment(
         self,
@@ -307,17 +314,18 @@ class AutomatedRiskAssessmentEngine:
         RETURN a
         """
         
-        update_id = f"update_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(assessment_id.encode()).hexdigest()[:8]}"
+        now = datetime.now(timezone.utc)
+        update_id = f"update_{now.strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(assessment_id.encode()).hexdigest()[:8]}"
         
         result = await self.neo4j_session.run(
             query,
             assessment_id=assessment_id,
             status=status.value,
-            updated_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=now.isoformat(),
             update_id=update_id,
             updated_by=updated_by,
             notes=notes or "",
-            timestamp=datetime.now(timezone.utc).isoformat()
+            timestamp=now.isoformat()
         )
         
         record = await result.single()

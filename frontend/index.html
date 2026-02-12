@@ -7,14 +7,20 @@
     <meta name="description" content="Advanced blockchain analysis platform with multi-chain monitoring, AML compliance, and threat intelligence">
     <meta name="keywords" content="blockchain, analysis, AML, compliance, cryptocurrency, bitcoin, ethereum">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (pinned v3.4.1) -->
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/lib/index.min.js"
+            integrity="sha384-kRMSLkCzBh2gLzCHdCqOqjP9INaXFb3Ld8bTtmQ5gDAhpVzECGUKSbr7MFKBPFN"
+            crossorigin="anonymous"></script>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js (pinned v4.4.7) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+            integrity="sha384-UxaD1sODVDr1vNRKHBxFPOGct3yes1bMBd3M0+2bRSBYnbzNltyBFJBD1MZBbQO6"
+            crossorigin="anonymous"></script>
     
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (pinned v0.344.0) -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"
+            integrity="sha384-wDiHsOEv5IJrhDROFgMrYPSHMOGxbJCx2x0z9ZFlwwfwXHbmFGG+0e4jXLMqHbOF"
+            crossorigin="anonymous"></script>
     
     <!-- Custom Configuration -->
     <script>
@@ -302,7 +308,19 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="alerts-table">
-                            <!-- Alerts will be populated here -->
+                            <tr class="alerts-loading">
+                                <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div class="loading-spinner" style="width:20px;height:20px;border-width:2px;"></div>
+                                        <span>Loading alerts...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="alerts-empty hidden">
+                                <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-400">
+                                    No alerts found
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -318,9 +336,15 @@
                     © 2024 Jackdaw Sentry. All rights reserved.
                 </div>
                 <div class="flex space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">Documentation</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">API</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">Support</a>
+                    <span role="link" tabindex="0" aria-disabled="true"
+                          class="text-gray-400 text-sm pointer-events-none opacity-60 cursor-default"
+                          onclick="event.preventDefault()">Documentation</span>
+                    <span role="link" tabindex="0" aria-disabled="true"
+                          class="text-gray-400 text-sm pointer-events-none opacity-60 cursor-default"
+                          onclick="event.preventDefault()">API</span>
+                    <span role="link" tabindex="0" aria-disabled="true"
+                          class="text-gray-400 text-sm pointer-events-none opacity-60 cursor-default"
+                          onclick="event.preventDefault()">Support</span>
                 </div>
             </div>
         </div>

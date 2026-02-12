@@ -215,10 +215,11 @@ class ComplianceCacheManager:
         try:
             cache_key = f"{self.cache_prefix}risk_summary:latest"
             
+            now = datetime.now(timezone.utc)
             cache_data = {
                 "summary": summary_data,
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=self.ttl_config["risk_summary"])).isoformat()
+                "generated_at": now.isoformat(),
+                "expires_at": (now + timedelta(seconds=self.ttl_config["risk_summary"])).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -258,10 +259,11 @@ class ComplianceCacheManager:
         try:
             cache_key = f"{self.cache_prefix}case_statistics:latest"
             
+            now = datetime.now(timezone.utc)
             cache_data = {
                 "statistics": stats_data,
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=self.ttl_config["case_statistics"])).isoformat()
+                "generated_at": now.isoformat(),
+                "expires_at": (now + timedelta(seconds=self.ttl_config["case_statistics"])).isoformat()
             }
             
             success = await self.redis_client.setex(

@@ -7,6 +7,7 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+import hashlib
 import json
 
 from .cross_chain import CrossChainAnalyzer, get_cross_chain_analyzer
@@ -385,13 +386,14 @@ class AnalysisManager:
                 logger.error(f"Error monitoring health: {e}")
                 await asyncio.sleep(30)
 
-    async def cache_analysis_results(self, key: str, results: Dict[str, Any]):
+    async def cache_analysis_results(self, key: str, results: Dict[str, Any], ttl: int = 3600):
         """Cache analysis results in Redis"""
         try:
+            safe_key = hashlib.sha256(key.encode()).hexdigest()[:32]
             async with get_redis_connection() as redis:
                 await redis.setex(
-                    f'analysis:{key}',
-                    3600,  # 1 hour TTL
+                    f'analysis:{safe_key}',
+                    ttl,
                     json.dumps(results, default=str)
                 )
         except Exception as e:

@@ -5,9 +5,11 @@ Tests cross-engine workflows by mocking DB calls and verifying that
 the engines can be used together in realistic scenarios.
 """
 
+import contextlib
+
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from src.compliance.audit_trail import (
     AuditTrailEngine, AuditEventType, AuditSeverity, ComplianceCategory,
@@ -40,15 +42,11 @@ class TestComplianceWorkflows:
     @pytest.fixture
     def engines(self):
         """Create all compliance engines for workflow testing"""
-        risk = AutomatedRiskAssessmentEngine()
-        risk.neo4j_session = AsyncMock()
-        risk.redis_client = AsyncMock()
-
         return {
             "regulatory": RegulatoryReportingEngine(),
             "case": CaseManagementEngine(),
             "audit": AuditTrailEngine(),
-            "risk": risk,
+            "risk": AutomatedRiskAssessmentEngine(),
         }
 
     # ---- Workflow: Risk Assessment → Case Creation ----
@@ -60,17 +58,18 @@ class TestComplianceWorkflows:
         case_engine = engines["case"]
 
         # Step 1: Create risk assessment (mocked)
-        with patch.object(risk_engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
-            _make_factor(category=RiskCategory.NETWORK_RISK, score=0.9, value=0.9),
-        ]):
-            with patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]):
-                with patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock):
-                    with patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock):
-                        assessment = await risk_engine.create_risk_assessment(
-                            entity_id="0xsuspect",
-                            entity_type="address",
-                            trigger_type=TriggerType.AUTOMATIC,
-                        )
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(risk_engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
+                _make_factor(category=RiskCategory.NETWORK_RISK, score=0.9, value=0.9),
+            ]))
+            stack.enter_context(patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
+            stack.enter_context(patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock))
+            stack.enter_context(patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock))
+            assessment = await risk_engine.create_risk_assessment(
+                entity_id="0xsuspect",
+                entity_type="address",
+                trigger_type=TriggerType.AUTOMATIC,
+            )
 
         assert assessment.risk_level in (RiskLevel.HIGH, RiskLevel.SEVERE, RiskLevel.CRITICAL)
 
@@ -175,16 +174,17 @@ class TestComplianceWorkflows:
         reg_engine = engines["regulatory"]
 
         # 1. Risk assessment
-        with patch.object(risk_engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
-            _make_factor(category=RiskCategory.TRANSACTION_PATTERN, score=0.85, value=0.85),
-        ]):
-            with patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]):
-                with patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock):
-                    with patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock):
-                        assessment = await risk_engine.create_risk_assessment(
-                            entity_id="0xtarget", entity_type="address",
-                            trigger_type=TriggerType.AUTOMATIC,
-                        )
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(risk_engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
+                _make_factor(category=RiskCategory.TRANSACTION_PATTERN, score=0.85, value=0.85),
+            ]))
+            stack.enter_context(patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
+            stack.enter_context(patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock))
+            stack.enter_context(patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock))
+            assessment = await risk_engine.create_risk_assessment(
+                entity_id="0xtarget", entity_type="address",
+                trigger_type=TriggerType.AUTOMATIC,
+            )
 
         # 2. Create case
         with patch.object(case_engine, '_store_case', new_callable=AsyncMock):
@@ -239,10 +239,3 @@ class TestComplianceWorkflows:
         assert report.case_id == case.case_id
         assert report.status == ReportStatus.DRAFT
 
-    # ---- All engines instantiate without error ----
-
-    def test_all_engines_instantiate(self, engines):
-        assert engines["regulatory"] is not None
-        assert engines["case"] is not None
-        assert engines["audit"] is not None
-        assert engines["risk"] is not None

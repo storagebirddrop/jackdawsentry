@@ -14,7 +14,7 @@ from typing import Optional
 
 from src.api.config import settings
 from src.api.database import init_databases, close_databases
-from src.api.auth import get_current_user, User
+from src.api.auth import get_current_user, require_admin, User
 from src.api.routers import (
     analysis,
     analytics,
@@ -161,9 +161,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+allowed_hosts = ["localhost", "127.0.0.1", "*.jackdawsentry.local"]
+if settings.DEBUG or settings.TESTING:
+    allowed_hosts.append("testclient")
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "*.jackdawsentry.local", "testclient"]
+    allowed_hosts=allowed_hosts
 )
 
 app.add_middleware(SecurityMiddleware)
@@ -374,7 +377,7 @@ app.include_router(
     rate_limit.router,
     prefix="/api/v1/compliance/rate-limit",
     tags=["Rate Limiting"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(require_admin)]
 )
 
 app.include_router(
@@ -388,7 +391,7 @@ app.include_router(
     scheduler.router,
     prefix="/api/v1/compliance/scheduler",
     tags=["Scheduler"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(require_admin)]
 )
 
 app.include_router(

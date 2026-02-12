@@ -46,26 +46,7 @@ jobs:
       - name: Install test dependencies
         run: |
           pip install --upgrade pip
-          pip install \
-            fastapi==0.104.1 \
-            uvicorn==0.24.0 \
-            pydantic==2.5.0 \
-            pydantic-settings==2.1.0 \
-            python-jose[cryptography]==3.3.0 \
-            passlib[bcrypt]==1.7.4 \
-            PyJWT==2.8.0 \
-            bcrypt==4.1.2 \
-            asyncpg==0.29.0 \
-            neo4j==5.14.1 \
-            redis==5.0.1 \
-            httpx==0.25.2 \
-            psutil==5.9.7 \
-            aiofiles==23.2.1 \
-            python-multipart==0.0.6 \
-            python-dotenv==1.0.0 \
-            cryptography>=41.0.0 \
-            pytest==7.4.3 \
-            pytest-asyncio==0.21.1
+          pip install -r requirements-test.txt
       - name: Run tests (skip integration)
         run: pytest -m "not integration" --tb=short -q
 

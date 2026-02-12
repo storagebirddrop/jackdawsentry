@@ -4,6 +4,7 @@ Comprehensive monitoring, error tracking, and alerting system
 """
 
 import asyncio
+import functools
 import logging
 import time
 import traceback
@@ -83,8 +84,8 @@ class MetricsCollector:
         self.metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
         self.counters: Dict[str, int] = defaultdict(int)
         self.gauges: Dict[str, float] = defaultdict(float)
-        self.histograms: Dict[str, List[float]] = defaultdict(list)
-        self.timers: Dict[str, List[float]] = defaultdict(list)
+        self.histograms: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
+        self.timers: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
         self._lock = asyncio.Lock()
     
     async def increment_counter(self, name: str, value: int = 1, labels: Dict[str, str] = None):
@@ -520,6 +521,7 @@ monitoring_system = MonitoringSystem()
 def monitor_performance(metric_name: str = None):
     """Decorator to monitor function performance"""
     def decorator(func):
+        @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             name = metric_name or f"{func.__module__}.{func.__name__}"
             start_time = time.time()
@@ -556,6 +558,7 @@ def monitor_performance(metric_name: str = None):
 def track_errors(severity: AlertSeverity = AlertSeverity.MEDIUM):
     """Decorator to automatically track function errors"""
     def decorator(func):
+        @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             try:
                 return await func(*args, **kwargs)

@@ -6,34 +6,20 @@
     <title>Compliance Dashboard - Jackdaw Sentry</title>
     <meta name="description" content="Compliance dashboard for SAR reporting, regulatory compliance, and audit management">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (pinned build) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.17/dist/tailwind.min.css"
+          integrity="sha384-5RFnOzEhMYOmOmhqvPpGHRtBzKBjmNJBSCbGGsZ+3wVyjWFphGFsPGkFLDcMFgi"
+          crossorigin="anonymous">
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js (pinned) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+            integrity="sha384-JzTbsmoJghsMF2HDXV/B3eDqoaEfiQBGhLxaP+sBd/bqBVSbkl0VJDwFBo8GRBA"
+            crossorigin="anonymous"></script>
     
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Custom Configuration -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#1e40af',
-                        'secondary': '#7c3aed',
-                        'success': '#059669',
-                        'warning': '#d97706',
-                        'danger': '#dc2626',
-                        'info': '#0891b2',
-                        'dark': '#1f2937',
-                        'light': '#f3f4f6'
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Lucide Icons (pinned) -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"
+            integrity="sha384-0VPj0FLMdrgwPwEFTi+gRNkiL6JH5s3GZAPO3xMae1y8OBxQnJClNBxzflQkvJk"
+            crossorigin="anonymous"></script>
     
     <style>
         /* Custom styles */
@@ -180,7 +166,7 @@
                 </div>
                 <div class="bg-gray-50 px-5 py-3">
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-success h-2 rounded-full progress-bar" style="width: 94.2%"></div>
+                        <div id="compliance-progress-bar" class="bg-success h-2 rounded-full progress-bar" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
@@ -251,15 +237,24 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Report ID</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Report ID</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200" id="sar-table">
-                                    <!-- SAR reports will be populated here -->
+                                    <tr id="sar-table-loading">
+                                        <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500" aria-live="polite">
+                                            <span class="sr-only">Loading SAR reports</span>
+                                            <svg class="animate-spin inline-block h-5 w-5 text-gray-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            Loading reports…
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -309,13 +304,14 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <div class="text-sm text-gray-500">
-                    © 2024 Jackdaw Sentry. All rights reserved.
+                    © <span id="footer-year"></span> Jackdaw Sentry. All rights reserved.
                 </div>
                 <div class="flex space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">Documentation</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">API</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-500 text-sm">Support</a>
+                    <a href="/docs" class="text-gray-400 hover:text-gray-500 text-sm">Documentation</a>
+                    <a href="/api/v1/docs" class="text-gray-400 hover:text-gray-500 text-sm">API</a>
+                    <a href="/support" class="text-gray-400 hover:text-gray-500 text-sm">Support</a>
                 </div>
+                <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
             </div>
         </div>
     </footer>

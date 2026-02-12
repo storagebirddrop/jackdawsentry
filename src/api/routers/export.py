@@ -8,6 +8,8 @@ This module provides API endpoints for compliance data export functionality incl
 - Export history and cleanup
 """
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from typing import Dict, Any, List, Optional
@@ -139,39 +141,21 @@ async def download_export(
         file_path = result.file_path
         
         # Check if file exists
-        from pathlib import Path
         if not Path(file_path).exists():
             raise HTTPException(status_code=404, detail="Export file not found")
         
-        # Determine media type
-        media_type = "application/octet-stream"
-        if file_path.endswith('.json'):
-            media_type = "application/json"
-        elif file_path.endswith('.csv'):
-            media_type = "text/csv"
-        elif file_path.endswith('.xml'):
-            media_type = "application/xml"
-        elif file_path.endswith('.xlsx'):
-            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        elif file_path.endswith('.pdf'):
-            media_type = "application/pdf"
-        elif file_path.endswith('.zip'):
-            media_type = "application/zip"
-        
-        # Generate filename
-        filename = f"compliance_export_{export_id}"
-        if file_path.endswith('.json'):
-            filename += ".json"
-        elif file_path.endswith('.csv'):
-            filename += ".csv"
-        elif file_path.endswith('.xml'):
-            filename += ".xml"
-        elif file_path.endswith('.xlsx'):
-            filename += ".xlsx"
-        elif file_path.endswith('.pdf'):
-            filename += ".pdf"
-        elif file_path.endswith('.zip'):
-            filename += ".zip"
+        # Look up MIME type and build filename from file extension
+        EXT_TO_MIME = {
+            ".json": "application/json",
+            ".csv": "text/csv",
+            ".xml": "application/xml",
+            ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".pdf": "application/pdf",
+            ".zip": "application/zip",
+        }
+        ext = Path(file_path).suffix.lower()
+        media_type = EXT_TO_MIME.get(ext, "application/octet-stream")
+        filename = f"compliance_export_{export_id}{ext}"
         
         return FileResponse(
             path=file_path,

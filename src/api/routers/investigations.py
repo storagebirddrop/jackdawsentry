@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
+import json as _json
 import logging
 import uuid
 
@@ -17,6 +18,8 @@ from src.api.exceptions import JackdawException
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+MAX_LIMIT = 100
 
 
 # Pydantic models
@@ -162,6 +165,17 @@ async def list_investigations(
 ):
     """List investigations from Neo4j with filters"""
     try:
+        if limit > MAX_LIMIT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"limit must not exceed {MAX_LIMIT}, got {limit}",
+            )
+        if limit < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="limit must be at least 1",
+            )
+
         logger.info(f"Listing investigations with filters: status={status}, priority={priority}")
 
         where_clauses = []
@@ -212,6 +226,8 @@ async def list_investigations(
             "timestamp": datetime.now(timezone.utc),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Investigation listing failed: {e}")
         raise JackdawException(
@@ -313,7 +329,7 @@ async def update_investigation(
         update_data = dict(record["i"])
 
         metadata = {
-            "update_fields": [k for k, v in request.dict(exclude_unset=True).items() if v is not None],
+            "update_fields": [k for k, v in request.model_dump(exclude_unset=True).items() if v is not None],
             "persisted_to": "neo4j",
         }
 
@@ -341,7 +357,6 @@ async def add_evidence(
 ):
     """Add evidence to investigation and persist to Neo4j"""
     try:
-        import json as _json
         logger.info(f"Adding evidence to investigation: {request.investigation_id}")
         now = datetime.now(timezone.utc)
         evd_id = f"EVD-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
@@ -425,6 +440,14 @@ async def get_investigation_evidence(
             params["evidence_type"] = evidence_type
 
         async with get_neo4j_session() as session:
+            # Verify investigation exists
+            check = await session.run(
+                "MATCH (i:Investigation {investigation_id: $inv_id}) RETURN i",
+                inv_id=investigation_id,
+            )
+            if not await check.single():
+                raise HTTPException(status_code=404, detail="Investigation not found")
+
             result = await session.run(
                 f"""
                 MATCH (e:Evidence)-[:EVIDENCE_FOR]->(i:Investigation {{investigation_id: $inv_id}})
@@ -445,6 +468,8 @@ async def get_investigation_evidence(
             "timestamp": datetime.now(timezone.utc),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Evidence retrieval failed: {e}")
         raise JackdawException(

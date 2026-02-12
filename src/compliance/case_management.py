@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import json
 import hashlib
+import uuid
 from enum import Enum
 
 from src.api.database import get_neo4j_session, get_redis_connection
@@ -292,7 +293,7 @@ class CaseManagementEngine:
                          metadata: Dict[str, Any] = None) -> Case:
         """Create new investigation case"""
         try:
-            case_id = f"case_{datetime.now(timezone.utc).timestamp()}"
+            case_id = f"case_{uuid.uuid4()}"
             
             # Get workflow for case type
             workflow = self.workflows_cache.get(case_type)
@@ -343,7 +344,7 @@ class CaseManagementEngine:
                           tags: List[str] = None) -> Evidence:
         """Add evidence to case"""
         try:
-            evidence_id = f"ev_{datetime.now(timezone.utc).timestamp()}"
+            evidence_id = f"ev_{uuid.uuid4()}"
             
             # Create evidence
             evidence = Evidence(

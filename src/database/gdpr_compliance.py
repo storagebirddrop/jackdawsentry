@@ -21,6 +21,8 @@ class GDPRComplianceManager:
         self.postgres_pool = postgres_pool
         self.neo4j_driver = neo4j_driver
         self.fernet = Fernet(encryption_key.encode())
+        self._data_cleanup_task: Optional[asyncio.Task] = None
+        self._consent_review_task: Optional[asyncio.Task] = None
     
     async def initialize_compliance_framework(self):
         """Initialize GDPR compliance framework"""
@@ -367,10 +369,24 @@ class GDPRComplianceManager:
     async def start_background_tasks(self):
         """Start background GDPR compliance tasks"""
         # Schedule daily data cleanup
-        asyncio.create_task(self.schedule_data_cleanup())
+        self._data_cleanup_task = asyncio.create_task(self.schedule_data_cleanup())
         
         # Schedule weekly consent review
-        asyncio.create_task(self.schedule_consent_review())
+        self._consent_review_task = asyncio.create_task(self.schedule_consent_review())
+
+    async def stop_background_tasks(self):
+        """Cancel background tasks and wait for them to finish."""
+        for task in (self._data_cleanup_task, self._consent_review_task):
+            if task is not None and not task.done():
+                task.cancel()
+        for task in (self._data_cleanup_task, self._consent_review_task):
+            if task is not None:
+                try:
+                    await asyncio.wait_for(task, timeout=5.0)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    pass
+        self._data_cleanup_task = None
+        self._consent_review_task = None
     
     async def schedule_data_cleanup(self):
         """Schedule daily data cleanup"""

@@ -1,3 +1,4 @@
+
 """
 Compliance Analytics API Router
 
@@ -68,8 +69,12 @@ async def generate_analytics_report(
         
         if request.period_start:
             period_start = datetime.fromisoformat(request.period_start)
+            if period_start.tzinfo is None:
+                period_start = period_start.replace(tzinfo=timezone.utc)
         if request.period_end:
             period_end = datetime.fromisoformat(request.period_end)
+            if period_end.tzinfo is None:
+                period_end = period_end.replace(tzinfo=timezone.utc)
         
         # Generate report
         report = await analytics_engine.generate_analytics_report(
@@ -237,7 +242,7 @@ async def get_analytics_metrics(
         # Collect metrics
         if metric_type:
             # Collect specific metric type
-            metrics = await analytics_engine._collect_metrics(
+            metrics = await analytics_engine.collect_metrics(
                 ReportType.CUSTOM_REPORT,
                 start_date,
                 end_date,
@@ -245,11 +250,10 @@ async def get_analytics_metrics(
             )
         else:
             # Collect all metrics
-            metrics = await analytics_engine._collect_metrics(
+            metrics = await analytics_engine.collect_metrics(
                 ReportType.WEEKLY_ANALYSIS,
                 start_date,
-                end_date,
-                None
+                end_date
             )
         
         return AnalyticsMetricsResponse(
@@ -438,7 +442,7 @@ async def get_analytics_statistics(
 @router.post("/refresh")
 async def refresh_analytics_data(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:write"]))
 ):
     """Refresh analytics data"""
     try:

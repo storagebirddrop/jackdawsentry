@@ -10,7 +10,10 @@ Endpoints for mobile compliance clients including:
 - Client-server data synchronization
 """
 
+from functools import lru_cache
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import logging
@@ -25,11 +28,46 @@ from src.mobile.compliance_mobile import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-mobile_engine = ComplianceMobileEngine()
+
+
+@lru_cache(maxsize=1)
+def get_mobile_engine() -> ComplianceMobileEngine:
+    """Dependency provider for ComplianceMobileEngine."""
+    return ComplianceMobileEngine()
+
+
+class MobileSettingsResponse(BaseModel):
+    """Pydantic model for mobile settings response."""
+    user_id: str
+    push_enabled: bool
+    alert_notifications: bool
+    deadline_notifications: bool
+    case_update_notifications: bool
+    risk_change_notifications: bool
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+    dashboard_widgets: List[str] = []
+    offline_data_categories: List[str] = []
+    sync_interval_minutes: int
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class NotificationRequest(BaseModel):
+    """Pydantic model for notification dispatch requests."""
+    user_id: str
+    title: str = "Notification"
+    body: str = ""
+    type: str = "system"
+    priority: str = "medium"
+    data: Optional[Dict[str, Any]] = None
 
 
 @router.get("/dashboard")
 async def get_mobile_dashboard(
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -46,6 +84,7 @@ async def get_mobile_dashboard(
 async def get_mobile_alerts(
     limit: int = 50,
     unread_only: bool = False,
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -63,6 +102,7 @@ async def get_mobile_alerts(
 @router.post("/alerts/{notification_id}/read")
 async def mark_alert_read(
     notification_id: str,
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -83,6 +123,7 @@ async def mark_alert_read(
 
 @router.get("/settings")
 async def get_mobile_settings(
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -91,20 +132,7 @@ async def get_mobile_settings(
         settings = await mobile_engine.get_settings(current_user.username)
         return {
             "success": True,
-            "settings": {
-                "user_id": settings.user_id,
-                "push_enabled": settings.push_enabled,
-                "alert_notifications": settings.alert_notifications,
-                "deadline_notifications": settings.deadline_notifications,
-                "case_update_notifications": settings.case_update_notifications,
-                "risk_change_notifications": settings.risk_change_notifications,
-                "quiet_hours_start": settings.quiet_hours_start,
-                "quiet_hours_end": settings.quiet_hours_end,
-                "dashboard_widgets": settings.dashboard_widgets,
-                "offline_data_categories": settings.offline_data_categories,
-                "sync_interval_minutes": settings.sync_interval_minutes,
-                "updated_at": settings.updated_at.isoformat(),
-            },
+            "settings": MobileSettingsResponse.from_orm(settings).dict(),
         }
     except Exception as e:
         logger.error(f"Failed to get mobile settings: {e}")
@@ -114,6 +142,7 @@ async def get_mobile_settings(
 @router.put("/settings")
 async def update_mobile_settings(
     updates: Dict[str, Any],
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -132,35 +161,28 @@ async def update_mobile_settings(
 
 @router.post("/notifications")
 async def send_notification(
-    notification_data: Dict[str, Any],
+    notification_data: NotificationRequest,
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["admin:full"]))
 ):
     """Send a mobile notification to a user"""
     try:
-        target_user = notification_data.get("user_id")
-        if not target_user:
-            raise HTTPException(status_code=400, detail="user_id is required")
-
-        notif_type = NotificationType(
-            notification_data.get("type", "system")
-        )
-        priority = NotificationPriority(
-            notification_data.get("priority", "medium")
-        )
+        notif_type = NotificationType(notification_data.type)
+        priority = NotificationPriority(notification_data.priority)
 
         notification = await mobile_engine.send_notification(
-            user_id=target_user,
-            title=notification_data.get("title", "Notification"),
-            body=notification_data.get("body", ""),
+            user_id=notification_data.user_id,
+            title=notification_data.title,
+            body=notification_data.body,
             notification_type=notif_type,
             priority=priority,
-            data=notification_data.get("data"),
+            data=notification_data.data,
         )
         return {
             "success": True,
             "notification_id": notification.notification_id,
-            "sent_to": target_user,
+            "sent_to": notification_data.user_id,
         }
     except (ValueError, KeyError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid notification data: {e}")
@@ -174,6 +196,7 @@ async def send_notification(
 @router.get("/offline-data")
 async def get_offline_data(
     categories: Optional[str] = None,
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -192,6 +215,7 @@ async def get_offline_data(
 @router.post("/sync")
 async def sync_mobile_data(
     sync_data: Dict[str, Any],
+    mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):

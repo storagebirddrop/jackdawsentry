@@ -256,14 +256,20 @@ services:
     restart: unless-stopped
     ports:
       - "6380:6379"
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass jackdaw_sentry_redis_password
+    command: >
+      sh -c 'redis-server /usr/local/etc/redis/redis.conf
+      --maxmemory "$REDIS_MAXMEMORY"
+      --requirepass "$REDIS_PASSWORD"'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-jackdaw_sentry_redis_password}
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-512mb}
     volumes:
       - redis_compliance_data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - compliance_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "jackdaw_sentry_redis_password", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 30s
       timeout: 10s
       retries: 5

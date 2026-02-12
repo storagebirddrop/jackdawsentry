@@ -13,7 +13,9 @@ LOG_DIR="/var/log/jackdawsentry"
 HEALTH_CHECK_TIMEOUT=300
 ROLLBACK_ENABLED=true
 
-COMPOSE_FILE="docker/docker-compose.prod.yml"
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$REPO_ROOT/docker/docker-compose.prod.yml"
 
 # =============================================================================
 # Colors for output

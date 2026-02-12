@@ -214,12 +214,33 @@ async function loadBlockchainStatus() {
  */
 function updateAlertsTable(alerts) {
     const tableBody = document.getElementById('alerts-table');
-    tableBody.innerHTML = '';
-    
-    alerts.forEach(alert => {
-        const row = createAlertRow(alert);
-        tableBody.appendChild(row);
-    });
+
+    // Remove loading row
+    const loadingRow = tableBody.querySelector('.alerts-loading');
+    if (loadingRow) loadingRow.remove();
+
+    // Handle empty-state row
+    let emptyRow = tableBody.querySelector('.alerts-empty');
+    if (!emptyRow) {
+        // Re-create if it was cleared
+        emptyRow = document.createElement('tr');
+        emptyRow.className = 'alerts-empty hidden';
+        emptyRow.innerHTML = '<td colspan="6" class="px-6 py-8 text-center text-sm text-gray-400">No alerts found</td>';
+        tableBody.appendChild(emptyRow);
+    }
+
+    // Clear all data rows (keep only the empty-state row)
+    Array.from(tableBody.querySelectorAll('tr:not(.alerts-empty)')).forEach(r => r.remove());
+
+    if (alerts.length === 0) {
+        emptyRow.classList.remove('hidden');
+    } else {
+        emptyRow.classList.add('hidden');
+        alerts.forEach(alert => {
+            const row = createAlertRow(alert);
+            tableBody.insertBefore(row, emptyRow);
+        });
+    }
 }
 
 /**

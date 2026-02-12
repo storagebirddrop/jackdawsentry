@@ -2,6 +2,8 @@
 Automated Risk Assessment Engine Tests — rewritten to match actual API.
 """
 
+import contextlib
+
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -79,37 +81,39 @@ class TestAutomatedRiskAssessmentEngine:
 
     @pytest.mark.asyncio
     async def test_create_assessment_returns_assessment(self, engine):
-        with patch.object(engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
-            self._make_factor(score=0.3, value=0.3),
-        ]):
-            with patch.object(engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]):
-                with patch.object(engine, '_persist_assessment', new_callable=AsyncMock):
-                    with patch.object(engine, '_execute_workflow', new_callable=AsyncMock):
-                        assessment = await engine.create_risk_assessment(
-                            entity_id="0xabc123",
-                            entity_type="transaction",
-                            trigger_type=TriggerType.AUTOMATIC,
-                        )
-                        assert isinstance(assessment, RiskAssessment)
-                        assert assessment.entity_id == "0xabc123"
-                        assert assessment.entity_type == "transaction"
-                        assert assessment.status == AssessmentStatus.COMPLETED
-                        assert isinstance(assessment.risk_level, RiskLevel)
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(engine, '_assess_risk_factors', new_callable=AsyncMock,
+                                            return_value=[self._make_factor(score=0.3, value=0.3)]))
+            stack.enter_context(patch.object(engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
+            stack.enter_context(patch.object(engine, '_persist_assessment', new_callable=AsyncMock))
+            stack.enter_context(patch.object(engine, '_execute_workflow', new_callable=AsyncMock))
+
+            assessment = await engine.create_risk_assessment(
+                entity_id="0xabc123",
+                entity_type="transaction",
+                trigger_type=TriggerType.AUTOMATIC,
+            )
+            assert isinstance(assessment, RiskAssessment)
+            assert assessment.entity_id == "0xabc123"
+            assert assessment.entity_type == "transaction"
+            assert assessment.status == AssessmentStatus.COMPLETED
+            assert isinstance(assessment.risk_level, RiskLevel)
 
     @pytest.mark.asyncio
     async def test_create_assessment_address(self, engine):
-        with patch.object(engine, '_assess_risk_factors', new_callable=AsyncMock, return_value=[
-            self._make_factor(category=RiskCategory.GEOGRAPHIC_RISK, score=0.7, value=0.7),
-        ]):
-            with patch.object(engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]):
-                with patch.object(engine, '_persist_assessment', new_callable=AsyncMock):
-                    with patch.object(engine, '_execute_workflow', new_callable=AsyncMock):
-                        assessment = await engine.create_risk_assessment(
-                            entity_id="0xdef456",
-                            entity_type="address",
-                            trigger_type=TriggerType.MANUAL,
-                        )
-                        assert assessment.entity_type == "address"
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(engine, '_assess_risk_factors', new_callable=AsyncMock,
+                                            return_value=[self._make_factor(category=RiskCategory.GEOGRAPHIC_RISK, score=0.7, value=0.7)]))
+            stack.enter_context(patch.object(engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
+            stack.enter_context(patch.object(engine, '_persist_assessment', new_callable=AsyncMock))
+            stack.enter_context(patch.object(engine, '_execute_workflow', new_callable=AsyncMock))
+
+            assessment = await engine.create_risk_assessment(
+                entity_id="0xdef456",
+                entity_type="address",
+                trigger_type=TriggerType.MANUAL,
+            )
+            assert assessment.entity_type == "address"
 
     # ---- _calculate_overall_risk ----
 

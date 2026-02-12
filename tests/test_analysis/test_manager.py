@@ -5,11 +5,9 @@ Tests for the analysis manager and engines
 
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, MagicMock, patch
-from datetime import datetime
+from unittest.mock import AsyncMock, patch
 
 from src.analysis.manager import AnalysisManager
-from src.analysis.bridge_tracker import BridgeTracker
 
 
 class TestAnalysisManager:
@@ -44,10 +42,60 @@ class TestAnalysisManager:
 
     @pytest.mark.asyncio
     async def test_initialize_twice_overwrites(self, manager):
-        """Calling initialize() again replaces engines cleanly"""
+        """Calling initialize() again replaces engines with new instances"""
         await manager.initialize()
+        old_engines = {name: id(eng) for name, eng in manager.engines.items()}
         await manager.initialize()
+        new_engines = {name: id(eng) for name, eng in manager.engines.items()}
         assert manager.metrics['total_engines'] == 6
+        for name in old_engines:
+            assert old_engines[name] != new_engines[name], f"Engine '{name}' was not replaced"
+
+    # ------------------------------------------------------------------
+    # Integration with mocked engines
+    # ------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_analyze_transaction_with_mocked_cross_chain(self, manager):
+        """analyze_transaction delegates to cross_chain engine and includes its output"""
+        mock_result = AsyncMock()
+        mock_result.patterns = []
+        mock_result.risk_score = 0.85
+        mock_result.confidence = 0.9
+        mock_result.related_transactions = ["0xrelated"]
+
+        mock_engine = AsyncMock()
+        mock_engine.analyze_transaction = AsyncMock(return_value=mock_result)
+
+        manager.engines['cross_chain'] = mock_engine
+        with patch.object(manager, 'cache_analysis_results', new_callable=AsyncMock):
+            result = await manager.analyze_transaction("0xabc", "ethereum")
+
+        assert result['tx_hash'] == '0xabc'
+        assert result['cross_chain_analysis']['risk_score'] == 0.85
+        assert result['cross_chain_analysis']['related_transactions'] == ["0xrelated"]
+        assert result['overall_risk_score'] == 0.85
+        mock_engine.analyze_transaction.assert_awaited_once_with("0xabc", "ethereum")
+
+    @pytest.mark.asyncio
+    async def test_analyze_address_with_mocked_engines(self, manager):
+        """analyze_address delegates to injected engines and aggregates output"""
+        mock_cross_chain = AsyncMock()
+        mock_cross_chain.get_cross_chain_analysis = AsyncMock(return_value={"bridges": 2})
+
+        mock_stablecoin = AsyncMock()
+        mock_stablecoin.analyze_stablecoin_flows = AsyncMock(return_value={"usdt": 100})
+
+        manager.engines['cross_chain'] = mock_cross_chain
+        manager.engines['stablecoin_flows'] = mock_stablecoin
+        with patch.object(manager, 'cache_analysis_results', new_callable=AsyncMock):
+            result = await manager.analyze_address("0xaddr", "ethereum")
+
+        assert result['address'] == '0xaddr'
+        assert result['cross_chain_analysis'] == {"bridges": 2}
+        assert result['stablecoin_flows'] == {"usdt": 100}
+        mock_cross_chain.get_cross_chain_analysis.assert_awaited_once()
+        mock_stablecoin.analyze_stablecoin_flows.assert_awaited_once()
 
     # ------------------------------------------------------------------
     # Start / Stop (avoid calling start_all — it blocks on infinite loops)

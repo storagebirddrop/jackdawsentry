@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Allowed filter values for alert queries
+VALID_SEVERITIES = {"low", "medium", "high", "critical"}
+VALID_STATUSES = {"active", "resolved", "dismissed", "investigating"}
+VALID_THREAT_TYPES = {"malware", "phishing", "scam", "money_laundering", "terrorism"}
+
 
 # Pydantic models
 class IntelligenceQueryRequest(BaseModel):
@@ -198,27 +203,33 @@ async def create_threat_alert(
     try:
         logger.info(f"Creating threat alert: {request.title}")
         now = datetime.now(timezone.utc)
-        alert_id = f"ALT-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        alert_id = f"ALT-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:12].upper()}"
 
         async with get_neo4j_session() as session:
-            await session.run(
-                """
-                CREATE (a:ThreatAlert {
-                    alert_id: $alert_id, title: $title,
-                    description: $description, severity: $severity,
-                    threat_type: $threat_type, status: 'active',
-                    created_by: $created_by, created_at: $created_at,
-                    indicators: $indicators, confidence: $confidence
-                })
-                """,
-                alert_id=alert_id, title=request.title,
-                description=request.description, severity=request.severity,
-                threat_type=request.threat_type,
-                created_by=current_user.username,
-                created_at=now.isoformat(),
-                indicators=_json.dumps(request.indicators),
-                confidence=request.confidence,
-            )
+            tx = await session.begin_transaction()
+            try:
+                await tx.run(
+                    """
+                    CREATE (a:ThreatAlert {
+                        alert_id: $alert_id, title: $title,
+                        description: $description, severity: $severity,
+                        threat_type: $threat_type, status: 'active',
+                        created_by: $created_by, created_at: $created_at,
+                        indicators: $indicators, confidence: $confidence
+                    })
+                    """,
+                    alert_id=alert_id, title=request.title,
+                    description=request.description, severity=request.severity,
+                    threat_type=request.threat_type,
+                    created_by=current_user.username,
+                    created_at=now.isoformat(),
+                    indicators=_json.dumps(request.indicators),
+                    confidence=request.confidence,
+                )
+                await tx.commit()
+            except Exception:
+                await tx.rollback()
+                raise
 
         alert_data = {
             "alert_id": alert_id, "title": request.title,
@@ -261,6 +272,23 @@ async def list_threat_alerts(
     try:
         logger.info("Listing threat alerts with filters")
 
+        # Validate filter values against allowed sets
+        if severity and severity not in VALID_SEVERITIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid severity '{severity}'. Must be one of: {', '.join(sorted(VALID_SEVERITIES))}",
+            )
+        if status and status not in VALID_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status '{status}'. Must be one of: {', '.join(sorted(VALID_STATUSES))}",
+            )
+        if threat_type and threat_type not in VALID_THREAT_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid threat_type '{threat_type}'. Must be one of: {', '.join(sorted(VALID_THREAT_TYPES))}",
+            )
+
         where_clauses = []
         params: Dict[str, Any] = {"skip_val": offset, "limit_val": limit}
         if severity:
@@ -274,16 +302,17 @@ async def list_threat_alerts(
             params["threat_type"] = threat_type
         where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
+        base_query = "MATCH (a:ThreatAlert) " + where_str
+
         async with get_neo4j_session() as session:
             count_result = await session.run(
-                f"MATCH (a:ThreatAlert) {where_str} RETURN count(a) AS total", **params
+                base_query + " RETURN count(a) AS total", **params
             )
             count_rec = await count_result.single()
             total_count = count_rec["total"] if count_rec else 0
 
             result = await session.run(
-                f"MATCH (a:ThreatAlert) {where_str} RETURN a "
-                f"ORDER BY a.created_at DESC SKIP $skip_val LIMIT $limit_val",
+                base_query + " RETURN a ORDER BY a.created_at DESC SKIP $skip_val LIMIT $limit_val",
                 **params,
             )
             records = await result.data()
@@ -301,6 +330,8 @@ async def list_threat_alerts(
             "timestamp": datetime.now(timezone.utc),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Alert listing failed: {e}")
         raise JackdawException(
@@ -382,16 +413,18 @@ async def get_dark_web_monitoring_status(
             src_records = await src_result.data()
             monitoring_status["monitored_platforms"] = [dict(r["s"]) for r in src_records]
 
-            # Today's alert stats
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            # Today's alert stats — use datetime() for proper comparison
+            today_start = datetime.now(timezone.utc).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ).isoformat()
             stats_result = await session.run(
                 """
                 OPTIONAL MATCH (a:ThreatAlert)
-                WHERE a.created_at >= $today
+                WHERE datetime(a.created_at) >= datetime($today_start)
                 RETURN count(a) AS total_today,
                        count(CASE WHEN a.severity IN ['high','critical'] THEN 1 END) AS high_priority
                 """,
-                today=today,
+                today_start=today_start,
             )
             stats_rec = await stats_result.single()
             monitoring_status["statistics"] = {
@@ -450,34 +483,40 @@ async def get_intelligence_statistics(
     try:
         stats: Dict[str, Any] = {}
         async with get_neo4j_session() as session:
-            alert_result = await session.run(
+            result = await session.run(
                 """
-                MATCH (a:ThreatAlert)
-                RETURN count(a) AS total,
-                       count(CASE WHEN a.status = 'active' THEN 1 END) AS active
+                CALL {
+                    MATCH (a:ThreatAlert)
+                    RETURN count(a) AS total_alerts,
+                           count(CASE WHEN a.status = 'active' THEN 1 END) AS active_alerts,
+                           collect(CASE WHEN a.threat_type IS NOT NULL
+                                        THEN {ttype: a.threat_type, c: 1} END) AS raw_types
+                }
+                CALL {
+                    MATCH (sub:IntelSubscription {status: 'active'})
+                    RETURN count(sub) AS active_subs
+                }
+                CALL {
+                    MATCH (src:IntelSource)
+                    RETURN count(src) AS source_count
+                }
+                RETURN total_alerts, active_alerts, raw_types,
+                       active_subs, source_count
                 """
             )
-            alert_rec = await alert_result.single()
-            stats["total_alerts"] = alert_rec["total"] if alert_rec else 0
-            stats["active_alerts"] = alert_rec["active"] if alert_rec else 0
+            rec = await result.single()
+            stats["total_alerts"] = rec["total_alerts"] if rec else 0
+            stats["active_alerts"] = rec["active_alerts"] if rec else 0
+            stats["active_subscriptions"] = rec["active_subs"] if rec else 0
+            stats["monitored_sources"] = rec["source_count"] if rec else 0
 
-            type_result = await session.run(
-                "MATCH (a:ThreatAlert) RETURN a.threat_type AS ttype, count(a) AS c"
-            )
-            type_recs = await type_result.data()
-            stats["alerts_by_type"] = {r["ttype"]: r["c"] for r in type_recs if r["ttype"]}
-
-            sub_result = await session.run(
-                "MATCH (s:IntelSubscription {status: 'active'}) RETURN count(s) AS total"
-            )
-            sub_rec = await sub_result.single()
-            stats["active_subscriptions"] = sub_rec["total"] if sub_rec else 0
-
-            src_result = await session.run(
-                "MATCH (s:IntelSource) RETURN count(s) AS total"
-            )
-            src_rec = await src_result.single()
-            stats["monitored_sources"] = src_rec["total"] if src_rec else 0
+            # Aggregate by_type from the raw collection
+            by_type: Dict[str, int] = {}
+            if rec and rec["raw_types"]:
+                for entry in rec["raw_types"]:
+                    if entry and entry.get("ttype"):
+                        by_type[entry["ttype"]] = by_type.get(entry["ttype"], 0) + 1
+            stats["alerts_by_type"] = by_type
 
         return {
             "success": True,

@@ -8,22 +8,30 @@ Endpoints for managing compliance workflows including:
 - Scheduler management
 """
 
+from functools import lru_cache
+
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
 
 from src.api.auth import get_current_user, check_permissions, User
-from src.automation.compliance_workflow import ComplianceWorkflowEngine
+from src.automation.compliance_workflow import ComplianceWorkflowEngine, WorkflowStatus
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-workflow_engine = ComplianceWorkflowEngine()
+
+
+@lru_cache(maxsize=1)
+def get_workflow_engine() -> ComplianceWorkflowEngine:
+    """Dependency provider for ComplianceWorkflowEngine."""
+    return ComplianceWorkflowEngine()
 
 
 @router.get("/")
 async def list_workflows(
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -38,21 +46,22 @@ async def list_workflows(
 
 @router.get("/statistics")
 async def get_workflow_statistics(
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get workflow statistics"""
     try:
         status = await workflow_engine.get_workflow_status()
-        executions = workflow_engine.executions
-        completed = [e for e in executions.values() if e.status.value == "completed"]
-        failed = [e for e in executions.values() if e.status.value == "failed"]
+        snapshot = list(workflow_engine.executions.values())
+        completed = [e for e in snapshot if e.status == WorkflowStatus.COMPLETED]
+        failed = [e for e in snapshot if e.status == WorkflowStatus.FAILED]
         return {
             "success": True,
             "statistics": {
                 "total_workflows": status.get("total_workflows", 0),
                 "enabled_workflows": status.get("enabled_workflows", 0),
-                "total_executions": len(executions),
+                "total_executions": len(snapshot),
                 "completed_executions": len(completed),
                 "failed_executions": len(failed),
                 "timestamp": datetime.now(timezone.utc).isoformat()
@@ -66,6 +75,7 @@ async def get_workflow_statistics(
 @router.get("/{workflow_id}")
 async def get_workflow_details(
     workflow_id: str,
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -86,6 +96,7 @@ async def get_workflow_details(
 async def trigger_workflow(
     workflow_id: str,
     trigger_data: Dict[str, Any] = None,
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -113,6 +124,7 @@ async def trigger_workflow(
 @router.put("/{workflow_id}/enable")
 async def enable_workflow(
     workflow_id: str,
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["admin:full"]))
 ):
@@ -132,6 +144,7 @@ async def enable_workflow(
 @router.put("/{workflow_id}/disable")
 async def disable_workflow(
     workflow_id: str,
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["admin:full"]))
 ):
@@ -149,7 +162,9 @@ async def disable_workflow(
 
 
 @router.get("/health")
-async def workflow_health_check():
+async def workflow_health_check(
+    workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
+):
     """Workflow service health check"""
     return {
         "status": "healthy",

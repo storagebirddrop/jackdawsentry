@@ -786,8 +786,8 @@ class CompliancePerformanceOptimizer:
             if self.optimization_results:
                 # Calculate statistics
                 successful_optimizations = [r for r in self.optimization_results if r.success]
-                summary["success_rate"] = len(successful_optimizations) / len(self.optimization_results) * 100
-                summary["average_improvement"] = sum(r.improvement_percentage for r in successful_optimizations) / len(successful_optimizations)
+                summary["success_rate"] = len(successful_optimizations) / len(self.optimization_results) * 100 if len(self.optimization_results) > 0 else 0
+                summary["average_improvement"] = sum(r.improvement_percentage for r in successful_optimizations) / len(successful_optimizations) if len(successful_optimizations) > 0 else 0
                 summary["total_time_saved_ms"] = sum(r.time_saved_ms for r in successful_optimizations)
                 summary["total_memory_saved_mb"] = sum(r.memory_saved_mb for r in successful_optimizations)
                 

@@ -7,7 +7,7 @@ Inspired by On-Chain-Investigations-Tools-List and professional clusterers
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 import aiohttp
 import json
@@ -58,7 +58,7 @@ class ClusterResult:
     labels: List[str]
     risk_score: float
     metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -70,7 +70,7 @@ class LabelResult:
     risk_level: str
     confidence: float
     source: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ChainalysisIntegration:
@@ -364,6 +364,7 @@ class EtherscanLabelsImporter:
         self.labels_cache = {}
         self.phish_hack_labels = {}
         self.cache_ttl = 86400  # 24 hours
+        self.last_imported_at: Optional[datetime] = None
     
     async def import_labels(self) -> Dict[str, Any]:
         """Import Etherscan labels dataset"""
@@ -401,10 +402,11 @@ class EtherscanLabelsImporter:
                                             'risk_level': 'high'
                                         }
             
+            self.last_imported_at = datetime.now(timezone.utc)
             return {
                 'labels_imported': len(self.labels_cache),
                 'phish_hack_imported': len(self.phish_hack_labels),
-                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'timestamp': self.last_imported_at.isoformat(),
                 'source': 'etherscan_labels'
             }
         
@@ -662,7 +664,7 @@ class ProfessionalToolsManager:
         status['etherscan_labels_status'] = {
             'labels_cached': len(self.etherscan_labels.labels_cache),
             'phish_hack_cached': len(self.etherscan_labels.phish_hack_labels),
-            'last_import': datetime.now(timezone.utc).isoformat()
+            'last_import': self.etherscan_labels.last_imported_at.isoformat() if self.etherscan_labels.last_imported_at else None
         }
         
         return status

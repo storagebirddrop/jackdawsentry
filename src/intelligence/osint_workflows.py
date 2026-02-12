@@ -88,7 +88,8 @@ class BitcoinInvestigation:
         self.cache_ttl = 3600  # 1 hour
     
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+        timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+        self.session = aiohttp.ClientSession(timeout=timeout)
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -271,6 +272,15 @@ class BitcoinInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Blockstream request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.BLOCKSTREAM,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.BLOCKSTREAM,
@@ -302,6 +312,15 @@ class BitcoinInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"WalletExplorer request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.WALLETEXPLORER,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.WALLETEXPLORER,
@@ -334,6 +353,15 @@ class BitcoinInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"BitcoinAbuse request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.BITCOINABUSE,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.BITCOINABUSE,
@@ -365,6 +393,15 @@ class BitcoinInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Breadcrumbs request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.BREADCRUMBS,
+                data={'visualization_available': False},
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.BREADCRUMBS,
@@ -445,7 +482,8 @@ class EthereumInvestigation:
         self.cache_ttl = 3600  # 1 hour
     
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+        timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+        self.session = aiohttp.ClientSession(timeout=timeout)
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -628,6 +666,15 @@ class EthereumInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Etherscan request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.ETHERSCAN,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.ETHERSCAN,
@@ -659,6 +706,15 @@ class EthereumInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Ethtective request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.ETTECTIVE,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.ETTECTIVE,
@@ -690,6 +746,15 @@ class EthereumInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Tokenview request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.TOKENVIEW,
+                data=None,
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.TOKENVIEW,
@@ -721,6 +786,15 @@ class EthereumInvestigation:
                         error=f"HTTP {response.status}",
                         timestamp=datetime.now(timezone.utc)
                     )
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.warning(f"Breadcrumbs ETH request failed for {address}: {e}")
+            return OSINTResult(
+                platform=OSINTPlatform.BREADCRUMBS,
+                data={'visualization_available': False},
+                success=False,
+                error=str(e),
+                timestamp=datetime.now(timezone.utc)
+            )
         except Exception as e:
             return OSINTResult(
                 platform=OSINTPlatform.BREADCRUMBS,

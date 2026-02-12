@@ -72,7 +72,10 @@ Jackdaw Sentry uses a dual-database architecture optimized for blockchain analys
 - **audit_logs**: GDPR-compliant audit trail with IP, user agent, session
 
 #### ⚠️ Planned Tables (not yet created)
-- `gdpr_requests`, `data_processing_records`, `data_breach_incidents`, `user_consent`
+- **gdpr_requests**: Data subject access and erasure request tracking
+- **data_processing_records**: Records of processing activities for GDPR Article 30
+- **data_breach_incidents**: Data breach notification and response logging
+- **user_consent**: Consent management with version tracking and withdrawal support
 
 ### Implemented Features
 - **7-year data retention** default on `users` and `audit_logs` (`retention_required_days = 2555`)

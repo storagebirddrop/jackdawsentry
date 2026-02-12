@@ -6,6 +6,7 @@ Regulatory compliance logging and audit reporting
 
 import asyncio
 import logging
+import uuid
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
@@ -211,7 +212,7 @@ class AuditTrailEngine:
                        compliance_categories: List[ComplianceCategory] = None) -> str:
         """Log audit event"""
         try:
-            event_id = f"audit_{datetime.now(timezone.utc).timestamp()}"
+            event_id = f"audit_{uuid.uuid4()}"
             
             # Create audit event
             event = AuditEvent(
@@ -314,7 +315,7 @@ class AuditTrailEngine:
                                   filters: Dict[str, Any] = None) -> AuditReport:
         """Generate audit report"""
         try:
-            report_id = f"audit_report_{datetime.now(timezone.utc).timestamp()}"
+            report_id = f"audit_report_{uuid.uuid4()}"
             
             # Get events for the period
             events = await self._get_events_by_period(period_start, period_end, filters)

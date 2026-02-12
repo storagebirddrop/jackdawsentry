@@ -148,6 +148,16 @@ class ComplianceAnalyticsEngine:
             logger.error(f"Failed to generate analytics report: {e}")
             raise
 
+    async def collect_metrics(
+        self,
+        report_type: ReportType,
+        period_start: datetime,
+        period_end: datetime,
+        custom_config: Optional[Dict[str, Any]] = None
+    ) -> List[AnalyticsMetric]:
+        """Public interface to collect metrics for a given report type and period."""
+        return await self._collect_metrics(report_type, period_start, period_end, custom_config)
+
     async def _collect_metrics(
         self, 
         report_type: ReportType,
@@ -857,12 +867,14 @@ class ComplianceAnalyticsEngine:
                     return cached_data["data"]
             
             # Generate dashboard data
+            now = datetime.now(timezone.utc)
+            week_ago = now - timedelta(days=7)
             dashboard_data = {
                 "overview": {
                     "total_sar_reports": await self._get_total_sar_reports(),
                     "active_cases": await self._get_active_cases_count(),
-                    "average_risk_score": await self._get_average_risk_score(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc)),
-                    "compliance_score": await self._calculate_compliance_score(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc))
+                    "average_risk_score": await self._get_average_risk_score(week_ago, now),
+                    "compliance_score": await self._calculate_compliance_score(week_ago, now)
                 },
                 "trends": {
                     "sar_reports_trend": await self._get_sar_reports_trend(30),
@@ -875,7 +887,7 @@ class ComplianceAnalyticsEngine:
                     "overdue_reports": await self._get_overdue_reports_count()
                 },
                 "performance": {
-                    "average_processing_time": await self._get_average_processing_time(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc)),
+                    "average_processing_time": await self._get_average_processing_time(week_ago, now),
                     "system_health": await self._get_system_health_score(),
                     "user_satisfaction": await self._get_user_satisfaction_score()
                 }
@@ -884,7 +896,7 @@ class ComplianceAnalyticsEngine:
             # Cache the data
             self.dashboard_cache[cache_key] = {
                 "data": dashboard_data,
-                "timestamp": datetime.now(timezone.utc)
+                "timestamp": now
             }
             
             return dashboard_data

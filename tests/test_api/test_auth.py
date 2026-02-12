@@ -7,7 +7,6 @@ No external services required.
 import pytest
 import jwt as pyjwt
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
 
 # ---------------------------------------------------------------------------
@@ -207,3 +206,4 @@ class TestRBAC:
 
         for role in ("viewer", "analyst", "compliance_officer", "admin"):
             assert role in ROLES, f"Missing role: {role}"
+

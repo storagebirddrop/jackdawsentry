@@ -402,6 +402,7 @@
                     plugins: {
                         legend: {
                             display: false
+                        }
                     },
                     scales: {
                         y: {
@@ -480,16 +481,26 @@
         }
 
         async function loadMobileData() {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             try {
                 // Load dashboard data from analytics engine
-                const response = await fetch('/api/v1/compliance/analytics/dashboard');
+                const response = await fetch('/api/v1/compliance/analytics/dashboard', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 if (response.ok) {
                     const data = await response.json();
                     updateMobileDashboard(data);
                 }
             } catch (error) {
-                console.error('Failed to load mobile data:', error);
-                // Use mock data if API fails
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    console.warn('Mobile data fetch timed out');
+                } else {
+                    console.error('Failed to load mobile data:', error);
+                }
+                // Use mock data if API fails or times out
                 updateMobileDashboardWithMockData();
             }
         }
@@ -642,9 +653,10 @@
                             enabled: true,
                             speed: 0.1
                         },
-                    pinch: {
+                        pinch: {
                             enabled: true
-                        },
+                        }
+                    },
                     pan: {
                         enabled: true,
                         mode: 'xy'
@@ -680,25 +692,40 @@
             }
         }
 
-        // Auto-refresh data every 30 seconds
-        setInterval(loadMobileData, 30000);
+        // Auto-refresh data every 30 seconds, paused when page is hidden
+        let refreshIntervalId = setInterval(loadMobileData, 30000);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                clearInterval(refreshIntervalId);
+                refreshIntervalId = null;
+            } else if (document.visibilityState === 'visible' && !refreshIntervalId) {
+                loadMobileData();
+                refreshIntervalId = setInterval(loadMobileData, 30000);
+            }
+        });
+
+        // Safely resize a chart only if it is initialized
+        function safeResize(chart) {
+            if (chart && typeof chart.resize === 'function') {
+                chart.resize();
+            }
+        }
 
         // Handle orientation changes
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
-                    // Re-render charts on orientation change
-                    mobileSarChart.resize();
-                    mobileRiskChart.resize();
-                    mobileComplianceChart.resize();
-                }, 100);
+                safeResize(mobileSarChart);
+                safeResize(mobileRiskChart);
+                safeResize(mobileComplianceChart);
+            }, 100);
         });
 
         // Handle resize events
         window.addEventListener('resize', () => {
-            // Re-render charts on window resize
-            mobileSarChart.resize();
-            mobileRiskChart.resize();
-            mobileComplianceChart.resize();
+            safeResize(mobileSarChart);
+            safeResize(mobileRiskChart);
+            safeResize(mobileComplianceChart);
         });
     </script>
 </body>

@@ -55,9 +55,17 @@ docker compose ps
 
 # Verify the API is responding
 curl http://localhost/health
+
+# Verify Neo4j is initialized and accepting queries
+docker compose exec neo4j cypher-shell -u neo4j -p "${NEO4J_PASSWORD}" "RETURN 1 AS ok"
+
+# Verify Redis is responding
+docker compose exec redis redis-cli -a "${REDIS_PASSWORD}" PING
 ```
 
 PostgreSQL is automatically initialized via `docker/postgres/init.sql` on first start.
+The Neo4j and Redis checks above confirm that their respective initialization scripts
+(`docker/neo4j/init.cypher` and `docker/redis/redis.conf`) ran successfully.
 
 ### 5. Access Applications
 - **Web Dashboard (Nginx)**: http://localhost/
@@ -116,6 +124,21 @@ for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYP
   echo "$var=$(openssl rand -hex 32)"
 done
 ```
+
+The loop above prints `KEY=VALUE` lines for `API_SECRET_KEY`, `NEO4J_PASSWORD`,
+`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `ENCRYPTION_KEY`, and `JWT_SECRET_KEY`.
+Append them to your `.env` file (or copy-paste the output), for example:
+
+```bash
+# Append generated secrets directly to .env
+for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYPTION_KEY JWT_SECRET_KEY; do
+  echo "$var=$(openssl rand -hex 32)" >> .env
+done
+
+# Restrict file permissions so only the owner can read it
+chmod 600 .env
+```
+
 See [security.md](security.md#-secrets-management) for details.
 
 #### Blockchain RPC Configuration

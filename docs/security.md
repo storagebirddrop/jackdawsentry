@@ -123,7 +123,7 @@ PERMISSIONS = {
 # Login Request
 POST /api/v1/auth/login
 {
-  "username": "admin",
+  "username": "alice",
   "password": "your_password"
 }
 
@@ -134,7 +134,7 @@ POST /api/v1/auth/login
   "expires_in": 1800,
   "user": {
     "id": "uuid",
-    "username": "admin",
+    "username": "alice",
     "role": "admin"
   }
 }

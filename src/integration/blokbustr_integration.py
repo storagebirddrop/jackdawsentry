@@ -59,7 +59,7 @@ class BlokBustrIntegration:
         self.config = config or BlokBustrConfig(
             api_endpoint="https://api.blokbustr.com",
             api_key=settings.BLOKBUSTR_API_KEY or "",
-            cache_ttl=3600
+            cache_ttl=3600,
             rate_limit=1000,
             timeout=30
         )
@@ -234,7 +234,7 @@ class BlokBustrIntegration:
                 success=False,
                 error=str(e),
                 timestamp=datetime.now(timezone.utc).isoformat()
-                    )
+            )
     
     async def get_address_clusters(self, address: str) -> BlokBustrResult:
         """Get address clusters using BlokBustr"""
@@ -275,7 +275,7 @@ class BlokBustrIntegration:
                 success=False,
                 error=str(e),
                 timestamp=datetime.now(timezone.utc).isoformat()
-                    )
+            )
     
     async def create_investigation(self, target: str, investigation_data: Dict[str, Any]) -> BlokBustrResult:
         """Create investigation using BlokBustr"""
@@ -293,7 +293,7 @@ class BlokBustrIntegration:
             }
             
             async with self.session.post(url, headers=headers, json=payload) as response:
-                if response.status == 200:
+                if 200 <= response.status < 300:
                     data = await response.json()
                     return BlokBustrResult(
                         feature=BlokBustrFeature.INTEGRATION_API,
@@ -318,7 +318,7 @@ class BlokBustrIntegration:
                 success=False,
                 error=str(e),
                 timestamp=datetime.now(timezone.utc).isoformat()
-                    )
+            )
     
     async def get_investigation_status(self, investigation_id: str) -> BlokBustrResult:
         """Get investigation status using BlokBustr"""
@@ -351,7 +351,7 @@ class BlokBustrIntegration:
                 success=False,
                 error=str(e),
                 timestamp=datetime.now(timezone.utc).isoformat()
-                    )
+            )
     
     def _get_headers(self) -> Dict[str, str]:
         """Get HTTP headers"""

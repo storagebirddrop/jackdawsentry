@@ -4,7 +4,7 @@ Audit Trail Engine Tests — rewritten to match actual AuditTrailEngine API.
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from src.compliance.audit_trail import (
     AuditTrailEngine,
@@ -55,22 +55,22 @@ class TestAuditTrailEngine:
     # ---- log_event (mocked DB) ----
 
     @pytest.mark.asyncio
-    async def test_log_event_returns_event_id(self, engine):
-        with patch.object(engine, '_store_audit_event', new_callable=AsyncMock):
-            with patch.object(engine, '_get_latest_event', new_callable=AsyncMock, return_value=None):
-                with patch.object(engine, '_update_compliance_logs', new_callable=AsyncMock):
-                    event_id = await engine.log_event(
-                        event_type=AuditEventType.CASE_CREATED,
-                        severity=AuditSeverity.MEDIUM,
-                        user_id="user_001",
-                        session_id="sess_abc",
-                        ip_address="192.168.1.100",
-                        user_agent="Mozilla/5.0",
-                        action="case_created",
-                        description="Created case",
-                    )
-                    assert event_id is not None
-                    assert event_id.startswith("audit_")
+    @patch.object(AuditTrailEngine, '_update_compliance_logs', new_callable=AsyncMock)
+    @patch.object(AuditTrailEngine, '_get_latest_event', new_callable=AsyncMock, return_value=None)
+    @patch.object(AuditTrailEngine, '_store_audit_event', new_callable=AsyncMock)
+    async def test_log_event_returns_event_id(self, mock_store, mock_latest, mock_compliance, engine):
+        event_id = await engine.log_event(
+            event_type=AuditEventType.CASE_CREATED,
+            severity=AuditSeverity.MEDIUM,
+            user_id="user_001",
+            session_id="sess_abc",
+            ip_address="192.168.1.100",
+            user_agent="Mozilla/5.0",
+            action="case_created",
+            description="Created case",
+        )
+        assert event_id is not None
+        assert event_id.startswith("audit_")
 
     @pytest.mark.asyncio
     async def test_log_event_stores_event(self, engine):
@@ -194,13 +194,16 @@ class TestAuditTrailEngine:
         engine.chain_integrity_enabled = False
         result = await engine.verify_chain_integrity()
         assert result.get("verified") is True
-        assert "not enabled" in result.get("message", "").lower() or result.get("events_verified") == 0
+        assert "not enabled" in result.get("message", "").lower()
+        assert result.get("events_verified") == 0
 
     @pytest.mark.asyncio
     async def test_verify_chain_integrity_no_events(self, engine):
         with patch.object(engine, '_get_events_for_verification', new_callable=AsyncMock, return_value=[]):
             result = await engine.verify_chain_integrity()
             assert isinstance(result, dict)
+            assert result.get("verified") is True
+            assert result.get("events_verified") == 0
 
     # ---- generate_audit_report (mocked DB) ----
 
@@ -243,6 +246,8 @@ class TestAuditTrailEngine:
                 event_types=[AuditEventType.SECURITY_BREACH]
             )
             assert len(results) == 1
+            assert results[0].event_id == "e1"
+            assert results[0].event_type == AuditEventType.SECURITY_BREACH
 
     # ---- get_compliance_status (mocked DB) ----
 
@@ -251,9 +256,12 @@ class TestAuditTrailEngine:
         with patch.object(engine, '_get_category_compliance_status', new_callable=AsyncMock, return_value={"status": "ok"}):
             result = await engine.get_compliance_status(ComplianceCategory.GDPR)
             assert isinstance(result, dict)
+            assert result["status"] == "ok"
 
     @pytest.mark.asyncio
     async def test_get_compliance_status_all(self, engine):
         with patch.object(engine, '_get_all_compliance_status', new_callable=AsyncMock, return_value={"gdpr": {}}):
             result = await engine.get_compliance_status()
             assert isinstance(result, dict)
+            assert "gdpr" in result
+            assert result["gdpr"] == {}

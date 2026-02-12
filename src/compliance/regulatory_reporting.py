@@ -526,14 +526,15 @@ class RegulatoryReportingEngine:
             preferred_method = submission_methods[0] if submission_methods else 'electronic_filing'
             
             # Simulate successful submission
-            reference_number = f"{jurisdiction.value.upper()}-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{int(datetime.now(timezone.utc).timestamp())}"
+            now_utc = datetime.now(timezone.utc)
+            reference_number = f"{jurisdiction.value.upper()}-{now_utc.strftime('%Y%m%d')}-{int(now_utc.timestamp())}"
             
             return {
                 'success': True,
                 'method': preferred_method,
                 'reference_number': reference_number,
-                'submitted_at': datetime.now(timezone.utc).isoformat(),
-                'acknowledged_at': (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+                'submitted_at': now_utc.isoformat(),
+                'acknowledged_at': (now_utc + timedelta(hours=1)).isoformat()
             }
             
         except Exception as e:

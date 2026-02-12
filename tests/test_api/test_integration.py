@@ -5,10 +5,23 @@ Run with: pytest -m integration
 Skip with: pytest -m "not integration"
 """
 
+import os
+
 import pytest
 
 
 pytestmark = pytest.mark.integration
+
+# Centralized database config — sourced from environment with sensible defaults
+PG_CONFIG = {
+    "host": os.environ.get("POSTGRES_HOST", "localhost"),
+    "port": int(os.environ.get("POSTGRES_PORT", "5432")),
+    "user": os.environ.get("POSTGRES_USER", "jackdawsentry_user"),
+    "password": os.environ.get("POSTGRES_PASSWORD", "test"),
+    "database": os.environ.get("POSTGRES_DB", "jackdawsentry_compliance"),
+}
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/1")
 
 
 class TestPostgresIntegration:
@@ -19,9 +32,7 @@ class TestPostgresIntegration:
         """Verify asyncpg can connect to the test database."""
         import asyncpg
 
-        conn = await asyncpg.connect(
-            host="localhost", port=5432, user="test", password="test", database="test"
-        )
+        conn = await asyncpg.connect(**PG_CONFIG)
         try:
             result = await conn.fetchval("SELECT 1")
             assert result == 1
@@ -34,9 +45,7 @@ class TestPostgresIntegration:
         import asyncpg
         from pathlib import Path
 
-        conn = await asyncpg.connect(
-            host="localhost", port=5432, user="test", password="test", database="test"
-        )
+        conn = await asyncpg.connect(**PG_CONFIG)
         try:
             schema_path = (
                 Path(__file__).parent.parent.parent
@@ -61,9 +70,7 @@ class TestPostgresIntegration:
         import asyncpg
         from pathlib import Path
 
-        conn = await asyncpg.connect(
-            host="localhost", port=5432, user="test", password="test", database="test"
-        )
+        conn = await asyncpg.connect(**PG_CONFIG)
         try:
             seed_path = (
                 Path(__file__).parent.parent.parent
@@ -89,7 +96,7 @@ class TestRedisIntegration:
         """Verify Redis is reachable."""
         import redis.asyncio as aioredis
 
-        r = aioredis.from_url("redis://localhost:6379/1", decode_responses=True)
+        r = aioredis.from_url(REDIS_URL, decode_responses=True)
         try:
             assert await r.ping() is True
         finally:
@@ -100,7 +107,7 @@ class TestRedisIntegration:
         """Verify basic set/get round-trip."""
         import redis.asyncio as aioredis
 
-        r = aioredis.from_url("redis://localhost:6379/1", decode_responses=True)
+        r = aioredis.from_url(REDIS_URL, decode_responses=True)
         try:
             await r.set("test:key", "hello", ex=10)
             val = await r.get("test:key")

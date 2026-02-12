@@ -8,8 +8,8 @@ Tests must patch them at the module level.
 
 import pytest
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
 from src.api.auth import User
@@ -67,16 +67,6 @@ def app(mock_user):
 
 class TestComplianceAPIIntegration:
     """Test compliance API endpoints via TestClient"""
-
-    # ---- Pydantic model fixtures ----
-
-    def test_user_model_valid(self, mock_user):
-        assert mock_user.username == "testuser"
-        assert isinstance(mock_user.id, uuid.UUID)
-        assert mock_user.created_at is not None
-
-    def test_admin_user_model_valid(self, mock_admin_user):
-        assert mock_admin_user.role == "admin"
 
     # ---- Module-level engine patching ----
 
@@ -136,43 +126,30 @@ class TestComplianceAPIIntegration:
 
     # ---- Engine patching tests ----
 
-    @pytest.mark.asyncio
-    async def test_patch_risk_engine(self):
+    def test_patch_risk_engine(self):
         """Demonstrate correct way to patch module-level engines"""
         mock_engine = MagicMock()
-        mock_engine.initialize = AsyncMock()
-        mock_engine.create_risk_assessment = AsyncMock(return_value=MagicMock(
-            assessment_id="a1",
-            risk_level=MagicMock(value="low"),
-            risk_score=0.2,
-        ))
 
         with patch(f"{_MOD}.risk_engine", mock_engine):
             import src.api.routers.compliance as mod
             assert mod.risk_engine is mock_engine
 
-    @pytest.mark.asyncio
-    async def test_patch_case_engine(self):
+    def test_patch_case_engine(self):
         mock_engine = MagicMock()
-        mock_engine.create_case = AsyncMock()
 
         with patch(f"{_MOD}.case_engine", mock_engine):
             import src.api.routers.compliance as mod
             assert mod.case_engine is mock_engine
 
-    @pytest.mark.asyncio
-    async def test_patch_audit_engine(self):
+    def test_patch_audit_engine(self):
         mock_engine = MagicMock()
-        mock_engine.log_event = AsyncMock(return_value="event_123")
 
         with patch(f"{_MOD}.audit_engine", mock_engine):
             import src.api.routers.compliance as mod
             assert mod.audit_engine is mock_engine
 
-    @pytest.mark.asyncio
-    async def test_patch_regulatory_engine(self):
+    def test_patch_regulatory_engine(self):
         mock_engine = MagicMock()
-        mock_engine.create_regulatory_report = AsyncMock()
 
         with patch(f"{_MOD}.regulatory_engine", mock_engine):
             import src.api.routers.compliance as mod

@@ -10,8 +10,8 @@ This module provides mobile-optimized data and services for compliance operation
 - User preference and settings management
 """
 
-import asyncio
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field, asdict
@@ -85,6 +85,20 @@ class MobileSettings:
     ])
     sync_interval_minutes: int = 15
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    _QUIET_HOURS_RE = re.compile(r'^(?:[01]\d|2[0-3]):[0-5]\d$')
+    _MIN_SYNC_INTERVAL: int = 1
+
+    def __post_init__(self):
+        for attr in ('quiet_hours_start', 'quiet_hours_end'):
+            value = getattr(self, attr)
+            if value is not None and not self._QUIET_HOURS_RE.match(value):
+                raise ValueError(f"{attr} must be in HH:MM format (00:00–23:59), got '{value}'")
+        if not isinstance(self.sync_interval_minutes, int) or self.sync_interval_minutes < self._MIN_SYNC_INTERVAL:
+            raise ValueError(
+                f"sync_interval_minutes must be an int >= {self._MIN_SYNC_INTERVAL}, "
+                f"got {self.sync_interval_minutes!r}"
+            )
 
 
 @dataclass
@@ -257,9 +271,13 @@ class ComplianceMobileEngine:
 
     async def get_settings(self, user_id: str) -> MobileSettings:
         """Get mobile settings for a user"""
-        if user_id not in self.settings:
-            self.settings[user_id] = MobileSettings(user_id=user_id)
-        return self.settings[user_id]
+        try:
+            if user_id not in self.settings:
+                self.settings[user_id] = MobileSettings(user_id=user_id)
+            return self.settings[user_id]
+        except Exception as e:
+            logger.error(f"Failed to get settings for {user_id}: {e}")
+            raise
 
     async def update_settings(self, user_id: str, updates: Dict[str, Any]) -> MobileSettings:
         """Update mobile settings for a user"""
@@ -302,9 +320,7 @@ class ComplianceMobileEngine:
                 "generated_at": now.isoformat(),
                 "expires_at": (now + timedelta(hours=24)).isoformat(),
                 "categories": {},
-                "version": hashlib.sha256(
-                    f"{user_id}_{now.isoformat()}".encode()
-                ).hexdigest()[:16],
+                "versions": {},
             }
 
             for category in requested:
@@ -364,6 +380,14 @@ class ComplianceMobileEngine:
                         ],
                         "total": 3,
                     }
+
+            # Compute per-category version hashes and track them
+            for category, cat_data in offline_package["categories"].items():
+                version_hash = hashlib.sha256(
+                    json.dumps(cat_data, sort_keys=True, default=str).encode()
+                ).hexdigest()[:16]
+                offline_package["versions"][category] = version_hash
+                self.offline_data_versions[category] = version_hash
 
             offline_package["size_bytes"] = len(json.dumps(offline_package).encode())
             return offline_package
@@ -437,10 +461,16 @@ class ComplianceMobileEngine:
 
     async def mark_notification_read(self, user_id: str, notification_id: str) -> bool:
         """Mark a notification as read"""
-        notifications = self.notifications.get(user_id, [])
-        for n in notifications:
-            if n.notification_id == notification_id:
-                n.read = True
-                n.read_at = datetime.now(timezone.utc)
-                return True
-        return False
+        try:
+            notifications = self.notifications.get(user_id, [])
+            for n in notifications:
+                if n.notification_id == notification_id:
+                    n.read = True
+                    n.read_at = datetime.now(timezone.utc)
+                    return True
+            return False
+        except Exception as e:
+            logger.error(
+                f"Failed to mark notification {notification_id} read for {user_id}: {e}"
+            )
+            return False

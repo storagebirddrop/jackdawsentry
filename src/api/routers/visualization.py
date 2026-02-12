@@ -8,7 +8,9 @@ Endpoints for compliance data visualization including:
 - Custom visualization management
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from functools import lru_cache
+
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import Response
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
@@ -25,11 +27,17 @@ from src.visualization.compliance_visualization import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-viz_engine = ComplianceVisualizationEngine()
+
+
+@lru_cache(maxsize=1)
+def get_viz_engine() -> ComplianceVisualizationEngine:
+    """Dependency provider for ComplianceVisualizationEngine."""
+    return ComplianceVisualizationEngine()
 
 
 @router.get("/list")
 async def list_visualizations(
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -53,7 +61,8 @@ async def list_visualizations(
 @router.post("/generate/{viz_id}")
 async def generate_visualization(
     viz_id: str,
-    filters: Optional[Dict[str, Any]] = None,
+    filters: Optional[Dict[str, Any]] = Body(None),
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -80,6 +89,7 @@ async def generate_visualization(
 @router.get("/data/{viz_id}")
 async def get_visualization_data(
     viz_id: str,
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -112,13 +122,14 @@ async def get_visualization_data(
 @router.post("/export/{viz_id}")
 async def export_visualization(
     viz_id: str,
-    format: str = "json",
+    export_format: str = "json",
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Export visualization in specified format"""
     try:
-        data_format = DataFormat(format)
+        data_format = DataFormat(export_format)
         content = await viz_engine.export_visualization(viz_id, data_format)
 
         media_types = {
@@ -129,10 +140,10 @@ async def export_visualization(
             "svg": "image/svg+xml",
             "pdf": "application/pdf",
         }
-        media_type = media_types.get(format, "application/octet-stream")
+        media_type = media_types.get(export_format, "application/octet-stream")
         return Response(content=content, media_type=media_type)
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+        raise HTTPException(status_code=400, detail=f"Unsupported format: {export_format}")
     except HTTPException:
         raise
     except Exception as e:
@@ -143,6 +154,7 @@ async def export_visualization(
 @router.delete("/{viz_id}")
 async def delete_visualization(
     viz_id: str,
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["admin:full"]))
 ):
@@ -161,6 +173,7 @@ async def delete_visualization(
 
 @router.get("/statistics")
 async def get_visualization_statistics(
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -187,6 +200,7 @@ async def get_visualization_statistics(
 @router.post("/custom")
 async def create_custom_visualization(
     config_data: Dict[str, Any],
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -215,13 +229,13 @@ async def create_custom_visualization(
 
 @router.post("/cache/clear")
 async def clear_visualization_cache(
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["admin:full"]))
 ):
     """Clear visualization cache"""
     try:
-        count = len(viz_engine.visualization_cache)
-        viz_engine.visualization_cache.clear()
+        count = await viz_engine.clear_cache()
         return {"success": True, "cleared_count": count, "message": "Visualization cache cleared"}
     except Exception as e:
         logger.error(f"Failed to clear visualization cache: {e}")
@@ -229,7 +243,9 @@ async def clear_visualization_cache(
 
 
 @router.get("/health")
-async def visualization_health_check():
+async def visualization_health_check(
+    viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
+):
     """Visualization service health check"""
     return {
         "status": "healthy",

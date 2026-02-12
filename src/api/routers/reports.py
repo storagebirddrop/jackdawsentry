@@ -3,11 +3,14 @@ Jackdaw Sentry - Reports Router
 Report generation and management endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
+import csv as _csv
+import io
 import logging
+import time as _time
 import uuid
 import json as _json
 
@@ -74,7 +77,6 @@ async def generate_report(
 ):
     """Generate report"""
     try:
-        import time as _time
         start = _time.monotonic()
         logger.info(f"Generating {request.report_type} report: {request.title}")
 
@@ -307,7 +309,6 @@ async def download_report(
             )
 
         elif format == "csv":
-            import io, csv as _csv
             output = io.StringIO()
             writer = _csv.writer(output)
             writer.writerow(report.keys())
@@ -407,12 +408,14 @@ async def create_report_template(
 async def list_report_templates(
     report_type: Optional[str] = None,
     is_public: Optional[bool] = None,
+    limit: int = Query(50, ge=1),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
     """List report templates from Neo4j"""
     try:
         where_clauses = []
-        params: Dict[str, Any] = {}
+        params: Dict[str, Any] = {"limit_val": limit, "skip_val": offset}
         if report_type:
             where_clauses.append("t.report_type = $report_type")
             params["report_type"] = report_type
@@ -421,9 +424,17 @@ async def list_report_templates(
             params["is_public"] = is_public
         where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
+        base_query = f"MATCH (t:ReportTemplate) {where_str}"
+
         async with get_neo4j_session() as session:
+            count_result = await session.run(
+                base_query + " RETURN count(t) AS total", **params
+            )
+            count_rec = await count_result.single()
+            total_count = count_rec["total"] if count_rec else 0
+
             result = await session.run(
-                f"MATCH (t:ReportTemplate) {where_str} RETURN t ORDER BY t.created_at DESC",
+                base_query + " RETURN t ORDER BY t.created_at DESC SKIP $skip_val LIMIT $limit_val",
                 **params,
             )
             records = await result.data()
@@ -433,7 +444,12 @@ async def list_report_templates(
         return {
             "success": True,
             "templates": templates,
-            "total_count": len(templates),
+            "pagination": {
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": offset + limit < total_count,
+            },
             "timestamp": datetime.now(timezone.utc),
         }
 

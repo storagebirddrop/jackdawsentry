@@ -10,7 +10,7 @@ This module defines the Neo4j database schema for compliance data including:
 
 from neo4j import AsyncSession
 from typing import Dict, Any, List
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -472,8 +472,6 @@ class ComplianceSchemaManager:
 
     async def cleanup_old_data(self, session: AsyncSession, retention_days: int = 2555):
         """Clean up old data based on retention policy"""
-        from datetime import datetime, timedelta
-        
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
         cleanup_stats = {
             "audit_events_deleted": 0,

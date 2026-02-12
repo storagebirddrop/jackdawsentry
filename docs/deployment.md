@@ -129,6 +129,7 @@ NEO4J_PASSWORD=your_secure_neo4j_password
 
 REDIS_URL=redis://:your_redis_password@localhost:6379/0
 REDIS_PASSWORD=your_secure_redis_password
+REDIS_MAXMEMORY=1gb              # Max memory for Redis (default: 1gb). Examples: 512mb, 2gb, 4gb
 
 # =============================================================================
 # API Configuration

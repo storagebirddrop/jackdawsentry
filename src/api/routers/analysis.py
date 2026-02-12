@@ -8,6 +8,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
+import time as _time
 
 from src.api.auth import User, check_permissions, PERMISSIONS
 from src.api.database import get_neo4j_session, get_postgres_connection
@@ -88,7 +89,6 @@ async def analyze_address(
 ):
     """Analyze blockchain address for transaction patterns and risk assessment"""
     try:
-        import time as _time
         start = _time.monotonic()
         logger.info(f"Starting address analysis for {request.address} on {request.blockchain}")
 
@@ -175,7 +175,6 @@ async def analyze_transaction(
 ):
     """Analyze individual transaction for compliance risks"""
     try:
-        import time as _time
         start = _time.monotonic()
         logger.info(f"Analyzing transaction {request.transaction_hash} on {request.blockchain}")
 
@@ -264,7 +263,6 @@ async def calculate_risk_scores(
 ):
     """Calculate risk scores for multiple addresses from Neo4j"""
     try:
-        import time as _time
         start = _time.monotonic()
         logger.info(f"Calculating risk scores for {len(request.addresses)} addresses")
 
@@ -273,24 +271,27 @@ async def calculate_risk_scores(
         total_score = 0.0
 
         async with get_neo4j_session() as session:
-            for address in request.addresses:
-                result = await session.run(
-                    """
-                    OPTIONAL MATCH (a:Address {address: $address, blockchain: $blockchain})
-                    OPTIONAL MATCH (a)-[t:SENT|RECEIVED]-()
-                    OPTIONAL MATCH (s:SanctionEntry {address: $address})
-                    RETURN a.risk_score AS risk_score,
-                           count(t) AS tx_count,
-                           count(s) AS sanctions_hits
-                    """,
-                    address=address,
-                    blockchain=request.blockchain,
-                )
-                record = await result.single()
+            result = await session.run(
+                """
+                UNWIND $addresses AS addr
+                OPTIONAL MATCH (a:Address {address: addr, blockchain: $blockchain})
+                OPTIONAL MATCH (a)-[t:SENT|RECEIVED]-()
+                OPTIONAL MATCH (s:SanctionEntry {address: addr})
+                RETURN addr AS address,
+                       a.risk_score AS risk_score,
+                       count(DISTINCT t) AS tx_count,
+                       count(DISTINCT s) AS sanctions_hits
+                """,
+                addresses=request.addresses,
+                blockchain=request.blockchain,
+            )
+            records = await result.data()
 
-                score = float(record["risk_score"] or 0.0) if record else 0.0
-                tx_count = record["tx_count"] if record else 0
-                sanctions_hits = record["sanctions_hits"] if record else 0
+            for record in records:
+                addr = record["address"]
+                score = float(record["risk_score"] or 0.0) if record["risk_score"] is not None else 0.0
+                tx_count = record["tx_count"]
+                sanctions_hits = record["sanctions_hits"]
 
                 # Adjust score if sanctions hits
                 if sanctions_hits > 0:
@@ -307,7 +308,7 @@ async def calculate_risk_scores(
                     low += 1
 
                 total_score += score
-                risk_scores[address] = {
+                risk_scores[addr] = {
                     "overall_score": round(score, 4),
                     "transaction_count": tx_count,
                     "sanctions_hits": sanctions_hits,
@@ -382,14 +383,16 @@ async def get_transaction_patterns(
                 "transaction_count": amt_record["tx_count"] if amt_record else 0,
             }
 
-            # Hub addresses (most connected)
+            # Hub addresses (most connected, within time range)
             hub_result = await session.run(
                 """
                 MATCH (a:Address {blockchain: $blockchain})-[r:SENT|RECEIVED]-()
+                WHERE r.timestamp >= $cutoff
                 RETURN a.address AS addr, count(r) AS degree
                 ORDER BY degree DESC LIMIT 10
                 """,
                 blockchain=blockchain,
+                cutoff=cutoff,
             )
             hub_records = await hub_result.data()
             patterns["network_patterns"] = {
@@ -418,6 +421,7 @@ async def get_analysis_statistics(
 ):
     """Get analysis system statistics aggregated from Neo4j"""
     try:
+        start = _time.perf_counter()
         stats = {}
         async with get_neo4j_session() as session:
             # Total addresses and transactions
@@ -454,9 +458,12 @@ async def get_analysis_statistics(
             risk_records = await risk_result.data()
             stats["risk_distribution"] = {r["level"]: r["count"] for r in risk_records if r["level"]}
 
+        processing_time_ms = int((_time.perf_counter() - start) * 1000)
+
         return {
             "success": True,
             "statistics": stats,
+            "processing_time_ms": processing_time_ms,
             "timestamp": datetime.now(timezone.utc),
         }
 

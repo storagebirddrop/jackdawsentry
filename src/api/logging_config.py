@@ -6,6 +6,7 @@ Centralized logging setup with GDPR compliance
 import logging
 import logging.config
 import sys
+import traceback
 from pathlib import Path
 from typing import Dict, Any
 import json
@@ -354,13 +355,12 @@ def log_audit_event(action: str, resource_type: str, resource_id: str = None,
 
 def log_error_with_traceback(logger: logging.Logger, message: str, exception: Exception):
     """Log errors with full traceback"""
-    import traceback
     logger.error(
         f"Error: {message}",
         extra={
             'exception_type': type(exception).__name__,
             'exception_message': str(exception),
-            'traceback': ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)),
+            'traceback': ''.join(traceback.format_exception(exception)),
             'timestamp': datetime.now(timezone.utc).isoformat()
         },
         exc_info=True

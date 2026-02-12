@@ -6,7 +6,7 @@ Dark web monitoring, threat intelligence aggregation, and analysis
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -95,7 +95,7 @@ class DarkWebActivity:
     source_url: str
     onion_address: Optional[str] = None
     indicators: List[ThreatIndicator] = field(default_factory=list)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = field(default_factory=list)
     context: Dict[str, Any] = field(default_factory=dict)
     confidence: float = 0.0
@@ -116,8 +116,8 @@ class ThreatIntelligenceReport:
     summary: str
     detailed_analysis: str
     recommendations: List[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tags: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 

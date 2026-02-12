@@ -78,45 +78,51 @@ class TestRouteContract:
         "/api/v1/admin",
     ]
 
+    PROTECTED_PATHS = [
+        "/api/v1/analysis/statistics",
+        "/api/v1/compliance/statistics",
+        "/api/v1/compliance/analytics/dashboard",
+        "/api/v1/compliance/export/list",
+        "/api/v1/compliance/workflows/list",
+        "/api/v1/compliance/monitoring/metrics",
+        "/api/v1/compliance/rate-limit/statistics",
+        "/api/v1/compliance/visualization/list",
+        "/api/v1/compliance/scheduler/tasks",
+        "/api/v1/compliance/mobile/dashboard",
+        "/api/v1/investigations/list",
+        "/api/v1/blockchain/supported",
+        "/api/v1/intelligence/sources",
+        "/api/v1/reports/list",
+        "/api/v1/admin/users",
+    ]
+
+    @pytest.fixture(scope="class")
+    def openapi_schema(self, client):
+        """Fetch the OpenAPI schema once per test class."""
+        return client.get("/openapi.json").json()
+
     @pytest.mark.api
-    def test_all_router_prefixes_present_in_openapi(self, client):
+    def test_all_router_prefixes_present_in_openapi(self, openapi_schema):
         """Every expected prefix appears at least once in the OpenAPI paths."""
-        schema = client.get("/openapi.json").json()
-        paths = list(schema["paths"].keys())
+        paths = list(openapi_schema["paths"].keys())
 
         for prefix in self.EXPECTED_PREFIXES:
             matching = [p for p in paths if p.startswith(prefix)]
             assert matching, f"No paths found with prefix {prefix}"
 
     @pytest.mark.api
-    def test_auth_login_endpoint_exists(self, client):
+    def test_auth_login_endpoint_exists(self, openapi_schema):
         """POST /api/v1/auth/login is documented in OpenAPI."""
-        schema = client.get("/openapi.json").json()
-        assert "/api/v1/auth/login" in schema["paths"]
-        assert "post" in schema["paths"]["/api/v1/auth/login"]
+        assert "/api/v1/auth/login" in openapi_schema["paths"]
+        assert "post" in openapi_schema["paths"]["/api/v1/auth/login"]
 
     @pytest.mark.api
-    def test_protected_endpoints_require_auth(self, client):
-        """Protected endpoints return 401/403 without a token."""
-        protected = [
-            "/api/v1/analysis/statistics",
-            "/api/v1/compliance/statistics",
-            "/api/v1/compliance/analytics/dashboard",
-            "/api/v1/compliance/export/list",
-            "/api/v1/compliance/workflows/",
-            "/api/v1/compliance/monitoring/metrics",
-            "/api/v1/compliance/rate-limit/statistics",
-            "/api/v1/compliance/visualization/list",
-            "/api/v1/compliance/scheduler/tasks",
-            "/api/v1/compliance/mobile/dashboard",
-            "/api/v1/investigations/list",
-            "/api/v1/blockchain/supported",
-            "/api/v1/intelligence/sources",
-            "/api/v1/reports/list",
-            "/api/v1/admin/users",
-        ]
-        for path in protected:
-            resp = client.get(path)
-            assert resp.status_code in (401, 403), (
-                f"{path} returned {resp.status_code}, expected 401 or 403"
-            )
+    @pytest.mark.parametrize("path", PROTECTED_PATHS)
+    @pytest.mark.parametrize("method", ["get", "post", "put", "delete"])
+    def test_protected_endpoints_require_auth(self, client, path, method):
+        """Protected endpoints return 401/403 without a token for any method."""
+        resp = getattr(client, method)(path)
+        assert resp.status_code in (401, 403, 405), (
+            f"{method.upper()} {path} returned {resp.status_code}, "
+            f"expected 401, 403, or 405"
+        )

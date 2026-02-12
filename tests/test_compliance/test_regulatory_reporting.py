@@ -90,19 +90,19 @@ class TestRegulatoryReportingEngine:
                 mock_store.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_create_report_with_different_jurisdictions(self, engine):
-        for jurisdiction in [RegulatoryJurisdiction.USA_FINCEN, RegulatoryJurisdiction.UK_FCA]:
-            with patch.object(engine, '_store_report', new_callable=AsyncMock):
-                with patch.object(engine, '_validate_report_data', new_callable=AsyncMock, return_value={'valid': True}):
-                    report = await engine.create_regulatory_report(
-                        jurisdiction=jurisdiction,
-                        report_type=ReportType.SAR,
-                        case_id="case_789",
-                        triggered_by="0x123",
-                        report_data={"suspicious_activity_details": "t", "transaction_amount": 1,
-                                     "date_range": "d", "involved_parties": ["C"], "suspicion_reasons": ["r"]},
-                    )
-                    assert report.jurisdiction == jurisdiction
+    @pytest.mark.parametrize("jurisdiction", [RegulatoryJurisdiction.USA_FINCEN, RegulatoryJurisdiction.UK_FCA])
+    async def test_create_report_with_different_jurisdictions(self, engine, jurisdiction):
+        with patch.object(engine, '_store_report', new_callable=AsyncMock):
+            with patch.object(engine, '_validate_report_data', new_callable=AsyncMock, return_value={'valid': True}):
+                report = await engine.create_regulatory_report(
+                    jurisdiction=jurisdiction,
+                    report_type=ReportType.SAR,
+                    case_id="case_789",
+                    triggered_by="0x123",
+                    report_data={"suspicious_activity_details": "t", "transaction_amount": 1,
+                                 "date_range": "d", "involved_parties": ["C"], "suspicion_reasons": ["r"]},
+                )
+                assert report.jurisdiction == jurisdiction
 
     # ---- submit_report (mocked DB) ----
 
@@ -151,12 +151,16 @@ class TestRegulatoryReportingEngine:
             report_data={},
             external_reference="REF001",
         )
-        with patch.object(engine, '_get_report', new_callable=AsyncMock, return_value=mock_report):
+        with patch.object(engine, '_get_report', new_callable=AsyncMock, return_value=mock_report) as mock_get:
             with patch.object(engine, '_check_regulatory_status', new_callable=AsyncMock,
-                              return_value={"status": "acknowledged"}):
-                with patch.object(engine, '_store_report', new_callable=AsyncMock):
+                              return_value={"status": "acknowledged"}) as mock_check:
+                with patch.object(engine, '_store_report', new_callable=AsyncMock) as mock_store:
                     result = await engine.check_report_status("report_123")
                     assert isinstance(result, dict)
+                    assert result.get("status") == "acknowledged"
+                    mock_get.assert_awaited_once_with("report_123")
+                    mock_check.assert_awaited_once()
+                    mock_store.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_check_status_nonexistent(self, engine):
@@ -179,8 +183,8 @@ class TestRegulatoryReportingEngine:
             RegulatoryJurisdiction.USA_FINCEN,
             ReportType.SAR,
         )
-        if req is not None:
-            assert isinstance(req, RegulatoryRequirement)
+        assert req is not None
+        assert isinstance(req, RegulatoryRequirement)
 
     # ---- RegulatoryReport dataclass ----
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 # DEPRECATED: debug-only compose file.
 # Use docker-compose.yml for development and docker/docker-compose.prod.yml for production.
 

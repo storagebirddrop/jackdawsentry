@@ -566,7 +566,8 @@ class ComplianceScheduler:
             now = datetime.now(timezone.utc)
             delta = deadline - now
             return max(0, int(delta.total_seconds() / 3600))
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to parse deadline string %r: %s", deadline_str, e)
             return 0
 
     async def _send_deadline_reminder(self, deadline: Dict[str, Any]):
@@ -633,8 +634,8 @@ class ComplianceScheduler:
         
         def run_scheduler():
             while self.running:
-                    schedule.run_pending()
-                    time.sleep(1)
+                schedule.run_pending()
+                time.sleep(1)
         
         scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
         scheduler_thread.start()

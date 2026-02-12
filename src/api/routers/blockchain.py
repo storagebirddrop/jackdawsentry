@@ -8,6 +8,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
+import time
 
 from src.api.auth import User, check_permissions, PERMISSIONS
 from src.api.database import get_neo4j_session, get_redis_connection
@@ -68,8 +69,7 @@ async def query_blockchain(
 ):
     """Query blockchain data from Neo4j"""
     try:
-        import time as _time
-        start = _time.monotonic()
+        start = time.monotonic()
         logger.info(f"Querying {request.blockchain} for {request.query_type}: {request.identifier}")
 
         data: Dict[str, Any] = {"blockchain": request.blockchain}
@@ -144,7 +144,7 @@ async def query_blockchain(
                     data["contract_address"] = request.identifier
                     data["note"] = "Contract not found in database"
 
-        elapsed_ms = int((_time.monotonic() - start) * 1000)
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         metadata = {
             "query_type": request.query_type,
             "include_details": request.include_details,
@@ -378,31 +378,34 @@ async def get_blockchain_statistics(
         }
 
         async with get_neo4j_session() as session:
-            tx_result = await session.run(
-                "MATCH (t:Transaction) RETURN count(t) AS total"
+            result = await session.run(
+                """
+                OPTIONAL MATCH (t:Transaction)
+                WITH count(t) AS total_tx
+                OPTIONAL MATCH (a:Address)
+                WITH total_tx, count(a) AS total_addr
+                OPTIONAL MATCH (b:Block)
+                WITH total_tx, total_addr, count(b) AS total_blk
+                OPTIONAL MATCH (t2:Transaction)
+                WITH total_tx, total_addr, total_blk,
+                     CASE WHEN t2 IS NOT NULL THEN t2.blockchain ELSE NULL END AS bc
+                RETURN total_tx, total_addr, total_blk,
+                       collect(bc) AS all_bc
+                """
             )
-            tx_rec = await tx_result.single()
-            stats["total_transactions"] = tx_rec["total"] if tx_rec else 0
+            rec = await result.single()
+            stats["total_transactions"] = rec["total_tx"] if rec else 0
+            stats["total_addresses"] = rec["total_addr"] if rec else 0
+            stats["total_blocks"] = rec["total_blk"] if rec else 0
 
-            addr_result = await session.run(
-                "MATCH (a:Address) RETURN count(a) AS total"
+            blockchain_distribution: Dict[str, int] = {}
+            if rec:
+                for bc in rec["all_bc"]:
+                    if bc:
+                        blockchain_distribution[bc] = blockchain_distribution.get(bc, 0) + 1
+            stats["blockchain_distribution"] = dict(
+                sorted(blockchain_distribution.items(), key=lambda x: x[1], reverse=True)
             )
-            addr_rec = await addr_result.single()
-            stats["total_addresses"] = addr_rec["total"] if addr_rec else 0
-
-            block_result = await session.run(
-                "MATCH (b:Block) RETURN count(b) AS total"
-            )
-            block_rec = await block_result.single()
-            stats["total_blocks"] = block_rec["total"] if block_rec else 0
-
-            dist_result = await session.run(
-                "MATCH (t:Transaction) RETURN t.blockchain AS bc, count(t) AS c ORDER BY c DESC"
-            )
-            dist_recs = await dist_result.data()
-            stats["blockchain_distribution"] = {
-                r["bc"]: r["c"] for r in dist_recs if r["bc"]
-            }
 
         return {
             "success": True,

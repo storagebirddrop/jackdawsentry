@@ -339,10 +339,11 @@ class IntegrationManager:
         """Generate court-ready evidence report"""
         try:
             # Generate comprehensive court-ready report
+            now = datetime.now(timezone.utc)
             court_report = {
                 'report_id': f"court_{analysis.analysis_id}",
-                'generated_at': datetime.now(timezone.utc).isoformat(),
-                'case_number': f"JC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{analysis.analysis_id[:8]}",
+                'generated_at': now.isoformat(),
+                'case_number': f"JC-{now.strftime('%Y%m%d')}-{analysis.analysis_id[:8]}",
                 'investigating_analyst': 'Jackdaw Sentry Integrated Intelligence',
                 'methodology': 'Multi-platform intelligence integration with MCP, professional tools, OSINT, and academic research',
                 'chain_of_custody': 'Immutable blockchain verification with cryptographic evidence',

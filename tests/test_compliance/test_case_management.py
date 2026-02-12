@@ -3,7 +3,7 @@ Case Management Engine Tests — rewritten to match actual CaseManagementEngine 
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.compliance.case_management import (
@@ -29,12 +29,20 @@ class TestCaseManagementEngine:
     # ---- Initialization ----
 
     def test_engine_initializes(self, engine):
-        assert isinstance(engine.workflows_cache, dict)
+        # Verify the engine exposes workflows for known case types via public cache
         assert engine.cache_ttl == 3600
+        wf_sa = engine.workflows_cache.get(CaseType.SUSPICIOUS_ACTIVITY)
+        wf_ml = engine.workflows_cache.get(CaseType.MONEY_LAUNDERING)
+        assert wf_sa is not None
+        assert wf_ml is not None
 
     def test_workflows_populated(self, engine):
-        assert CaseType.SUSPICIOUS_ACTIVITY in engine.workflows_cache
-        assert CaseType.MONEY_LAUNDERING in engine.workflows_cache
+        wf_sa = engine.workflows_cache.get(CaseType.SUSPICIOUS_ACTIVITY)
+        wf_ml = engine.workflows_cache.get(CaseType.MONEY_LAUNDERING)
+        assert isinstance(wf_sa, CaseWorkflow)
+        assert isinstance(wf_ml, CaseWorkflow)
+        assert len(wf_sa.steps) > 0
+        assert len(wf_ml.steps) > 0
 
     # ---- Enum values ----
 
@@ -258,6 +266,37 @@ class TestCaseManagementEngine:
         with patch.object(engine, '_get_case', new_callable=AsyncMock, return_value=None):
             result = await engine.advance_case_workflow("nonexistent", "inv_1")
             assert result.get('success') is False
+
+    @pytest.mark.asyncio
+    async def test_advance_workflow_success(self, engine):
+        mock_case = Case(
+            case_id="case_123",
+            title="Test Advance",
+            description="Test advancing workflow",
+            case_type=CaseType.SUSPICIOUS_ACTIVITY,
+            priority=CasePriority.HIGH,
+            status=CaseStatus.IN_PROGRESS,
+            assigned_to="inv_1",
+            created_by="sys",
+            current_step=0,
+        )
+        # Build mock evidence matching the first step's required_evidence
+        workflow = engine.workflows_cache[CaseType.SUSPICIOUS_ACTIVITY]
+        first_step = workflow.steps[0]
+        required = first_step.get('required_evidence', [])
+        mock_evidence = []
+        for req in required:
+            ev = MagicMock()
+            ev.evidence_type.value = req
+            mock_evidence.append(ev)
+
+        mock_store = AsyncMock()
+        with patch.object(engine, '_get_case', new_callable=AsyncMock, return_value=mock_case):
+            with patch.object(engine, '_get_case_evidence', new_callable=AsyncMock, return_value=mock_evidence):
+                with patch.object(engine, '_store_case', mock_store):
+                    result = await engine.advance_case_workflow("case_123", "inv_1")
+                    assert result.get('success') is True
+                    mock_store.assert_awaited_once()
 
     # ---- Evidence dataclass ----
 

@@ -429,7 +429,7 @@ class ComplianceRateLimitingEngine:
                 ip_address = request.ip_address or "unknown"
                 return f"rate_limit:ip:{ip_address}:{rule.rule_id}"
             elif rule.rate_limit_type == RateLimitType.ENDPOINT_BASED:
-                endpoint_hash = hashlib.md5(request.endpoint.encode()).hexdigest()[:8]
+                endpoint_hash = hashlib.sha256(request.endpoint.encode()).hexdigest()[:16]
                 return f"rate_limit:endpoint:{endpoint_hash}:{rule.rule_id}"
             elif rule.rate_limit_type == RateLimitType.ROLE_BASED:
                 user_role = request.user_role or "none"

@@ -8,6 +8,8 @@ Endpoints for compliance monitoring and alerting including:
 - Prometheus metrics export
 """
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from typing import Optional
@@ -24,17 +26,27 @@ from src.monitoring.compliance_monitoring import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-monitoring_engine = ComplianceMonitoringEngine()
+
+_monitoring_engine: Optional[ComplianceMonitoringEngine] = None
+
+
+def get_monitoring_engine() -> ComplianceMonitoringEngine:
+    """FastAPI dependency that provides the monitoring engine singleton."""
+    global _monitoring_engine
+    if _monitoring_engine is None:
+        _monitoring_engine = ComplianceMonitoringEngine()
+    return _monitoring_engine
 
 
 @router.get("/metrics")
 async def get_metrics_summary(
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get metrics summary"""
     try:
-        summary = await monitoring_engine.get_metrics_summary()
+        summary = await engine.get_metrics_summary()
         return {"success": True, **summary}
     except Exception as e:
         logger.error(f"Failed to get metrics summary: {e}")
@@ -45,6 +57,7 @@ async def get_metrics_summary(
 async def get_alerts(
     severity: Optional[str] = None,
     status: Optional[str] = None,
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
@@ -52,7 +65,7 @@ async def get_alerts(
     try:
         sev = AlertSeverity(severity) if severity else None
         st = AlertStatus(status) if status else None
-        alerts = await monitoring_engine.get_alerts(severity=sev, status=st)
+        alerts = await engine.get_alerts(severity=sev, status=st)
         return {
             "success": True,
             "alerts": [
@@ -82,12 +95,13 @@ async def get_alerts(
 @router.post("/alerts/{alert_id}/resolve")
 async def resolve_alert(
     alert_id: str,
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Resolve a compliance alert"""
     try:
-        success = await monitoring_engine.resolve_alert(alert_id)
+        success = await engine.resolve_alert(alert_id)
         if not success:
             raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found or already resolved")
         return {"success": True, "message": f"Alert {alert_id} resolved"}
@@ -100,12 +114,13 @@ async def resolve_alert(
 
 @router.get("/health-checks")
 async def get_health_checks(
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get health check results"""
     try:
-        checks = await monitoring_engine.get_health_checks()
+        checks = await engine.get_health_checks()
         return {
             "success": True,
             "health_checks": [
@@ -126,10 +141,12 @@ async def get_health_checks(
 
 
 @router.get("/prometheus", response_class=PlainTextResponse)
-async def get_prometheus_metrics():
+async def get_prometheus_metrics(
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
+):
     """Get Prometheus metrics in text format"""
     try:
-        metrics_text = await monitoring_engine.get_prometheus_metrics()
+        metrics_text = await engine.get_prometheus_metrics()
         return PlainTextResponse(content=metrics_text, media_type="text/plain; version=0.0.4")
     except Exception as e:
         logger.error(f"Failed to get Prometheus metrics: {e}")
@@ -138,23 +155,26 @@ async def get_prometheus_metrics():
 
 @router.get("/statistics")
 async def get_monitoring_statistics(
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
     _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get monitoring statistics"""
     try:
-        summary = await monitoring_engine.get_metrics_summary()
-        alerts = await monitoring_engine.get_alerts()
+        summary, alerts = await asyncio.gather(
+            engine.get_metrics_summary(),
+            engine.get_alerts(),
+        )
         firing = [a for a in alerts if a.status == AlertStatus.FIRING]
         return {
             "success": True,
             "statistics": {
-                "metrics_enabled": monitoring_engine.metrics_enabled,
-                "alerting_enabled": monitoring_engine.alerting_enabled,
+                "metrics_enabled": engine.metrics_enabled,
+                "alerting_enabled": engine.alerting_enabled,
                 "total_metrics": summary.get("total_metrics", 0),
                 "total_alerts": len(alerts),
                 "firing_alerts": len(firing),
-                "alert_rules_count": len(monitoring_engine.alert_rules),
+                "alert_rules_count": len(engine.alert_rules),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         }
@@ -164,12 +184,35 @@ async def get_monitoring_statistics(
 
 
 @router.get("/health")
-async def monitoring_health_check():
-    """Monitoring service health check"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+async def monitoring_health_check(
+    engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
+):
+    """Monitoring service health check with real readiness probe."""
+    now = datetime.now(timezone.utc)
+    details: dict = {}
+    healthy = True
+
+    try:
+        checks = await engine.get_health_checks()
+        for check in checks:
+            details[check.name] = check.status
+            if check.status != "healthy":
+                healthy = False
+    except Exception as e:
+        healthy = False
+        details["error"] = str(e)
+
+    status_str = "healthy" if healthy else "unhealthy"
+    payload = {
+        "status": status_str,
+        "timestamp": now.isoformat(),
         "service": "compliance_monitoring",
-        "metrics_enabled": monitoring_engine.metrics_enabled,
-        "alerting_enabled": monitoring_engine.alerting_enabled,
+        "metrics_enabled": engine.metrics_enabled,
+        "alerting_enabled": engine.alerting_enabled,
+        "details": details,
     }
+
+    if not healthy:
+        raise HTTPException(status_code=503, detail=payload)
+
+    return payload
