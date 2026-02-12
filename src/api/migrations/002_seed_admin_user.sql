@@ -1,7 +1,9 @@
 -- Jackdaw Sentry - Seed Admin User
--- Creates a default admin user for initial setup
--- Default password: admin (bcrypt hashed)
--- IMPORTANT: Change this password immediately after first login
+-- For CI/automated environments only. Interactive deployments use /setup.
+-- No plaintext credentials are stored in source control. The bcrypt hash below
+-- is a placeholder for CI pipelines. Production deployments MUST provision admin
+-- credentials via the /setup wizard or secure secret management (vault/ENV).
+-- Rotate this hash immediately if used outside ephemeral test environments.
 
 INSERT INTO users (username, email, password_hash, full_name, role, is_active, gdpr_consent_given)
 VALUES (

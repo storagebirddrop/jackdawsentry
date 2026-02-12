@@ -124,19 +124,12 @@ async def initialize_admin(data: InitialAdminRequest):
                     detail="Database schema not initialized. Run migrations first.",
                 )
 
-            # Double-check no admin was created between the check and now
-            count = await conn.fetchval(
-                "SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = true"
-            )
-            if count > 0:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Setup already completed. An admin account exists.",
-                )
-
+            # Atomic insert: only succeeds if no active admin exists AND
+            # username is not taken. Single query avoids TOCTOU race.
             user_id = await conn.fetchval(
                 "INSERT INTO users (username, email, password_hash, full_name, role, is_active, gdpr_consent_given) "
-                "VALUES ($1, $2, $3, $4, 'admin', true, false) "
+                "SELECT $1, $2, $3, $4, 'admin', true, false "
+                "WHERE NOT EXISTS (SELECT 1 FROM users WHERE role = 'admin' AND is_active = true) "
                 "ON CONFLICT (username) DO NOTHING "
                 "RETURNING id",
                 data.username,
@@ -146,6 +139,15 @@ async def initialize_admin(data: InitialAdminRequest):
             )
 
             if user_id is None:
+                # Distinguish between "admin already exists" and "username taken"
+                admin_exists = await conn.fetchval(
+                    "SELECT EXISTS (SELECT 1 FROM users WHERE role = 'admin' AND is_active = true)"
+                )
+                if admin_exists:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Setup already completed. An admin account exists.",
+                    )
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"Username '{data.username}' is already taken.",

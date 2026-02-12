@@ -331,6 +331,13 @@ _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Cha
 | 13 | Update Nginx routes, nav.js sidebar, CSP for Cytoscape CDN | ⬚ |
 | 14 | Update docs (README, CHANGELOG, deployment guide) | ⬚ |
 
+### Privacy & Compliance
+
+- **Data retention for screening logs** — Define a retention period (e.g., 5 years for FinCEN, 10 years for EU AMLD) for all records in the `sanctioned_addresses` table and screening log entries produced by the Sanctions service; implement an automated deletion/archival process triggered by the scheduled sanctions sync job.
+- **PII handling in audit logs** — Establish redaction and anonymisation rules for personally identifiable information recorded by the Sanctions API (`/screen`, `/lookup`) and audit trail; user-context fields (IP, username) must be pseudonymised after the retention window; screening results should store hashed identifiers rather than raw PII where possible.
+- **GDPR / EEA-specific considerations** — Document the legal basis (legitimate interest / legal obligation under AMLD) for processing sanctioned-address data; prepare a Data Protection Impact Assessment (DPIA) covering the `sanctioned_addresses` table, screening logs, and graph integration badges; address cross-border data transfers (EU ↔ US OFAC data) with appropriate safeguards (SCCs or adequacy decision).
+- **Access control for admin endpoints** — Restrict the sanctions sync trigger (`POST /sync`), bulk screen, and list management endpoints in `sanctions.py` to an `admin` or `compliance_officer` role; require MFA for destructive operations (purge, force-sync); ensure all admin actions are recorded in the audit trail with actor, timestamp, and action detail.
+
 ### Design decisions
 
 | Decision | Choice | Rationale |
