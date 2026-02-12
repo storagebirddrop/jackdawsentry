@@ -7,7 +7,7 @@ Regulatory compliance logging and audit reporting
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import json
 import hashlib
@@ -211,7 +211,7 @@ class AuditTrailEngine:
                        compliance_categories: List[ComplianceCategory] = None) -> str:
         """Log audit event"""
         try:
-            event_id = f"audit_{datetime.utcnow().timestamp()}"
+            event_id = f"audit_{datetime.now(timezone.utc).timestamp()}"
             
             # Create audit event
             event = AuditEvent(
@@ -295,7 +295,7 @@ class AuditTrailEngine:
                 'verified': len(violations) == 0,
                 'events_verified': len(events),
                 'violations': violations,
-                'verification_timestamp': datetime.utcnow().isoformat()
+                'verification_timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -314,7 +314,7 @@ class AuditTrailEngine:
                                   filters: Dict[str, Any] = None) -> AuditReport:
         """Generate audit report"""
         try:
-            report_id = f"audit_report_{datetime.utcnow().timestamp()}"
+            report_id = f"audit_report_{datetime.now(timezone.utc).timestamp()}"
             
             # Get events for the period
             events = await self._get_events_by_period(period_start, period_end, filters)
@@ -761,7 +761,7 @@ class AuditTrailEngine:
                 'category': category.value,
                 'requirements': [],
                 'overall_status': 'compliant',
-                'last_assessed': datetime.utcnow().isoformat()
+                'last_assessed': datetime.now(timezone.utc).isoformat()
             }
             
             for req in requirements:
@@ -794,7 +794,7 @@ class AuditTrailEngine:
             status = {
                 'categories': {},
                 'overall_status': 'compliant',
-                'last_assessed': datetime.utcnow().isoformat()
+                'last_assessed': datetime.now(timezone.utc).isoformat()
             }
             
             for category in ComplianceCategory:

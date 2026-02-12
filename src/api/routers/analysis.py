@@ -5,7 +5,7 @@ Blockchain transaction analysis endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
 
@@ -88,45 +88,83 @@ async def analyze_address(
 ):
     """Analyze blockchain address for transaction patterns and risk assessment"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Starting address analysis for {request.address} on {request.blockchain}")
-        
-        # Mock analysis implementation
+
         analysis_data = {
             "address": request.address,
             "blockchain": request.blockchain,
-            "risk_score": 0.3,
-            "transaction_count": 1250,
-            "total_value": 15.7,
-            "first_seen": datetime.utcnow() - timedelta(days=365),
-            "last_seen": datetime.utcnow() - timedelta(hours=2),
-            "labels": ["exchange", "trading"],
-            "connected_addresses": [],
-            "transaction_patterns": {
-                "frequency": "high",
-                "timing": "regular",
-                "amount_distribution": "normal"
-            }
         }
-        
+
+        async with get_neo4j_session() as session:
+            # Get address node and basic stats
+            addr_result = await session.run(
+                """
+                OPTIONAL MATCH (a:Address {address: $address, blockchain: $blockchain})
+                OPTIONAL MATCH (a)-[t:SENT|RECEIVED]-()
+                RETURN a,
+                       count(t) AS tx_count,
+                       min(t.timestamp) AS first_seen,
+                       max(t.timestamp) AS last_seen,
+                       sum(CASE WHEN t.value IS NOT NULL THEN t.value ELSE 0 END) AS total_value,
+                       collect(DISTINCT labels(a)) AS addr_labels
+                """,
+                address=request.address,
+                blockchain=request.blockchain,
+            )
+            record = await addr_result.single()
+
+            if record and record["a"]:
+                analysis_data["transaction_count"] = record["tx_count"]
+                analysis_data["total_value"] = float(record["total_value"] or 0)
+                analysis_data["first_seen"] = record["first_seen"]
+                analysis_data["last_seen"] = record["last_seen"]
+                node_props = dict(record["a"])
+                analysis_data["labels"] = node_props.get("labels", [])
+                analysis_data["risk_score"] = node_props.get("risk_score", 0.0)
+            else:
+                analysis_data["transaction_count"] = 0
+                analysis_data["total_value"] = 0.0
+                analysis_data["first_seen"] = None
+                analysis_data["last_seen"] = None
+                analysis_data["labels"] = []
+                analysis_data["risk_score"] = 0.0
+
+            # Connected addresses (up to depth)
+            conn_result = await session.run(
+                """
+                MATCH (a:Address {address: $address, blockchain: $blockchain})
+                      -[:SENT|RECEIVED*1..$depth]-(connected:Address)
+                RETURN DISTINCT connected.address AS addr LIMIT 50
+                """,
+                address=request.address,
+                blockchain=request.blockchain,
+                depth=request.depth,
+            )
+            conn_records = await conn_result.data()
+            analysis_data["connected_addresses"] = [r["addr"] for r in conn_records]
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "analysis_depth": request.depth,
             "include_tokens": request.include_tokens,
-            "processing_time_ms": 250,
-            "data_sources": ["neo4j", "blockchain_rpc"]
+            "processing_time_ms": elapsed_ms,
+            "data_sources": ["neo4j"],
         }
-        
+
         return AnalysisResponse(
             success=True,
             data=analysis_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Address analysis failed: {e}")
         raise JackdawException(
             message=f"Address analysis failed: {str(e)}",
-            error_code="ANALYSIS_FAILED"
+            error_code="ANALYSIS_FAILED",
         )
 
 
@@ -137,48 +175,85 @@ async def analyze_transaction(
 ):
     """Analyze individual transaction for compliance risks"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Analyzing transaction {request.transaction_hash} on {request.blockchain}")
-        
-        # Mock transaction analysis
+
         analysis_data = {
             "transaction_hash": request.transaction_hash,
             "blockchain": request.blockchain,
-            "from_address": "0x1234567890123456789012345678901234567890",
-            "to_address": "0x0987654321098765432109876543210987654321",
-            "value": 2.5,
-            "gas_used": 21000,
-            "gas_price": 20,
-            "timestamp": datetime.utcnow() - timedelta(hours=1),
-            "risk_indicators": [],
-            "compliance_flags": [],
-            "sanctions_check": "clear"
         }
-        
-        if request.include_detailed_trace:
-            analysis_data["trace"] = {
-                "path_length": 3,
-                "intermediate_addresses": [],
-                "final_destination": "exchange_wallet"
-            }
-        
+
+        async with get_neo4j_session() as session:
+            tx_result = await session.run(
+                """
+                OPTIONAL MATCH (t:Transaction {hash: $hash, blockchain: $blockchain})
+                OPTIONAL MATCH (from_addr:Address)-[:SENT]->(t)
+                OPTIONAL MATCH (t)-[:RECEIVED]->(to_addr:Address)
+                RETURN t, from_addr.address AS from_address, to_addr.address AS to_address
+                """,
+                hash=request.transaction_hash,
+                blockchain=request.blockchain,
+            )
+            record = await tx_result.single()
+
+            if record and record["t"]:
+                tx_props = dict(record["t"])
+                analysis_data["from_address"] = record["from_address"]
+                analysis_data["to_address"] = record["to_address"]
+                analysis_data["value"] = tx_props.get("value", 0)
+                analysis_data["gas_used"] = tx_props.get("gas_used")
+                analysis_data["gas_price"] = tx_props.get("gas_price")
+                analysis_data["timestamp"] = tx_props.get("timestamp")
+                analysis_data["risk_indicators"] = tx_props.get("risk_indicators", [])
+                analysis_data["compliance_flags"] = tx_props.get("compliance_flags", [])
+                analysis_data["sanctions_check"] = tx_props.get("sanctions_check", "clear")
+            else:
+                analysis_data["from_address"] = None
+                analysis_data["to_address"] = None
+                analysis_data["value"] = 0
+                analysis_data["risk_indicators"] = []
+                analysis_data["compliance_flags"] = []
+                analysis_data["sanctions_check"] = "unknown"
+                analysis_data["note"] = "Transaction not found in database"
+
+            if request.include_detailed_trace and record and record["t"]:
+                trace_result = await session.run(
+                    """
+                    MATCH path = (src:Address)-[:SENT|RECEIVED*1..5]->(dst:Address)
+                    WHERE any(r IN relationships(path) WHERE r.hash = $hash)
+                    RETURN [n IN nodes(path) WHERE n:Address | n.address] AS addresses,
+                           length(path) AS path_length
+                    LIMIT 1
+                    """,
+                    hash=request.transaction_hash,
+                )
+                trace_record = await trace_result.single()
+                if trace_record:
+                    analysis_data["trace"] = {
+                        "path_length": trace_record["path_length"],
+                        "intermediate_addresses": trace_record["addresses"],
+                    }
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "include_detailed_trace": request.include_detailed_trace,
-            "processing_time_ms": 150,
-            "verification_status": "verified"
+            "processing_time_ms": elapsed_ms,
+            "data_sources": ["neo4j"],
         }
-        
+
         return AnalysisResponse(
             success=True,
             data=analysis_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Transaction analysis failed: {e}")
         raise JackdawException(
             message=f"Transaction analysis failed: {str(e)}",
-            error_code="TRANSACTION_ANALYSIS_FAILED"
+            error_code="TRANSACTION_ANALYSIS_FAILED",
         )
 
 
@@ -187,56 +262,91 @@ async def calculate_risk_scores(
     request: RiskScoreRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
 ):
-    """Calculate risk scores for multiple addresses"""
+    """Calculate risk scores for multiple addresses from Neo4j"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Calculating risk scores for {len(request.addresses)} addresses")
-        
+
         risk_scores = {}
-        for address in request.addresses:
-            # Mock risk calculation
-            risk_scores[address] = {
-                "overall_score": 0.25,
-                "factors": {
-                    "transaction_volume": 0.3,
-                    "counterparty_risk": 0.2,
-                    "geographic_risk": 0.1,
-                    "temporal_patterns": 0.4,
-                    "sanctions_exposure": 0.0
-                },
-                "confidence": 0.85,
-                "recommendation": "monitor"
-            }
-        
+        high = medium = low = 0
+        total_score = 0.0
+
+        async with get_neo4j_session() as session:
+            for address in request.addresses:
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (a:Address {address: $address, blockchain: $blockchain})
+                    OPTIONAL MATCH (a)-[t:SENT|RECEIVED]-()
+                    OPTIONAL MATCH (s:SanctionEntry {address: $address})
+                    RETURN a.risk_score AS risk_score,
+                           count(t) AS tx_count,
+                           count(s) AS sanctions_hits
+                    """,
+                    address=address,
+                    blockchain=request.blockchain,
+                )
+                record = await result.single()
+
+                score = float(record["risk_score"] or 0.0) if record else 0.0
+                tx_count = record["tx_count"] if record else 0
+                sanctions_hits = record["sanctions_hits"] if record else 0
+
+                # Adjust score if sanctions hits
+                if sanctions_hits > 0:
+                    score = min(1.0, score + 0.5)
+
+                if score >= 0.7:
+                    rec = "block"
+                    high += 1
+                elif score >= 0.4:
+                    rec = "enhanced_review"
+                    medium += 1
+                else:
+                    rec = "monitor"
+                    low += 1
+
+                total_score += score
+                risk_scores[address] = {
+                    "overall_score": round(score, 4),
+                    "transaction_count": tx_count,
+                    "sanctions_hits": sanctions_hits,
+                    "recommendation": rec,
+                }
+
+        avg_score = round(total_score / max(len(request.addresses), 1), 4)
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
+
         analysis_data = {
             "addresses": risk_scores,
             "summary": {
-                "high_risk_count": 0,
-                "medium_risk_count": 2,
-                "low_risk_count": len(request.addresses) - 2,
-                "average_risk_score": 0.25
+                "high_risk_count": high,
+                "medium_risk_count": medium,
+                "low_risk_count": low,
+                "average_risk_score": avg_score,
             },
-            "analysis_type": request.analysis_type
+            "analysis_type": request.analysis_type,
         }
-        
+
         metadata = {
             "total_addresses": len(request.addresses),
             "analysis_type": request.analysis_type,
-            "processing_time_ms": 500,
-            "model_version": "v2.1"
+            "processing_time_ms": elapsed_ms,
+            "data_sources": ["neo4j"],
         }
-        
+
         return AnalysisResponse(
             success=True,
             data=analysis_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Risk scoring failed: {e}")
         raise JackdawException(
             message=f"Risk scoring failed: {str(e)}",
-            error_code="RISK_SCORING_FAILED"
+            error_code="RISK_SCORING_FAILED",
         )
 
 
@@ -246,41 +356,59 @@ async def get_transaction_patterns(
     time_range: int = 30,  # days
     current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
 ):
-    """Get common transaction patterns for a blockchain"""
+    """Get common transaction patterns for a blockchain from Neo4j"""
     try:
         logger.info(f"Getting transaction patterns for {blockchain}")
-        
-        patterns = {
-            "time_patterns": {
-                "peak_hours": [14, 15, 16, 17],
-                "peak_days": [1, 2, 3, 4, 5],
-                "average_interval_hours": 4.5
-            },
-            "amount_patterns": {
-                "common_ranges": ["0.1-1.0", "1.0-10.0", "10.0-100.0"],
-                "average_amount": 2.5,
-                "median_amount": 0.8
-            },
-            "network_patterns": {
-                "clustering_coefficient": 0.34,
-                "average_path_length": 3.2,
-                "hub_addresses": []
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=time_range)).isoformat()
+
+        patterns = {}
+        async with get_neo4j_session() as session:
+            # Amount statistics
+            amt_result = await session.run(
+                """
+                MATCH (t:Transaction {blockchain: $blockchain})
+                WHERE t.timestamp >= $cutoff
+                RETURN avg(t.value) AS avg_amount,
+                       percentileDisc(t.value, 0.5) AS median_amount,
+                       count(t) AS tx_count
+                """,
+                blockchain=blockchain,
+                cutoff=cutoff,
+            )
+            amt_record = await amt_result.single()
+            patterns["amount_patterns"] = {
+                "average_amount": float(amt_record["avg_amount"] or 0) if amt_record else 0,
+                "median_amount": float(amt_record["median_amount"] or 0) if amt_record else 0,
+                "transaction_count": amt_record["tx_count"] if amt_record else 0,
             }
-        }
-        
+
+            # Hub addresses (most connected)
+            hub_result = await session.run(
+                """
+                MATCH (a:Address {blockchain: $blockchain})-[r:SENT|RECEIVED]-()
+                RETURN a.address AS addr, count(r) AS degree
+                ORDER BY degree DESC LIMIT 10
+                """,
+                blockchain=blockchain,
+            )
+            hub_records = await hub_result.data()
+            patterns["network_patterns"] = {
+                "hub_addresses": [{"address": r["addr"], "connections": r["degree"]} for r in hub_records],
+            }
+
         return {
             "success": True,
             "blockchain": blockchain,
             "time_range_days": time_range,
             "patterns": patterns,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Pattern analysis failed: {e}")
         raise JackdawException(
             message=f"Pattern analysis failed: {str(e)}",
-            error_code="PATTERN_ANALYSIS_FAILED"
+            error_code="PATTERN_ANALYSIS_FAILED",
         )
 
 
@@ -288,36 +416,53 @@ async def get_transaction_patterns(
 async def get_analysis_statistics(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
 ):
-    """Get analysis system statistics"""
+    """Get analysis system statistics aggregated from Neo4j"""
     try:
-        stats = {
-            "total_analyses": 15420,
-            "daily_analyses": 1250,
-            "average_processing_time_ms": 300,
-            "success_rate": 0.98,
-            "blockchain_distribution": {
-                "bitcoin": 4500,
-                "ethereum": 6200,
-                "bsc": 2100,
-                "polygon": 1800,
-                "solana": 820
-            },
-            "risk_distribution": {
-                "low": 0.65,
-                "medium": 0.28,
-                "high": 0.07
-            }
-        }
-        
+        stats = {}
+        async with get_neo4j_session() as session:
+            # Total addresses and transactions
+            count_result = await session.run(
+                """
+                OPTIONAL MATCH (a:Address)
+                WITH count(a) AS addr_count
+                OPTIONAL MATCH (t:Transaction)
+                RETURN addr_count, count(t) AS tx_count
+                """
+            )
+            count_record = await count_result.single()
+            stats["total_addresses"] = count_record["addr_count"] if count_record else 0
+            stats["total_transactions"] = count_record["tx_count"] if count_record else 0
+
+            # Blockchain distribution
+            dist_result = await session.run(
+                """
+                MATCH (a:Address)
+                RETURN a.blockchain AS blockchain, count(a) AS count
+                ORDER BY count DESC
+                """
+            )
+            dist_records = await dist_result.data()
+            stats["blockchain_distribution"] = {r["blockchain"]: r["count"] for r in dist_records if r["blockchain"]}
+
+            # Risk distribution
+            risk_result = await session.run(
+                """
+                MATCH (a:RiskAssessment)
+                RETURN a.risk_level AS level, count(a) AS count
+                """
+            )
+            risk_records = await risk_result.data()
+            stats["risk_distribution"] = {r["level"]: r["count"] for r in risk_records if r["level"]}
+
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Statistics retrieval failed: {e}")
         raise JackdawException(
             message=f"Statistics retrieval failed: {str(e)}",
-            error_code="STATISTICS_FAILED"
+            error_code="STATISTICS_FAILED",
         )

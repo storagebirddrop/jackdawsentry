@@ -5,9 +5,10 @@ Case management and investigation endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
+import uuid
 
 from src.api.auth import User, check_permissions, PERMISSIONS
 from src.api.database import get_neo4j_session, get_postgres_connection
@@ -78,50 +79,75 @@ async def create_investigation(
     request: InvestigationRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
 ):
-    """Create new investigation case"""
+    """Create new investigation case and persist to Neo4j"""
     try:
         logger.info(f"Creating investigation: {request.title}")
-        
+        now = datetime.now(timezone.utc)
+        inv_id = f"INV-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+        async with get_neo4j_session() as session:
+            await session.run(
+                """
+                CREATE (i:Investigation {
+                    investigation_id: $inv_id,
+                    title: $title,
+                    description: $description,
+                    priority: $priority,
+                    status: 'open',
+                    created_by: $created_by,
+                    created_at: $created_at,
+                    addresses: $addresses,
+                    blockchain: $blockchain,
+                    time_range_start: $time_start,
+                    time_range_end: $time_end,
+                    tags: $tags,
+                    evidence_count: 0,
+                    risk_score: 0.0
+                })
+                """,
+                inv_id=inv_id,
+                title=request.title,
+                description=request.description,
+                priority=request.priority,
+                created_by=current_user.username,
+                created_at=now.isoformat(),
+                addresses=request.addresses,
+                blockchain=request.blockchain,
+                time_start=request.time_range_start.isoformat(),
+                time_end=request.time_range_end.isoformat(),
+                tags=request.tags,
+            )
+
         investigation_data = {
-            "investigation_id": f"INV-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            "investigation_id": inv_id,
             "title": request.title,
             "description": request.description,
             "priority": request.priority,
             "status": "open",
             "created_by": current_user.username,
-            "created_at": datetime.utcnow(),
-            "assigned_to": None,
+            "created_at": now.isoformat(),
             "addresses": request.addresses,
             "blockchain": request.blockchain,
-            "time_range": {
-                "start": request.time_range_start,
-                "end": request.time_range_end
-            },
             "tags": request.tags,
-            "evidence_count": 0,
-            "risk_score": 0.0,
-            "timeline": []
         }
-        
+
         metadata = {
-            "case_number": investigation_data["investigation_id"],
-            "jurisdiction": "global",
-            "classification": "financial_crime",
-            "estimated_duration_days": 30
+            "case_number": inv_id,
+            "persisted_to": "neo4j",
         }
-        
+
         return InvestigationResponse(
             success=True,
             investigation_data=investigation_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=now,
         )
-        
+
     except Exception as e:
         logger.error(f"Investigation creation failed: {e}")
         raise JackdawException(
             message=f"Investigation creation failed: {str(e)}",
-            error_code="INVESTIGATION_CREATION_FAILED"
+            error_code="INVESTIGATION_CREATION_FAILED",
         )
 
 
@@ -134,74 +160,63 @@ async def list_investigations(
     offset: int = 0,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
 ):
-    """List investigations with filters"""
+    """List investigations from Neo4j with filters"""
     try:
         logger.info(f"Listing investigations with filters: status={status}, priority={priority}")
-        
-        # Mock investigation data
-        investigations = [
-            {
-                "investigation_id": "INV-20240101001",
-                "title": "Suspicious Bitcoin Transaction Pattern",
-                "status": "in_progress",
-                "priority": "high",
-                "created_by": "analyst1",
-                "assigned_to": current_user.username,
-                "created_at": datetime.utcnow() - timedelta(days=5),
-                "addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"],
-                "evidence_count": 15,
-                "risk_score": 0.75,
-                "tags": ["bitcoin", "suspicious_pattern", "high_value"]
-            },
-            {
-                "investigation_id": "INV-20240102002",
-                "title": "Ethereum DeFi Flash Loan Investigation",
-                "status": "open",
-                "priority": "medium",
-                "created_by": "analyst2",
-                "assigned_to": None,
-                "created_at": datetime.utcnow() - timedelta(days=2),
-                "addresses": ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45"],
-                "evidence_count": 8,
-                "risk_score": 0.45,
-                "tags": ["ethereum", "defi", "flash_loan"]
-            }
-        ]
-        
-        # Apply filters
+
+        where_clauses = []
+        params: Dict[str, Any] = {"skip_val": offset, "limit_val": limit}
         if status:
-            investigations = [inv for inv in investigations if inv["status"] == status]
+            where_clauses.append("i.status = $status")
+            params["status"] = status
         if priority:
-            investigations = [inv for inv in investigations if inv["priority"] == priority]
+            where_clauses.append("i.priority = $priority")
+            params["priority"] = priority
         if assigned_to:
-            investigations = [inv for inv in investigations if inv["assigned_to"] == assigned_to]
-        
-        # Apply pagination
-        total_count = len(investigations)
-        paginated_investigations = investigations[offset:offset + limit]
-        
+            where_clauses.append("i.assigned_to = $assigned_to")
+            params["assigned_to"] = assigned_to
+
+        where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        async with get_neo4j_session() as session:
+            count_result = await session.run(
+                f"MATCH (i:Investigation) {where_str} RETURN count(i) AS total", **params
+            )
+            count_record = await count_result.single()
+            total_count = count_record["total"] if count_record else 0
+
+            result = await session.run(
+                f"""
+                MATCH (i:Investigation) {where_str}
+                RETURN i ORDER BY i.created_at DESC SKIP $skip_val LIMIT $limit_val
+                """,
+                **params,
+            )
+            records = await result.data()
+
+        investigations = []
+        for record in records:
+            props = dict(record["i"])
+            investigations.append(props)
+
         return {
             "success": True,
-            "investigations": paginated_investigations,
+            "investigations": investigations,
             "pagination": {
                 "total_count": total_count,
                 "limit": limit,
                 "offset": offset,
-                "has_more": offset + limit < total_count
+                "has_more": offset + limit < total_count,
             },
-            "filters_applied": {
-                "status": status,
-                "priority": priority,
-                "assigned_to": assigned_to
-            },
-            "timestamp": datetime.utcnow()
+            "filters_applied": {"status": status, "priority": priority, "assigned_to": assigned_to},
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Investigation listing failed: {e}")
         raise JackdawException(
             message=f"Investigation listing failed: {str(e)}",
-            error_code="INVESTIGATION_LISTING_FAILED"
+            error_code="INVESTIGATION_LISTING_FAILED",
         )
 
 
@@ -210,62 +225,40 @@ async def get_investigation(
     investigation_id: str,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
 ):
-    """Get detailed investigation information"""
+    """Get detailed investigation from Neo4j"""
     try:
         logger.info(f"Getting investigation details for: {investigation_id}")
-        
-        investigation_data = {
-            "investigation_id": investigation_id,
-            "title": "Suspicious Bitcoin Transaction Pattern",
-            "description": "Investigation of unusual transaction patterns suggesting potential money laundering",
-            "status": "in_progress",
-            "priority": "high",
-            "created_by": "analyst1",
-            "assigned_to": current_user.username,
-            "created_at": datetime.utcnow() - timedelta(days=5),
-            "updated_at": datetime.utcnow() - timedelta(hours=2),
-            "addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"],
-            "blockchain": "bitcoin",
-            "time_range": {
-                "start": datetime.utcnow() - timedelta(days=30),
-                "end": datetime.utcnow()
-            },
-            "tags": ["bitcoin", "suspicious_pattern", "high_value"],
-            "evidence_count": 15,
-            "risk_score": 0.75,
-            "timeline": [
-                {
-                    "timestamp": datetime.utcnow() - timedelta(days=5),
-                    "action": "investigation_created",
-                    "user": "analyst1",
-                    "details": "Initial case created based on automated alert"
-                },
-                {
-                    "timestamp": datetime.utcnow() - timedelta(days=4),
-                    "action": "evidence_added",
-                    "user": current_user.username,
-                    "details": "Added transaction evidence"
-                }
-            ],
-            "summary": {
-                "total_transactions_analyzed": 1250,
-                "total_value_usd": 2847500.50,
-                "suspicious_patterns_found": 3,
-                "connected_addresses": 45
-            }
-        }
-        
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                OPTIONAL MATCH (i)<-[:EVIDENCE_FOR]-(e:Evidence)
+                RETURN i, count(e) AS evidence_count
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record or not record["i"]:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found")
+
+        investigation_data = dict(record["i"])
+        investigation_data["evidence_count"] = record["evidence_count"]
+
         return {
             "success": True,
             "investigation": investigation_data,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Investigation retrieval failed: {e}")
         raise JackdawException(
             message=f"Investigation retrieval failed: {str(e)}",
-            error_code="INVESTIGATION_RETRIEVAL_FAILED"
+            error_code="INVESTIGATION_RETRIEVAL_FAILED",
         )
 
 
@@ -275,46 +268,69 @@ async def update_investigation(
     request: InvestigationUpdateRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
 ):
-    """Update investigation details"""
+    """Update investigation in Neo4j"""
     try:
         logger.info(f"Updating investigation: {investigation_id}")
-        
-        update_data = {
-            "investigation_id": investigation_id,
+        now = datetime.now(timezone.utc)
+
+        set_clauses = ["i.updated_at = $updated_at", "i.updated_by = $updated_by"]
+        params: Dict[str, Any] = {
+            "inv_id": investigation_id,
+            "updated_at": now.isoformat(),
             "updated_by": current_user.username,
-            "updated_at": datetime.utcnow()
         }
-        
-        # Only update provided fields
+
         if request.status:
-            update_data["status"] = request.status
+            set_clauses.append("i.status = $status")
+            params["status"] = request.status
         if request.priority:
-            update_data["priority"] = request.priority
+            set_clauses.append("i.priority = $priority")
+            params["priority"] = request.priority
         if request.notes:
-            update_data["notes"] = request.notes
-        if request.tags:
-            update_data["tags"] = request.tags
+            set_clauses.append("i.notes = $notes")
+            params["notes"] = request.notes
+        if request.tags is not None:
+            set_clauses.append("i.tags = $tags")
+            params["tags"] = request.tags
         if request.assigned_to:
-            update_data["assigned_to"] = request.assigned_to
-        
+            set_clauses.append("i.assigned_to = $assigned_to")
+            params["assigned_to"] = request.assigned_to
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                f"""
+                MATCH (i:Investigation {{investigation_id: $inv_id}})
+                SET {', '.join(set_clauses)}
+                RETURN i
+                """,
+                **params,
+            )
+            record = await result.single()
+
+        if not record or not record["i"]:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found")
+
+        update_data = dict(record["i"])
+
         metadata = {
-            "update_fields": list(request.dict(exclude_unset=True).keys()),
-            "previous_values": {},  # In real implementation, would fetch previous values
-            "change_approved": True
+            "update_fields": [k for k, v in request.dict(exclude_unset=True).items() if v is not None],
+            "persisted_to": "neo4j",
         }
-        
+
         return InvestigationResponse(
             success=True,
             investigation_data=update_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=now,
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Investigation update failed: {e}")
         raise JackdawException(
             message=f"Investigation update failed: {str(e)}",
-            error_code="INVESTIGATION_UPDATE_FAILED"
+            error_code="INVESTIGATION_UPDATE_FAILED",
         )
 
 
@@ -323,41 +339,73 @@ async def add_evidence(
     request: EvidenceRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
 ):
-    """Add evidence to investigation"""
+    """Add evidence to investigation and persist to Neo4j"""
     try:
+        import json as _json
         logger.info(f"Adding evidence to investigation: {request.investigation_id}")
-        
+        now = datetime.now(timezone.utc)
+        evd_id = f"EVD-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+        async with get_neo4j_session() as session:
+            # Verify investigation exists
+            check = await session.run(
+                "MATCH (i:Investigation {investigation_id: $inv_id}) RETURN i",
+                inv_id=request.investigation_id,
+            )
+            if not await check.single():
+                raise HTTPException(status_code=404, detail="Investigation not found")
+
+            await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                CREATE (e:Evidence {
+                    evidence_id: $evd_id,
+                    evidence_type: $evidence_type,
+                    description: $description,
+                    data: $data,
+                    confidence: $confidence,
+                    added_by: $added_by,
+                    added_at: $added_at,
+                    verified: false
+                })-[:EVIDENCE_FOR]->(i)
+                SET i.evidence_count = coalesce(i.evidence_count, 0) + 1
+                """,
+                inv_id=request.investigation_id,
+                evd_id=evd_id,
+                evidence_type=request.evidence_type,
+                description=request.description,
+                data=_json.dumps(request.data),
+                confidence=request.confidence,
+                added_by=current_user.username,
+                added_at=now.isoformat(),
+            )
+
         evidence_data = {
-            "evidence_id": f"EVD-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            "evidence_id": evd_id,
             "investigation_id": request.investigation_id,
             "evidence_type": request.evidence_type,
             "description": request.description,
-            "data": request.data,
             "confidence": request.confidence,
             "added_by": current_user.username,
-            "added_at": datetime.utcnow(),
-            "verified": False,
-            "source": "internal_analysis"
+            "added_at": now.isoformat(),
         }
-        
-        metadata = {
-            "evidence_validation": "passed",
-            "data_integrity_check": "passed",
-            "chain_of_custody": "maintained"
-        }
-        
+
+        metadata = {"persisted_to": "neo4j", "chain_of_custody": "maintained"}
+
         return InvestigationResponse(
             success=True,
             investigation_data=evidence_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=now,
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Evidence addition failed: {e}")
         raise JackdawException(
             message=f"Evidence addition failed: {str(e)}",
-            error_code="EVIDENCE_ADDITION_FAILED"
+            error_code="EVIDENCE_ADDITION_FAILED",
         )
 
 
@@ -367,55 +415,41 @@ async def get_investigation_evidence(
     evidence_type: Optional[str] = None,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
 ):
-    """Get evidence for investigation"""
+    """Get evidence for investigation from Neo4j"""
     try:
         logger.info(f"Getting evidence for investigation: {investigation_id}")
-        
-        evidence = [
-            {
-                "evidence_id": "EVD-20240101001",
-                "evidence_type": "transaction",
-                "description": "High-value Bitcoin transaction",
-                "data": {
-                    "transaction_hash": "1234567890abcdef...",
-                    "amount_btc": 15.7,
-                    "timestamp": datetime.utcnow() - timedelta(days=3)
-                },
-                "confidence": 0.95,
-                "added_by": "analyst1",
-                "added_at": datetime.utcnow() - timedelta(days=3)
-            },
-            {
-                "evidence_id": "EVD-20240101002",
-                "evidence_type": "address",
-                "description": "Address linked to known exchange",
-                "data": {
-                    "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                    "labels": ["exchange", "trading"],
-                    "risk_score": 0.3
-                },
-                "confidence": 0.85,
-                "added_by": current_user.username,
-                "added_at": datetime.utcnow() - timedelta(days=2)
-            }
-        ]
-        
+
+        type_filter = "AND e.evidence_type = $evidence_type" if evidence_type else ""
+        params: Dict[str, Any] = {"inv_id": investigation_id}
         if evidence_type:
-            evidence = [ev for ev in evidence if ev["evidence_type"] == evidence_type]
-        
+            params["evidence_type"] = evidence_type
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                f"""
+                MATCH (e:Evidence)-[:EVIDENCE_FOR]->(i:Investigation {{investigation_id: $inv_id}})
+                {type_filter}
+                RETURN e ORDER BY e.added_at DESC
+                """,
+                **params,
+            )
+            records = await result.data()
+
+        evidence = [dict(r["e"]) for r in records]
+
         return {
             "success": True,
             "investigation_id": investigation_id,
             "evidence": evidence,
             "total_count": len(evidence),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Evidence retrieval failed: {e}")
         raise JackdawException(
             message=f"Evidence retrieval failed: {str(e)}",
-            error_code="EVIDENCE_RETRIEVAL_FAILED"
+            error_code="EVIDENCE_RETRIEVAL_FAILED",
         )
 
 
@@ -423,38 +457,48 @@ async def get_investigation_evidence(
 async def get_investigation_statistics(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
 ):
-    """Get investigation system statistics"""
+    """Get investigation statistics from Neo4j"""
     try:
-        stats = {
-            "total_investigations": 156,
-            "active_investigations": 23,
-            "closed_investigations": 133,
-            "average_resolution_days": 18,
-            "evidence_items_total": 2450,
-            "high_priority_cases": 8,
-            "cases_by_status": {
-                "open": 12,
-                "in_progress": 11,
-                "closed": 133,
-                "archived": 0
-            },
-            "cases_by_priority": {
-                "low": 45,
-                "medium": 78,
-                "high": 28,
-                "critical": 5
-            }
-        }
-        
+        stats: Dict[str, Any] = {}
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation)
+                RETURN count(i) AS total,
+                       count(CASE WHEN i.status IN ['open','in_progress'] THEN 1 END) AS active,
+                       count(CASE WHEN i.status = 'closed' THEN 1 END) AS closed
+                """
+            )
+            record = await result.single()
+            stats["total_investigations"] = record["total"] if record else 0
+            stats["active_investigations"] = record["active"] if record else 0
+            stats["closed_investigations"] = record["closed"] if record else 0
+
+            status_result = await session.run(
+                "MATCH (i:Investigation) RETURN i.status AS status, count(i) AS count"
+            )
+            status_records = await status_result.data()
+            stats["cases_by_status"] = {r["status"]: r["count"] for r in status_records if r["status"]}
+
+            prio_result = await session.run(
+                "MATCH (i:Investigation) RETURN i.priority AS priority, count(i) AS count"
+            )
+            prio_records = await prio_result.data()
+            stats["cases_by_priority"] = {r["priority"]: r["count"] for r in prio_records if r["priority"]}
+
+            evd_result = await session.run("MATCH (e:Evidence) RETURN count(e) AS total")
+            evd_record = await evd_result.single()
+            stats["evidence_items_total"] = evd_record["total"] if evd_record else 0
+
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Investigation statistics failed: {e}")
         raise JackdawException(
             message=f"Investigation statistics failed: {str(e)}",
-            error_code="STATISTICS_FAILED"
+            error_code="STATISTICS_FAILED",
         )

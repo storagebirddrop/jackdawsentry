@@ -11,7 +11,7 @@ This module provides comprehensive data visualization tools for compliance opera
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -73,10 +73,10 @@ class VisualizationData:
     """Visualization data definition"""
     viz_id: str
     data: Union[List[Dict], Dict[str, Any]]
+    generated_at: datetime
     labels: Optional[List[str]] = None
     datasets: Optional[List[Dict[str, Any]]] = None
     options: Optional[Dict[str, Any]] = None
-    generated_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -317,7 +317,7 @@ class ComplianceVisualizationEngine:
     async def generate_visualization(self, viz_id: str, filters: Optional[Dict[str, Any]] = None) -> VisualizationResult:
         """Generate visualization data"""
         try:
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             
             # Get visualization configuration
             viz_config = self.visualizations.get(viz_id)
@@ -334,7 +334,7 @@ class ComplianceVisualizationEngine:
             cache_key = f"{viz_id}_{hash(str(filters))}" if filters else viz_id
             if cache_key in self.visualization_cache:
                 cached_data = self.visualization_cache[cache_key]
-                if datetime.utcnow() - cached_data["timestamp"] < timedelta(minutes=self.cache_ttl_minutes):
+                if datetime.now(timezone.utc) - cached_data["timestamp"] < timedelta(minutes=self.cache_ttl_minutes):
                     return VisualizationResult(
                         viz_id=viz_id,
                         success=True,
@@ -347,7 +347,7 @@ class ComplianceVisualizationEngine:
             data = await self._generate_visualization_data(viz_config, filters)
             
             # Calculate render time
-            render_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+            render_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
             
             # Create result
             result = VisualizationResult(
@@ -361,7 +361,7 @@ class ComplianceVisualizationEngine:
             # Cache result
             self.visualization_cache[cache_key] = {
                 "data": data,
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.now(timezone.utc)
             }
             
             return result
@@ -445,7 +445,7 @@ class ComplianceVisualizationEngine:
                         }
                     }
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -491,7 +491,7 @@ class ComplianceVisualizationEngine:
                         }
                     }
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -523,7 +523,7 @@ class ComplianceVisualizationEngine:
                         "legend": {"position": "bottom"}
                     }
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -556,7 +556,7 @@ class ComplianceVisualizationEngine:
                     },
                     "cutout": "50%"
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -597,7 +597,7 @@ class ComplianceVisualizationEngine:
                         }
                     }
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -626,7 +626,7 @@ class ComplianceVisualizationEngine:
                     "data": data,
                     "color_scale": viz_config.config.get("color_scale", "viridis")
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -656,7 +656,7 @@ class ComplianceVisualizationEngine:
             return VisualizationData(
                 viz_id=viz_config.viz_id,
                 data={"nodes": nodes, "links": links},
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -677,7 +677,7 @@ class ComplianceVisualizationEngine:
             return VisualizationData(
                 viz_id=viz_config.viz_id,
                 data={"events": events},
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -703,7 +703,7 @@ class ComplianceVisualizationEngine:
                     "max": viz_config.config.get("max", 100),
                     "zones": zones
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -736,7 +736,7 @@ class ComplianceVisualizationEngine:
                         "legend": {"display": False}
                     }
                 },
-                generated_at=datetime.utcnow()
+                generated_at=datetime.now(timezone.utc)
             )
             
         except Exception as e:

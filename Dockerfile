@@ -1,5 +1,10 @@
 # =============================================================================
-# Jackdaw Sentry - Main Application Dockerfile
+# DEPRECATED: Jackdaw Sentry - Legacy/Dev Dockerfile
+#
+# Canonical Docker build:
+#   docker/Dockerfile
+#
+# This file is kept for reference only and may be removed in a future cleanup.
 # =============================================================================
 
 FROM python:3.11-slim

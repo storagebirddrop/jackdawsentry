@@ -5,9 +5,33 @@ All notable changes to Jackdaw Sentry will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0] - 2024-01-21
+## [Unreleased]
 
-### ✅ **ENHANCED COMPLIANCE SUITE COMPLETED**
+> **Disclaimer:** The features listed below have partial implementations (scaffolding,
+> models, mock endpoints) but are **not yet wired to the running application** as
+> production-ready functionality. They were previously listed under versioned releases
+> but have been moved here to accurately reflect their status. See
+> [docs/roadmap.md](docs/roadmap.md) for the plan to complete them.
+
+### Testing (M5 milestone — complete)
+
+#### 🧪 **136 Tests Passing**
+- **Smoke tests** (9): App imports, `/health`, `/openapi.json`, `/docs`, 404 handling
+- **Auth unit tests** (15): Bcrypt hash/verify, JWT create/decode/expiry/bad-signature, RBAC roles
+- **Analysis manager tests** (13): `AnalysisManager` API with mocked engines
+- **Compliance engine tests** (81): Audit trail, case management, regulatory reporting, risk assessment
+- **API integration tests** (13): Compliance router auth enforcement, engine patching, request validation
+- **Workflow tests** (5): Cross-engine pipelines (risk→case→audit→report)
+
+#### 🐛 **Source Bugs Fixed During Test Expansion**
+- Missing `timezone` import in `src/compliance/audit_trail.py` — caused `NameError` at runtime
+- `sum(timedelta)` TypeError in `src/compliance/case_management.py` — `sum()` needs `timedelta()` start value
+- Missing `timezone` import in `src/analysis/analysis_manager.py`
+- Missing `monitor_health` and `cache_analysis_results` methods in `AnalysisManager`
+
+### Previously listed under [1.6.0]
+
+#### ENHANCED COMPLIANCE SUITE (partial)
 
 #### 📊 **Advanced Analytics & Reporting**
 - **Analytics Dashboard**: Real-time compliance analytics with interactive charts
@@ -79,9 +103,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Health Monitoring**: Comprehensive health checks and system monitoring
 - **Scalability Improvements**: Enhanced horizontal scaling capabilities
 
-## [1.5.0] - 2024-01-20
+### Previously listed under [1.5.0]
 
-### ✅ **COMPLIANCE FEATURE IMPLEMENTATION COMPLETED**
+#### COMPLIANCE FEATURE IMPLEMENTATION (partial)
 
 #### 🛡️ **Comprehensive Compliance Framework**
 - **Regulatory Reporting Integration**: Multi-jurisdictional support for USA FINCEN, UK FCA, Singapore MAS, EU AMLD
@@ -114,9 +138,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Async Processing**: Scalable asynchronous compliance workflows
 - **Immutable Logging**: Cryptographically secure audit trail with hash chaining
 
-## [1.4.0] - 2024-01-19
+### Previously listed under [1.4.0]
 
-### ✅ **ACADEMIC INTEGRATIONS COMPLETED**
+#### ACADEMIC INTEGRATIONS (partial)
 
 #### 🎓 **Complete Academic Resource Integration**
 - **BlockSci Integration**: High-performance blockchain science tool from Princeton University
@@ -151,9 +175,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Platform Support**: Comprehensive academic integration coverage
 - **Performance Standards**: Academic excellence compliance metrics
 
-## [1.3.0] - 2024-01-18
+### Previously listed under [1.3.0]
 
-### ✅ **INTEGRATION IMPLEMENTATION COMPLETED**
+#### INTEGRATION IMPLEMENTATION (partial)
 
 #### 🧠 **Multi-Platform Intelligence Integration**
 - **AI-Powered Analysis**: Model Context Protocol (MCP) integration with real-time blockchain data access
@@ -192,9 +216,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Risk Assessment**: Weighted multi-source evaluation
 - **Legal Compliance**: GDPR-compliant with proper attribution
 
-## [1.2.0] - 2024-01-17
+### Previously listed under [1.2.0]
 
-### ✅ **FRONTEND DASHBOARD DEVELOPMENT COMPLETED**
+#### FRONTEND DASHBOARD DEVELOPMENT (partial)
 
 #### 🖥️ **Modern Web Dashboard (Production Ready)**
 - **Responsive Design**: Mobile-first responsive layout with Tailwind CSS
@@ -231,9 +255,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Progress Indicators**: Clear progress tracking and loading states
 - **Tooltips**: Helpful contextual information and guidance
 
-## [1.1.0] - 2024-01-16
+### Previously listed under [1.1.0]
 
-### ✅ **ANALYSIS ENGINE ENHANCEMENT COMPLETED**
+#### ANALYSIS ENGINE ENHANCEMENT (partial)
 
 #### 🧠 **ML-Powered Analysis Engine (6 Engines)**
 - **Cross-Chain Transaction Analysis Engine** - Multi-chain pattern detection and flow analysis
@@ -307,9 +331,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Risk Classification** - Standardized risk assessment
 - **Recommendations** - Actionable insights for investigation
 
-## [1.0.0] - 2024-01-15
+### Previously listed under [1.0.0]
 
-### ✅ **PRODUCTION RELEASE - MULTI-CHAIN DATA COLLECTION COMPLETED**
+#### MULTI-CHAIN DATA COLLECTION (partial)
 
 #### 🚀 **Multi-Chain Blockchain Support (10+ Blockchains)**
 - **Bitcoin** - Core Bitcoin blockchain with Lightning Network support
@@ -666,4 +690,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Changelog Format**: Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)  
 **Versioning**: [Semantic Versioning](https://semver.org/spec/v2.0.0/)  
-**Last Updated**: January 2024
+**Last Updated**: February 2026

@@ -58,32 +58,33 @@ Jackdaw Sentry uses a dual-database architecture optimized for blockchain analys
 - **User Management**: Authentication and authorization
 - **Reporting**: SAR generation and regulatory reports
 
-### Key Tables
+### Actual Tables (from `001_initial_schema.sql`)
 
-#### Compliance Schema
-- **investigations**: Case management and tracking
-- **sar_reports**: Suspicious Activity Reports
-- **address_watchlists**: Sanctions and high-risk addresses
-- **regulatory_reports**: EU regulatory compliance reports
-- **users**: User management and permissions
+- **users**: Authentication, roles, GDPR consent tracking
+- **investigations**: Case management with status, priority, assignment
+- **evidence**: Evidence items linked to investigations (files, hashes, addresses)
+- **compliance_reports**: Risk-scored compliance reports with JSONB data
+- **transactions**: Blockchain transactions with amounts, fees, risk indicators
+- **addresses**: Blockchain addresses with risk scores and activity stats
+- **sanctions_lists**: Sanctions list sources and metadata
+- **sanctions_entries**: Individual sanctions entries linked to lists
+- **risk_scoring_models**: ML model metadata and parameters
+- **audit_logs**: GDPR-compliant audit trail with IP, user agent, session
 
-#### Audit Schema
-- **audit_log**: Complete audit trail of all modifications
-- **data_access_log**: GDPR-compliant access logging
+#### ⚠️ Planned Tables (not yet created)
+- `gdpr_requests`, `data_processing_records`, `data_breach_incidents`, `user_consent`
 
-#### GDPR Schema
-- **gdpr_requests**: Data subject requests (access, erasure, etc.)
-- **data_processing_records**: Article 30 processing records
-- **data_breach_incidents**: Data breach tracking and reporting
-- **user_consent**: Consent management and tracking
+### Implemented Features
+- **7-year data retention** default on `users` and `audit_logs` (`retention_required_days = 2555`)
+- **Audit logging** table with GDPR fields (`gdpr_data_accessed` JSONB)
+- **Auto-updated timestamps** via `update_updated_at_column()` triggers
+- **Comprehensive indexes** on search columns, foreign keys, and risk scores
 
-### Compliance Features
-- **7-year data retention** (EU AML requirement)
-- **Automated data deletion** after retention period
-- **Encrypted sensitive data** (GDPR compliance)
-- **Consent management** with version tracking
-- **Audit logging** for all data access
-- **Data subject request** handling
+### ⚠️ Planned Features
+- Automated data deletion after retention period
+- Encrypted sensitive data columns
+- Consent management with version tracking
+- Data subject request handling
 
 ## ⚡ Redis Cache & Message Queue
 
@@ -216,11 +217,11 @@ RETURN path, sum(rel.value) as total_value
 
 ### PostgreSQL Queries
 ```sql
--- Get open investigations with SAR reports
-SELECT i.case_number, i.title, i.status, 
-       COUNT(s.id) as sar_count
-FROM compliance.investigations i
-LEFT JOIN compliance.sar_reports s ON i.id = s.investigation_id
+-- Get open investigations with evidence counts
+SELECT i.case_number, i.title, i.status,
+       COUNT(e.id) as evidence_count
+FROM investigations i
+LEFT JOIN evidence e ON i.id = e.investigation_id
 WHERE i.status = 'open'
 GROUP BY i.id, i.case_number, i.title, i.status;
 ```
@@ -230,5 +231,5 @@ GROUP BY i.id, i.case_number, i.title, i.status;
 - [Neo4j Documentation](https://neo4j.com/docs/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Redis Documentation](https://redis.io/documentation)
-- [GDPR Compliance Guide](../compliance/gdpr.md)
-- [Database Schema Details](schema.md)
+- [Compliance Framework](../compliance/README.md)
+- [Initial Schema SQL](../../src/api/migrations/001_initial_schema.sql)

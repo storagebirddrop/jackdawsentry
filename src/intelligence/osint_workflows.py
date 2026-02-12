@@ -97,13 +97,13 @@ class BitcoinInvestigation:
     
     async def investigate_address(self, address: str) -> Dict[str, Any]:
         """Investigate Bitcoin address using structured workflow"""
-        investigation_id = f"btc_inv_{datetime.utcnow().timestamp()}"
+        investigation_id = f"btc_inv_{datetime.now(timezone.utc).timestamp()}"
         
         workflow = {
             'investigation_id': investigation_id,
             'address': address,
             'type': InvestigationType.BITCOIN_ADDRESS.value,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'steps': [],
             'findings': [],
             'evidence': [],
@@ -124,7 +124,7 @@ class BitcoinInvestigation:
             workflow['steps'].append(step1)
             step1.result = await self._check_blockstream(address)
             step1.status = "completed" if step1.result.success else "failed"
-            step1.timestamp = datetime.utcnow()
+            step1.timestamp = datetime.now(timezone.utc)
             
             if step1.result.success:
                 workflow['findings'].append({
@@ -154,7 +154,7 @@ class BitcoinInvestigation:
             workflow['steps'].append(step2)
             step2.result = await self._check_wallet_explorer(address)
             step2.status = "completed" if step2.result.success else "failed"
-            step2.timestamp = datetime.utcnow()
+            step2.timestamp = datetime.now(timezone.utc)
             
             if step2.result.success:
                 workflow['findings'].append({
@@ -184,7 +184,7 @@ class BitcoinInvestigation:
             workflow['steps'].append(step3)
             step3.result = await self._check_bitcoin_abuse(address)
             step3.status = "completed" if step3.result.success else "failed"
-            step3.timestamp = datetime.utcnow()
+            step3.timestamp = datetime.now(timezone.utc)
             
             if step3.result.success:
                 workflow['findings'].append({
@@ -214,7 +214,7 @@ class BitcoinInvestigation:
             workflow['steps'].append(step4)
             step4.result = await self._check_breadcrumbs(address)
             step4.status = "completed" if step4.result.success else "failed"
-            step4.timestamp = datetime.utcnow()
+            step4.timestamp = datetime.now(timezone.utc)
             
             if step4.result.success:
                 workflow['findings'].append({
@@ -242,7 +242,7 @@ class BitcoinInvestigation:
                 'investigation_id': investigation_id,
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'steps': [],
                 'findings': [],
                 'evidence': [],
@@ -261,7 +261,7 @@ class BitcoinInvestigation:
                         platform=OSINTPlatform.BLOCKSTREAM,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -269,7 +269,7 @@ class BitcoinInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -277,7 +277,7 @@ class BitcoinInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_wallet_explorer(self, address: str) -> OSINTResult:
@@ -292,7 +292,7 @@ class BitcoinInvestigation:
                         platform=OSINTPlatform.WALLETEXPLORER,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -300,7 +300,7 @@ class BitcoinInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -308,7 +308,7 @@ class BitcoinInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_bitcoin_abuse(self, address: str) -> OSINTResult:
@@ -324,7 +324,7 @@ class BitcoinInvestigation:
                         platform=OSINTPlatform.BITCOINABUSE,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -332,7 +332,7 @@ class BitcoinInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -340,7 +340,7 @@ class BitcoinInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_breadcrumbs(self, address: str) -> OSINTResult:
@@ -355,7 +355,7 @@ class BitcoinInvestigation:
                         platform=OSINTPlatform.BREADCRUMBS,
                         data={'visualization_available': True, 'url': url},
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -363,7 +363,7 @@ class BitcoinInvestigation:
                         data={'visualization_available': False},
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -371,7 +371,7 @@ class BitcoinInvestigation:
                 data={'visualization_available': False},
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     def _assess_transaction_risk(self, transaction_data: Dict[str, Any]) -> str:
@@ -433,7 +433,7 @@ class BitcoinInvestigation:
             'confidence': avg_confidence,
             'risk_score': avg_risk,
             'finding_count': len(findings),
-            'assessment_timestamp': datetime.utcnow().isoformat()
+            'assessment_timestamp': datetime.now(timezone.utc).isoformat()
         }
 
 
@@ -454,13 +454,13 @@ class EthereumInvestigation:
     
     async def investigate_address(self, address: str) -> Dict[str, Any]:
         """Investigate Ethereum address using structured workflow"""
-        investigation_id = f"eth_inv_{datetime.utcnow().timestamp()}"
+        investigation_id = f"eth_inv_{datetime.now(timezone.utc).timestamp()}"
         
         workflow = {
             'investigation_id': investigation_id,
             'address': address,
             'type': InvestigationType.ETHEREUM_ADDRESS.value,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'steps': [],
             'findings': [],
             'evidence': [],
@@ -481,7 +481,7 @@ class EthereumInvestigation:
             workflow['steps'].append(step1)
             step1.result = await self._check_etherscan(address)
             step1.status = "completed" if step1.result.success else "failed"
-            step1.timestamp = datetime.utcnow()
+            step1.timestamp = datetime.now(timezone.utc)
             
             if step1.result.success:
                 workflow['findings'].append({
@@ -511,7 +511,7 @@ class EthereumInvestigation:
             workflow['steps'].append(step2)
             step2.result = await self._check_ethtective(address)
             step2.status = "completed" if step2.result.success else "failed"
-            step2.timestamp = datetime.utcnow()
+            step2.timestamp = datetime.now(timezone.utc)
             
             if step2.result.success:
                 workflow['findings'].append({
@@ -541,7 +541,7 @@ class EthereumInvestigation:
             workflow['steps'].append(step3)
             step3.result = await self._check_tokenview(address)
             step3.status = "completed" if step3.result.success else "failed"
-            step3.timestamp = datetime.utcnow()
+            step3.timestamp = datetime.now(timezone.utc)
             
             if step3.result.success:
                 workflow['findings'].append({
@@ -571,7 +571,7 @@ class EthereumInvestigation:
             workflow['steps'].append(step4)
             step4.result = await self._check_breadcrumbs_eth(address)
             step4.status = "completed" if step4.result.success else "failed"
-            step4.timestamp = datetime.utcnow()
+            step4.timestamp = datetime.now(timezone.utc)
             
             if step4.result.success:
                 workflow['findings'].append({
@@ -599,7 +599,7 @@ class EthereumInvestigation:
                 'investigation_id': investigation_id,
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'steps': [],
                 'findings': [],
                 'evidence': [],
@@ -618,7 +618,7 @@ class EthereumInvestigation:
                         platform=OSINTPlatform.ETHERSCAN,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -626,7 +626,7 @@ class EthereumInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -634,7 +634,7 @@ class EthereumInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_ethtective(self, address: str) -> OSINTResult:
@@ -649,7 +649,7 @@ class EthereumInvestigation:
                         platform=OSINTPlatform.ETTECTIVE,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -657,7 +657,7 @@ class EthereumInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -665,7 +665,7 @@ class EthereumInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_tokenview(self, address: str) -> OSINTResult:
@@ -680,7 +680,7 @@ class EthereumInvestigation:
                         platform=OSINTPlatform.TOKENVIEW,
                         data=data,
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -688,7 +688,7 @@ class EthereumInvestigation:
                         data=None,
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -696,7 +696,7 @@ class EthereumInvestigation:
                 data=None,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def _check_breadcrumbs_eth(self, address: str) -> OSINTResult:
@@ -711,7 +711,7 @@ class EthereumInvestigation:
                         platform=OSINTPlatform.BREADCRUMBS,
                         data={'visualization_available': True, 'url': url},
                         success=True,
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
                 else:
                     return OSINTResult(
@@ -719,7 +719,7 @@ class EthereumInvestigation:
                         data={'visualization_available': False},
                         success=False,
                         error=f"HTTP {response.status}",
-                        timestamp=datetime.utcnow()
+                        timestamp=datetime.now(timezone.utc)
                     )
         except Exception as e:
             return OSINTResult(
@@ -727,7 +727,7 @@ class EthereumInvestigation:
                 data={'visualization_available': False},
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     def _assess_ethereum_risk(self, transaction_data: Dict[str, Any]) -> str:
@@ -785,7 +785,7 @@ class EthereumInvestigation:
             'confidence': avg_confidence,
             'risk_score': avg_risk,
             'finding_count': len(findings),
-            'assessment_timestamp': datetime.utcnow().isoformat()
+            'assessment_timestamp': datetime.now(timezone.utc).isoformat()
         }
 
 
@@ -798,7 +798,7 @@ class OSINTWorkflowsManager:
     
     async def start_investigation(self, address: str, investigation_type: InvestigationType, user_id: str = None) -> Dict[str, Any]:
         """Start structured OSINT investigation"""
-        investigation_id = f"osint_{datetime.utcnow().timestamp()}"
+        investigation_id = f"osint_{datetime.now(timezone.utc).timestamp()}"
         
         try:
             if investigation_type == InvestigationType.BITCOIN_ADDRESS:
@@ -814,7 +814,7 @@ class OSINTWorkflowsManager:
             else:
                 return {
                     'error': f'Unsupported investigation type: {investigation_type.value}',
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             
             # Add metadata
@@ -835,7 +835,7 @@ class OSINTWorkflowsManager:
                 'investigation_id': investigation_id,
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'steps': [],
                 'findings': [],
                 'evidence': [],
@@ -859,8 +859,8 @@ class OSINTWorkflowsManager:
         report = {
             'report_id': f"osint_report_{investigation_id}",
             'investigation_id': investigation_id,
-            'generated_at': datetime.utcnow().isoformat(),
-            'case_number': f"OSINT-{datetime.utcnow().strftime('%Y%m%d')}-{investigation_id[:8]}",
+            'generated_at': datetime.now(timezone.utc).isoformat(),
+            'case_number': f"OSINT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{investigation_id[:8]}",
             'investigating_analyst': 'Jackdaw Sentry OSINT Workflows',
             'methodology': 'Structured multi-platform OSINT investigation',
             'investigation': investigation,

@@ -11,7 +11,7 @@ This module provides comprehensive rate limiting functionality for compliance AP
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -259,7 +259,7 @@ class ComplianceRateLimitingEngine:
                     rule_id="none",
                     action=RateLimitAction.LOG_ONLY,
                     remaining_requests=999,
-                    reset_time=datetime.utcnow() + timedelta(hours=1),
+                    reset_time=datetime.now(timezone.utc) + timedelta(hours=1),
                     violation=False
                 )
             
@@ -282,7 +282,7 @@ class ComplianceRateLimitingEngine:
                 rule_id="all_passed",
                 action=RateLimitAction.LOG_ONLY,
                 remaining_requests=100,
-                reset_time=datetime.utcnow() + timedelta(minutes=1),
+                reset_time=datetime.now(timezone.utc) + timedelta(minutes=1),
                 violation=False
             )
             
@@ -294,7 +294,7 @@ class ComplianceRateLimitingEngine:
                 rule_id="error",
                 action=RateLimitAction.LOG_ONLY,
                 remaining_requests=999,
-                reset_time=datetime.utcnow() + timedelta(hours=1),
+                reset_time=datetime.now(timezone.utc) + timedelta(hours=1),
                 violation=False,
                 metadata={"error": str(e)}
             )
@@ -387,7 +387,7 @@ class ComplianceRateLimitingEngine:
                     rule_id=rule.rule_id,
                     action=rule.action,
                     remaining_requests=0,
-                    reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
+                    reset_time=datetime.now(timezone.utc) + timedelta(seconds=rule.window_seconds),
                     violation=True,
                     metadata={"current_count": current_count, "limit": rule.requests_per_window}
                 )
@@ -400,7 +400,7 @@ class ComplianceRateLimitingEngine:
                 rule_id=rule.rule_id,
                 action=rule.action,
                 remaining_requests=rule.requests_per_window - current_count - 1,
-                reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
+                reset_time=datetime.now(timezone.utc) + timedelta(seconds=rule.window_seconds),
                 violation=False,
                 metadata={"current_count": current_count + 1, "limit": rule.requests_per_window}
             )
@@ -412,7 +412,7 @@ class ComplianceRateLimitingEngine:
                 rule_id=rule.rule_id,
                 action=RateLimitAction.LOG_ONLY,
                 remaining_requests=999,
-                reset_time=datetime.utcnow() + timedelta(hours=1),
+                reset_time=datetime.now(timezone.utc) + timedelta(hours=1),
                 violation=False,
                 metadata={"error": str(e)}
             )
@@ -494,7 +494,7 @@ class ComplianceRateLimitingEngine:
                 user_id=request.user_id,
                 ip_address=request.ip_address,
                 endpoint=request.endpoint,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 action_taken=result.action,
                 metadata=result.metadata
             )
@@ -604,7 +604,7 @@ class ComplianceRateLimitingEngine:
             status = {
                 "total_rules": len(self.rules),
                 "enabled_rules": len([r for r in self.rules.values() if r.enabled]),
-                "recent_violations": len([v for v in self.violations if v.timestamp > datetime.utcnow() - timedelta(hours=1)]),
+                "recent_violations": len([v for v in self.violations if v.timestamp > datetime.now(timezone.utc) - timedelta(hours=1)]),
                 "redis_connected": self.redis_client is not None
             }
             
@@ -619,7 +619,7 @@ class ComplianceRateLimitingEngine:
                             "current_count": current_count,
                             "limit": rule.requests_per_window,
                             "remaining": max(0, rule.requests_per_window - current_count),
-                            "reset_time": datetime.utcnow() + timedelta(seconds=rule.window_seconds)
+                            "reset_time": datetime.now(timezone.utc) + timedelta(seconds=rule.window_seconds)
                         }
                 status["user_status"] = user_status
             
@@ -634,7 +634,7 @@ class ComplianceRateLimitingEngine:
                             "current_count": current_count,
                             "limit": rule.requests_per_window,
                             "remaining": max(0, rule.requests_per_window - current_count),
-                            "reset_time": datetime.utcnow() + timedelta(seconds=rule.window_seconds)
+                            "reset_time": datetime.now(timezone.utc) + timedelta(seconds=rule.window_seconds)
                         }
                 status["ip_status"] = ip_status
             
@@ -665,7 +665,7 @@ class ComplianceRateLimitingEngine:
     async def clear_violations(self, older_than_hours: int = 24) -> int:
         """Clear old violations"""
         try:
-            cutoff_time = datetime.utcnow() - timedelta(hours=older_than_hours)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=older_than_hours)
             original_count = len(self.violations)
             
             self.violations = [v for v in self.violations if v.timestamp > cutoff_time]
@@ -682,7 +682,7 @@ class ComplianceRateLimitingEngine:
     async def get_rate_limit_statistics(self) -> Dict[str, Any]:
         """Get rate limiting statistics"""
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             
             # Calculate statistics
             total_violations = len(self.violations)

@@ -623,7 +623,7 @@ class BridgeTracker:
             'total_liquidity': 1000000,  # Placeholder
             'available_liquidity': 800000,   # Placeholder
             'utilization': 0.2,              # Placeholder
-            'last_updated': datetime.utcnow()
+            'last_updated': datetime.now(timezone.utc)
         }
     
     async def store_liquidity_data(self, blockchain: str, bridge_name: str, 
@@ -786,7 +786,7 @@ class BridgeTracker:
         while self.is_running:
             try:
                 # Update metrics
-                self.metrics['last_update'] = datetime.utcnow()
+                self.metrics['last_update'] = datetime.now(timezone.utc)
                 
                 # Cache metrics
                 async with get_redis_connection() as redis:

@@ -5,7 +5,7 @@ Blockchain data and node management endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
 
@@ -66,117 +66,103 @@ async def query_blockchain(
     request: BlockchainQueryRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
 ):
-    """Query blockchain data"""
+    """Query blockchain data from Neo4j"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Querying {request.blockchain} for {request.query_type}: {request.identifier}")
-        
-        if request.query_type == "transaction":
-            data = {
-                "transaction_hash": request.identifier,
-                "blockchain": request.blockchain,
-                "from_address": "0x1234567890123456789012345678901234567890",
-                "to_address": "0x0987654321098765432109876543210987654321",
-                "value": 2.5,
-                "gas_used": 21000,
-                "gas_price": 20,
-                "block_number": 18500000,
-                "timestamp": datetime.utcnow() - timedelta(hours=1),
-                "status": "confirmed",
-                "confirmations": 15
-            }
-            
-            if request.include_details:
-                data["details"] = {
-                    "input_data": "0x...",
-                    "logs": [],
-                    "trace": [],
-                    "token_transfers": []
-                }
-        
-        elif request.query_type == "address":
-            data = {
-                "address": request.identifier,
-                "blockchain": request.blockchain,
-                "balance": 15.7,
-                "transaction_count": 1250,
-                "first_seen": datetime.utcnow() - timedelta(days=365),
-                "last_seen": datetime.utcnow() - timedelta(hours=2),
-                "type": "eoa",
-                "labels": ["exchange", "trading"]
-            }
-            
-            if request.include_details:
-                data["details"] = {
-                    "contracts": [],
-                    "tokens": [
-                        {"symbol": "USDT", "balance": 5000.0},
-                        {"symbol": "USDC", "balance": 3000.0}
-                    ],
-                    "transactions": []
-                }
-        
-        elif request.query_type == "block":
-            data = {
-                "block_number": int(request.identifier),
-                "blockchain": request.blockchain,
-                "block_hash": "0xabcdef1234567890...",
-                "timestamp": datetime.utcnow() - timedelta(hours=1),
-                "transaction_count": 150,
-                "gas_used": 8500000,
-                "gas_limit": 15000000,
-                "miner": "0x1234567890123456789012345678901234567890",
-                "difficulty": "12000000000000"
-            }
-            
-            if request.include_details:
-                data["details"] = {
-                    "transactions": [],
-                    "uncles": [],
-                    "withdrawals": []
-                }
-        
-        else:  # contract
-            data = {
-                "contract_address": request.identifier,
-                "blockchain": request.blockchain,
-                "contract_type": "ERC20",
-                "name": "Mock Token",
-                "symbol": "MOCK",
-                "decimals": 18,
-                "total_supply": "1000000000000000000000000",
-                "created_at": datetime.utcnow() - timedelta(days=100),
-                "creator": "0x1234567890123456789012345678901234567890"
-            }
-            
-            if request.include_details:
-                data["details"] = {
-                    "abi": [],
-                    "functions": ["transfer", "approve", "balanceOf"],
-                    "events": ["Transfer", "Approval"],
-                    "holders": 1250
-                }
-        
+
+        data: Dict[str, Any] = {"blockchain": request.blockchain}
+
+        async with get_neo4j_session() as session:
+            if request.query_type == "transaction":
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (t:Transaction {hash: $id, blockchain: $bc})
+                    OPTIONAL MATCH (from_a:Address)-[:SENT]->(t)
+                    OPTIONAL MATCH (t)-[:RECEIVED]->(to_a:Address)
+                    RETURN t, from_a.address AS from_addr, to_a.address AS to_addr
+                    """,
+                    id=request.identifier, bc=request.blockchain,
+                )
+                rec = await result.single()
+                if rec and rec["t"]:
+                    props = dict(rec["t"])
+                    data.update(props)
+                    data["from_address"] = rec["from_addr"]
+                    data["to_address"] = rec["to_addr"]
+                else:
+                    data["transaction_hash"] = request.identifier
+                    data["note"] = "Transaction not found in database"
+
+            elif request.query_type == "address":
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (a:Address {address: $id, blockchain: $bc})
+                    OPTIONAL MATCH (a)-[r:SENT|RECEIVED]-()
+                    RETURN a, count(r) AS tx_count
+                    """,
+                    id=request.identifier, bc=request.blockchain,
+                )
+                rec = await result.single()
+                if rec and rec["a"]:
+                    props = dict(rec["a"])
+                    data.update(props)
+                    data["transaction_count"] = rec["tx_count"]
+                else:
+                    data["address"] = request.identifier
+                    data["transaction_count"] = 0
+                    data["note"] = "Address not found in database"
+
+            elif request.query_type == "block":
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (b:Block {number: toInteger($id), blockchain: $bc})
+                    OPTIONAL MATCH (b)-[:CONTAINS]->(t:Transaction)
+                    RETURN b, count(t) AS tx_count
+                    """,
+                    id=request.identifier, bc=request.blockchain,
+                )
+                rec = await result.single()
+                if rec and rec["b"]:
+                    props = dict(rec["b"])
+                    data.update(props)
+                    data["transaction_count"] = rec["tx_count"]
+                else:
+                    data["block_number"] = request.identifier
+                    data["note"] = "Block not found in database"
+
+            else:  # contract
+                result = await session.run(
+                    "OPTIONAL MATCH (c:Contract {address: $id, blockchain: $bc}) RETURN c",
+                    id=request.identifier, bc=request.blockchain,
+                )
+                rec = await result.single()
+                if rec and rec["c"]:
+                    data.update(dict(rec["c"]))
+                else:
+                    data["contract_address"] = request.identifier
+                    data["note"] = "Contract not found in database"
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "query_type": request.query_type,
             "include_details": request.include_details,
-            "data_source": "blockchain_rpc",
-            "processing_time_ms": 150,
-            "cache_hit": False
+            "data_source": "neo4j",
+            "processing_time_ms": elapsed_ms,
         }
-        
+
         return BlockchainResponse(
-            success=True,
-            blockchain_data=data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, blockchain_data=data,
+            metadata=metadata, timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Blockchain query failed: {e}")
         raise BlockchainException(
             message=f"Blockchain query failed: {str(e)}",
             blockchain=request.blockchain,
-            error_code="BLOCKCHAIN_QUERY_FAILED"
+            error_code="BLOCKCHAIN_QUERY_FAILED",
         )
 
 
@@ -200,7 +186,7 @@ async def get_supported_blockchains_info(
                     "nfts": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"],
                     "defi": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"]
                 },
-                "last_sync": datetime.utcnow() - timedelta(minutes=5),
+                "last_sync": datetime.now(timezone.utc) - timedelta(minutes=5),
                 "sync_status": "healthy"
             }
         
@@ -208,7 +194,7 @@ async def get_supported_blockchains_info(
             "success": True,
             "blockchains": blockchain_info,
             "total_supported": len(supported),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -235,11 +221,11 @@ async def get_node_status(
             "connected": True,
             "sync_status": "synced",
             "latest_block": 18500000,
-            "latest_block_timestamp": datetime.utcnow() - timedelta(seconds=30),
+            "latest_block_timestamp": datetime.now(timezone.utc) - timedelta(seconds=30),
             "peer_count": 25,
             "rpc_latency_ms": 45,
             "uptime_percentage": 99.8,
-            "last_check": datetime.utcnow()
+            "last_check": datetime.now(timezone.utc)
         }
         
         # Add blockchain-specific metrics
@@ -267,7 +253,7 @@ async def get_node_status(
             success=True,
             blockchain_data=status_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -285,40 +271,36 @@ async def get_latest_transactions(
     limit: int = 50,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
 ):
-    """Get latest transactions from blockchain"""
+    """Get latest transactions from Neo4j"""
     try:
         logger.info(f"Getting latest {limit} transactions from {blockchain}")
-        
-        transactions = []
-        for i in range(min(limit, 50)):
-            tx = {
-                "transaction_hash": f"0x{'1234567890abcdef' * 4}{i:04x}",
-                "blockchain": blockchain,
-                "from_address": f"0x{'1234567890abcdef' * 4}",
-                "to_address": f"0x{'0987654321fedcba' * 4}",
-                "value": round(0.1 + (i * 0.05), 4),
-                "block_number": 18500000 - i,
-                "timestamp": datetime.utcnow() - timedelta(minutes=i*2),
-                "gas_used": 21000,
-                "gas_price": 20,
-                "status": "confirmed"
-            }
-            transactions.append(tx)
-        
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (t:Transaction {blockchain: $bc})
+                RETURN t ORDER BY t.timestamp DESC LIMIT $limit
+                """,
+                bc=blockchain, limit=min(limit, 50),
+            )
+            records = await result.data()
+
+        transactions = [dict(r["t"]) for r in records]
+
         return {
             "success": True,
             "blockchain": blockchain,
             "transactions": transactions,
             "count": len(transactions),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Latest transactions retrieval failed: {e}")
         raise BlockchainException(
             message=f"Latest transactions retrieval failed: {str(e)}",
             blockchain=blockchain,
-            error_code="LATEST_TRANSACTIONS_FAILED"
+            error_code="LATEST_TRANSACTIONS_FAILED",
         )
 
 
@@ -328,39 +310,42 @@ async def get_latest_blocks(
     limit: int = 20,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
 ):
-    """Get latest blocks from blockchain"""
+    """Get latest blocks from Neo4j"""
     try:
         logger.info(f"Getting latest {limit} blocks from {blockchain}")
-        
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (b:Block {blockchain: $bc})
+                OPTIONAL MATCH (b)-[:CONTAINS]->(t:Transaction)
+                RETURN b, count(t) AS tx_count
+                ORDER BY b.number DESC LIMIT $limit
+                """,
+                bc=blockchain, limit=min(limit, 20),
+            )
+            records = await result.data()
+
         blocks = []
-        for i in range(min(limit, 20)):
-            block = {
-                "block_number": 18500000 - i,
-                "blockchain": blockchain,
-                "block_hash": f"0x{'abcdef1234567890' * 4}{i:04x}",
-                "timestamp": datetime.utcnow() - timedelta(minutes=i*blockchain_block_time(blockchain)),
-                "transaction_count": 150 + (i % 50),
-                "gas_used": 8500000 + (i * 1000),
-                "gas_limit": 15000000,
-                "miner": f"0x{'1234567890abcdef' * 4}",
-                "size": 50000 + (i * 100)
-            }
-            blocks.append(block)
-        
+        for r in records:
+            b = dict(r["b"])
+            b["transaction_count"] = r["tx_count"]
+            blocks.append(b)
+
         return {
             "success": True,
             "blockchain": blockchain,
             "blocks": blocks,
             "count": len(blocks),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Latest blocks retrieval failed: {e}")
         raise BlockchainException(
             message=f"Latest blocks retrieval failed: {str(e)}",
             blockchain=blockchain,
-            error_code="LATEST_BLOCKS_FAILED"
+            error_code="LATEST_BLOCKS_FAILED",
         )
 
 
@@ -386,39 +371,49 @@ def blockchain_block_time(blockchain: str) -> int:
 async def get_blockchain_statistics(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
 ):
-    """Get blockchain system statistics"""
+    """Get blockchain system statistics from Neo4j"""
     try:
-        stats = {
-            "total_transactions_processed": 1542000,
-            "daily_transactions": 12500,
+        stats: Dict[str, Any] = {
             "supported_blockchains": len(get_supported_blockchains()),
-            "active_nodes": 14,
-            "average_sync_delay_seconds": 30,
-            "data_freshness_minutes": 2,
-            "blockchain_distribution": {
-                "bitcoin": 450000,
-                "ethereum": 620000,
-                "bsc": 210000,
-                "polygon": 180000,
-                "solana": 82000
-            },
-            "performance_metrics": {
-                "average_query_time_ms": 150,
-                "cache_hit_rate": 0.75,
-                "node_uptime_percentage": 99.8
-            }
         }
-        
+
+        async with get_neo4j_session() as session:
+            tx_result = await session.run(
+                "MATCH (t:Transaction) RETURN count(t) AS total"
+            )
+            tx_rec = await tx_result.single()
+            stats["total_transactions"] = tx_rec["total"] if tx_rec else 0
+
+            addr_result = await session.run(
+                "MATCH (a:Address) RETURN count(a) AS total"
+            )
+            addr_rec = await addr_result.single()
+            stats["total_addresses"] = addr_rec["total"] if addr_rec else 0
+
+            block_result = await session.run(
+                "MATCH (b:Block) RETURN count(b) AS total"
+            )
+            block_rec = await block_result.single()
+            stats["total_blocks"] = block_rec["total"] if block_rec else 0
+
+            dist_result = await session.run(
+                "MATCH (t:Transaction) RETURN t.blockchain AS bc, count(t) AS c ORDER BY c DESC"
+            )
+            dist_recs = await dist_result.data()
+            stats["blockchain_distribution"] = {
+                r["bc"]: r["c"] for r in dist_recs if r["bc"]
+            }
+
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Blockchain statistics failed: {e}")
         raise BlockchainException(
             message=f"Blockchain statistics failed: {str(e)}",
             blockchain="system",
-            error_code="STATISTICS_FAILED"
+            error_code="STATISTICS_FAILED",
         )

@@ -17,13 +17,22 @@ from src.api.database import init_databases, close_databases
 from src.api.auth import get_current_user, User
 from src.api.routers import (
     analysis,
+    analytics,
     compliance,
+    export,
     investigations,
     blockchain,
     intelligence,
     reports,
-    admin
+    admin,
+    workflows,
+    monitoring,
+    rate_limit,
+    visualization,
+    scheduler,
+    mobile,
 )
+from src.api.routers import auth as auth_router
 from src.api.middleware import (
     SecurityMiddleware,
     AuditMiddleware,
@@ -154,7 +163,7 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "*.jackdawsentry.local"]
+    allowed_hosts=["localhost", "127.0.0.1", "*.jackdawsentry.local", "testclient"]
 )
 
 app.add_middleware(SecurityMiddleware)
@@ -220,6 +229,30 @@ async def health_check():
     }
 
 
+@app.get("/metrics", tags=["Monitoring"])
+async def metrics():
+    """Basic application metrics"""
+    import time
+    import os
+
+    process = None
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+    except Exception:
+        pass
+
+    mem_mb = process.memory_info().rss / 1024 / 1024 if process else None
+    cpu_pct = process.cpu_percent() if process else None
+
+    return {
+        "uptime_seconds": time.monotonic(),
+        "memory_usage_mb": round(mem_mb, 1) if mem_mb is not None else None,
+        "cpu_percent": cpu_pct,
+        "version": "1.0.0",
+    }
+
+
 @app.get("/health/detailed", tags=["Health"])
 async def detailed_health_check():
     """Detailed health check with database status"""
@@ -254,6 +287,12 @@ async def api_status(current_user: User = Depends(get_current_user)):
 
 
 # Include routers
+app.include_router(
+    auth_router.router,
+    prefix="/api/v1/auth",
+    tags=["Authentication"]
+)
+
 app.include_router(
     analysis.router,
     prefix="/api/v1/analysis",
@@ -300,6 +339,62 @@ app.include_router(
     admin.router,
     prefix="/api/v1/admin",
     tags=["Admin"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    analytics.router,
+    prefix="/api/v1/compliance/analytics",
+    tags=["Analytics"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    export.router,
+    prefix="/api/v1/compliance/export",
+    tags=["Export"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    workflows.router,
+    prefix="/api/v1/compliance/workflows",
+    tags=["Workflows"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    monitoring.router,
+    prefix="/api/v1/compliance/monitoring",
+    tags=["Monitoring"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    rate_limit.router,
+    prefix="/api/v1/compliance/rate-limit",
+    tags=["Rate Limiting"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    visualization.router,
+    prefix="/api/v1/compliance/visualization",
+    tags=["Visualization"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    scheduler.router,
+    prefix="/api/v1/compliance/scheduler",
+    tags=["Scheduler"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    mobile.router,
+    prefix="/api/v1/compliance/mobile",
+    tags=["Mobile"],
     dependencies=[Depends(get_current_user)]
 )
 

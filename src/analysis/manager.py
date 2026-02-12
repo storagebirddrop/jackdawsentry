@@ -6,7 +6,7 @@ Orchestrates all analysis engines and workflows
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from .cross_chain import CrossChainAnalyzer, get_cross_chain_analyzer
@@ -130,7 +130,7 @@ class AnalysisManager:
                 'address': address,
                 'blockchain': blockchain,
                 'time_range_hours': time_range,
-                'analysis_timestamp': datetime.utcnow().isoformat(),
+                'analysis_timestamp': datetime.now(timezone.utc).isoformat(),
                 'cross_chain_analysis': {},
                 'stablecoin_flows': {},
                 'ml_patterns': {},
@@ -217,7 +217,7 @@ class AnalysisManager:
             analysis_results = {
                 'tx_hash': tx_hash,
                 'blockchain': blockchain,
-                'analysis_timestamp': datetime.utcnow().isoformat(),
+                'analysis_timestamp': datetime.now(timezone.utc).isoformat(),
                 'cross_chain_analysis': {},
                 'stablecoin_flow': {},
                 'ml_patterns': {},
@@ -311,7 +311,7 @@ class AnalysisManager:
         """Get system-wide analysis statistics"""
         try:
             stats = {
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'engines': {
                     'total': len(self.engines),
                     'running': sum(1 for engine in self.engines.values() if hasattr(engine, 'is_running') and engine.is_running)
@@ -359,7 +359,7 @@ class AnalysisManager:
                     'analysis_completed': total_analysis,
                     'alerts_generated': total_alerts,
                     'running_engines': running_engines,
-                    'last_update': datetime.utcnow().isoformat()
+                    'last_update': datetime.now(timezone.utc).isoformat()
                 })
                 
                 # Cache metrics in Redis
@@ -371,6 +371,32 @@ class AnalysisManager:
                 logger.error(f"Error collecting metrics: {e}")
                 await asyncio.sleep(30)
     
+    async def monitor_health(self):
+        """Monitor health of all analysis engines"""
+        while self.is_running:
+            try:
+                for engine_name, engine in self.engines.items():
+                    if hasattr(engine, 'is_healthy'):
+                        healthy = await engine.is_healthy()
+                        if not healthy:
+                            logger.warning(f"Engine {engine_name} is unhealthy")
+                await asyncio.sleep(60)
+            except Exception as e:
+                logger.error(f"Error monitoring health: {e}")
+                await asyncio.sleep(30)
+
+    async def cache_analysis_results(self, key: str, results: Dict[str, Any]):
+        """Cache analysis results in Redis"""
+        try:
+            async with get_redis_connection() as redis:
+                await redis.setex(
+                    f'analysis:{key}',
+                    3600,  # 1 hour TTL
+                    json.dumps(results, default=str)
+                )
+        except Exception as e:
+            logger.error(f"Error caching analysis results: {e}")
+
     async def cache_metrics(self):
         """Cache analysis metrics"""
         try:
@@ -434,7 +460,7 @@ class AnalysisManager:
                     'workflow': 'cross_chain_stablecoin_analysis',
                     'transfers_analyzed': len(transfers),
                     'patterns_detected': analysis,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
                 
         except Exception as e:
@@ -455,7 +481,7 @@ class AnalysisManager:
             return {
                 'workflow': 'lightning_risk_analysis',
                 'risks_detected': risks,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -476,7 +502,7 @@ class AnalysisManager:
             return {
                 'workflow': 'bridge_anomaly_detection',
                 'anomalies_detected': anomalies,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:

@@ -397,7 +397,7 @@ class DarkWebMonitor:
             return {
                 'address': address,
                 'blockchain': blockchain or 'unknown',
-                'check_timestamp': datetime.utcnow().isoformat(),
+                'check_timestamp': datetime.now(timezone.utc).isoformat(),
                 'matches': len(all_matches),
                 'address_matches': len(address_matches),
                 'domain_matches': len(domain_matches),
@@ -413,7 +413,7 @@ class DarkWebMonitor:
             logger.error(f"Error checking address {address}: {e}")
             return {
                 'error': str(e),
-                'check_timestamp': datetime.utcnow().isoformat()
+                'check_timestamp': datetime.now(timezone.utc).isoformat()
             }
     
     async def check_transaction(self, from_address: str, to_address: str, blockchain: str, amount: float = 0.0) -> Dict[str, Any]:
@@ -464,7 +464,7 @@ class DarkWebMonitor:
                 'to_address': to_address,
                 'blockchain': blockchain,
                 'amount': amount,
-                'check_timestamp': datetime.utcnow().isoformat(),
+                'check_timestamp': datetime.now(timezone.utc).isoformat(),
                 'from_address_threats': {
                     'matches': from_check['matches'],
                     'risk_score': from_check['overall_risk_score'],
@@ -489,7 +489,7 @@ class DarkWebMonitor:
             logger.error(f"Error checking transaction: {e}")
             return {
                 'error': str(e),
-                'check_timestamp': datetime.utcnow().isoformat()
+                'check_timestamp': datetime.now(timezone.utc).isoformat()
             }
     
     async def add_threat_indicator(self, indicator_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -526,7 +526,7 @@ class DarkWebMonitor:
             return {
                 'indicator_id': indicator.indicator_id,
                 'status': 'added',
-                'added_at': datetime.utcnow().isoformat()
+                'added_at': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -562,7 +562,7 @@ class DarkWebMonitor:
             return {
                 'activity_id': activity.activity_id,
                 'status': 'added',
-                'added_at': datetime.utcnow().isoformat()
+                'added_at': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -579,7 +579,7 @@ class DarkWebMonitor:
                 'threat_types': {},
                 'severity_distribution': {},
                 'platform_distribution': {},
-                'last_updated': datetime.utcnow().isoformat()
+                'last_updated': datetime.now(timezone.utc).isoformat()
             }
             
             # Indicator type breakdown

@@ -1,14 +1,16 @@
 # Jackdaw Sentry API Documentation
 
-🚀 **Production-Ready REST API for Multi-Chain Blockchain Analysis and Compliance**
+**REST API for Multi-Chain Blockchain Analysis and Compliance** *(in active development)*
 
-Complete RESTful API with 68 endpoints for blockchain analysis, compliance workflows, and investigation management. Supports 10+ blockchains with real-time data collection, 13 stablecoin tracking, comprehensive regulatory reporting capabilities, advanced analytics, mobile support, and workflow automation.
+RESTful API with ~130 mounted endpoints across 16 routers for blockchain analysis, compliance, investigations, intelligence, reports, admin, analytics, export, monitoring, mobile, visualization, workflows, scheduler, and rate limiting. Core routers are wired to Neo4j and compliance engines.
+
+> **Note:** Sections marked ⚠️ PLANNED are documented for future implementation but are **not currently mounted** in the running application. Their code exists in `src/_experimental/`.
 
 ## 🚀 Getting Started
 
 ### Base URL
 ```
-Development: http://localhost:8000
+Development: http://localhost
 Production: https://api.jackdawsentry.com
 ```
 
@@ -29,7 +31,9 @@ Authorization: Bearer <your_jwt_token>
 
 ## 📊 Multi-Chain Blockchain Support
 
-### ✅ **PRODUCTION-READY BLOCKCHAINS (10+ Networks)**
+### ⚠️ **Blockchain Collectors (10+ Networks) — Scaffolded**
+
+> Collectors are scaffolded with data models and API integration points but are **not yet connected to live RPC nodes**.
 
 #### Bitcoin Ecosystem
 - **Bitcoin (BTC)** - Core Bitcoin with Lightning Network support
@@ -93,7 +97,7 @@ Authorization: Bearer <your_jwt_token>
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-## 📊 Complete API Endpoints (68 Total)
+## Mounted API Endpoints (~66 Total)
 
 ### 🔧 System Endpoints (3)
 - `GET /health` - System health check
@@ -170,7 +174,7 @@ Authorization: Bearer <your_jwt_token>
 - `POST /api/v1/compliance/audit/log` - Log audit event
 - `GET /api/v1/compliance/audit/events` - Get audit events
 
-### 📈 Analytics Endpoints (12)
+### 📊 Analytics Endpoints (13)
 - `GET /api/v1/compliance/analytics/dashboard` - Analytics dashboard data
 - `POST /api/v1/compliance/analytics/report` - Generate analytics report
 - `GET /api/v1/compliance/analytics/reports/{report_id}` - Get analytics report
@@ -184,7 +188,7 @@ Authorization: Bearer <your_jwt_token>
 - `DELETE /api/v1/compliance/analytics/report/{report_id}` - Delete analytics report
 - `POST /api/v1/compliance/analytics/refresh` - Refresh analytics data
 
-### 📤 Export Endpoints (8)
+### 📦 Export Endpoints (9)
 - `POST /api/v1/compliance/export/request` - Create export request
 - `GET /api/v1/compliance/export/status/{export_id}` - Get export status
 - `GET /api/v1/compliance/export/download/{export_id}` - Download export file
@@ -194,7 +198,7 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/compliance/export/statistics` - Export statistics
 - `GET /api/v1/compliance/export/templates` - Get export templates
 
-### 🤖 Workflow Automation Endpoints (10)
+### ⚙️ Workflow Automation Endpoints (9)
 - `GET /api/v1/compliance/workflows` - List workflows
 - `POST /api/v1/compliance/workflows` - Create workflow
 - `GET /api/v1/compliance/workflows/{workflow_id}` - Get workflow details
@@ -213,7 +217,7 @@ Authorization: Bearer <your_jwt_token>
 - `GET /api/v1/compliance/mobile/offline-data` - Get offline data
 - `POST /api/v1/compliance/mobile/sync` - Sync mobile data
 
-### 🔒 Rate Limiting Endpoints (8)
+### � Rate Limiting Endpoints (7)
 - `GET /api/v1/compliance/rate-limit/status/{user_id}` - Get user rate limit status
 - `GET /api/v1/compliance/rate-limit/violations` - Get rate limit violations
 - `POST /api/v1/compliance/rate-limit/clear-violations` - Clear old violations
@@ -222,7 +226,7 @@ Authorization: Bearer <your_jwt_token>
 - `PUT /api/v1/compliance/rate-limit/rules/{rule_id}` - Update rate limit rule
 - `DELETE /api/v1/compliance/rate-limit/rules/{rule_id}` - Delete rate limit rule
 
-### 📊 Visualization Endpoints (10)
+### � Visualization Endpoints (8)
 - `GET /api/v1/compliance/visualization/list` - List visualizations
 - `POST /api/v1/compliance/visualization/generate/{viz_id}` - Generate visualization
 - `GET /api/v1/compliance/visualization/data/{viz_id}` - Get visualization data
@@ -287,7 +291,7 @@ Authorization: Bearer <your_jwt_token>
 
 ### Address Analysis
 ```bash
-curl -X POST "http://localhost:8000/api/v1/analysis/address" \
+curl -X POST "http://localhost/api/v1/analysis/address" \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -300,7 +304,7 @@ curl -X POST "http://localhost:8000/api/v1/analysis/address" \
 
 ### Transaction Analysis
 ```bash
-curl -X POST "http://localhost:8000/api/v1/analysis/transaction" \
+curl -X POST "http://localhost/api/v1/analysis/transaction" \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -312,7 +316,7 @@ curl -X POST "http://localhost:8000/api/v1/analysis/transaction" \
 
 ### Create Investigation
 ```bash
-curl -X POST "http://localhost:8000/api/v1/investigations" \
+curl -X POST "http://localhost/api/v1/investigations" \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -327,7 +331,7 @@ curl -X POST "http://localhost:8000/api/v1/investigations" \
 
 ### Compliance Check
 ```bash
-curl -X POST "http://localhost:8000/api/v1/compliance/check" \
+curl -X POST "http://localhost/api/v1/compliance/check" \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -374,10 +378,12 @@ curl -X POST "http://localhost:8000/api/v1/compliance/check" \
 }
 ```
 
-## 🔄 Pagination
+## 🔄 Pagination (⚠️ Planned)
 
 ### Cursor-Based Pagination
-List endpoints support cursor-based pagination for efficient data retrieval.
+> **Note:** Cursor-based pagination is not yet implemented. List endpoints currently return full result sets.
+
+List endpoints will support cursor-based pagination for efficient data retrieval.
 
 ```bash
 GET /api/v1/investigations?cursor=abc123&limit=20&sort=created_at_desc
@@ -448,7 +454,7 @@ X-RateLimit-Retry-After: 30
 
 ### Test Environment
 ```
-Base URL: http://localhost:8000
+Base URL: http://localhost
 Authentication: Test JWT tokens available
 Test Data: Mock blockchain data for testing
 ```
@@ -465,7 +471,9 @@ python scripts/load_test_data.py
 python scripts/performance_test.py
 ```
 
-## 📚 SDKs & Integration
+## 📚 SDKs & Integration (⚠️ Planned)
+
+> **Note:** SDKs and webhooks are not yet implemented.
 
 ### Python SDK
 ```python
@@ -489,9 +497,9 @@ const addressInfo = await client.analyzeAddress({
 });
 ```
 
-### Webhooks
+### Webhooks (Planned)
 ```bash
-# Configure webhook for real-time alerts
+# Configure webhook for real-time alerts (not yet implemented)
 POST /api/v1/admin/webhooks
 {
   "url": "https://your-app.com/webhook",

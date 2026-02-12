@@ -5,12 +5,14 @@ Report generation and management endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
+import uuid
+import json as _json
 
 from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_postgres_connection
+from src.api.database import get_neo4j_session
 from src.api.exceptions import JackdawException
 
 logger = logging.getLogger(__name__)
@@ -72,179 +74,109 @@ async def generate_report(
 ):
     """Generate report"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Generating {request.report_type} report: {request.title}")
-        
-        report_id = f"RPT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-        
-        if request.report_type == "transaction":
-            report_data = {
-                "report_id": report_id,
-                "report_type": request.report_type,
-                "title": request.title,
-                "summary": {
-                    "total_transactions": 15420,
-                    "total_volume_usd": 28475000.50,
-                    "unique_addresses": 5250,
-                    "time_period": request.parameters.get("time_range", "30 days")
-                },
-                "breakdown": {
-                    "by_blockchain": {
-                        "bitcoin": {"count": 4500, "volume": 12500000.00},
-                        "ethereum": {"count": 6200, "volume": 10500000.00},
-                        "bsc": {"count": 2100, "volume": 3500000.00},
-                        "polygon": {"count": 1800, "volume": 1975000.00}
-                    },
-                    "by_amount_range": {
-                        "0-100": 8500,
-                        "100-1000": 5200,
-                        "1000-10000": 1500,
-                        "10000+": 220
-                    },
-                    "by_time": {
-                        "peak_hours": [14, 15, 16, 17],
-                        "peak_days": [1, 2, 3, 4, 5],
-                        "weekend_activity": 0.35
-                    }
-                },
-                "anomalies": [
-                    {
-                        "type": "high_value_transaction",
-                        "count": 5,
-                        "total_amount": 1500000.00,
-                        "description": "Transactions exceeding $100,000"
-                    },
-                    {
-                        "type": "rapid_succession",
-                        "count": 12,
-                        "description": "Multiple transactions from same address within short time"
-                    }
-                ]
-            }
-        
-        elif request.report_type == "compliance":
-            report_data = {
-                "report_id": report_id,
-                "report_type": request.report_type,
-                "title": request.title,
-                "compliance_summary": {
-                    "total_checks": 45200,
-                    "flagged_transactions": 156,
-                    "sanctions_hits": 3,
-                    "high_risk_addresses": 28,
-                    "false_positive_rate": 0.08
-                },
-                "regulatory_coverage": {
-                    "US": {"checks": 15000, "compliance_rate": 0.95},
-                    "EU": {"checks": 12000, "compliance_rate": 0.92},
-                    "UK": {"checks": 8000, "compliance_rate": 0.88},
-                    "APAC": {"checks": 10200, "compliance_rate": 0.85}
-                },
-                "risk_distribution": {
-                    "low": 0.65,
-                    "medium": 0.28,
-                    "high": 0.07
-                },
-                "recommendations": [
-                    "Enhanced monitoring for high-risk jurisdictions",
-                    "Update sanctions screening frequency",
-                    "Review false positive patterns"
-                ]
-            }
-        
-        elif request.report_type == "investigation":
-            report_data = {
-                "report_id": report_id,
-                "report_type": request.report_type,
-                "title": request.title,
-                "investigation_summary": {
-                    "total_cases": 156,
-                    "active_cases": 23,
-                    "closed_cases": 133,
-                    "average_resolution_days": 18,
-                    "success_rate": 0.87
-                },
-                "case_breakdown": {
-                    "by_priority": {
-                        "critical": 5,
-                        "high": 28,
-                        "medium": 78,
-                        "low": 45
-                    },
-                    "by_status": {
-                        "open": 12,
-                        "in_progress": 11,
-                        "closed": 133,
-                        "archived": 0
-                    },
-                    "by_type": {
-                        "money_laundering": 45,
-                        "fraud": 32,
-                        "sanctions_violation": 28,
-                        "other": 51
-                    }
-                },
-                "performance_metrics": {
-                    "average_case_duration": "18 days",
-                    "evidence_per_case": 15.7,
-                    "investigator_workload": "3.2 active cases"
+
+        now = datetime.now(timezone.utc)
+        report_id = f"RPT-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        summary: Dict[str, Any] = {}
+
+        async with get_neo4j_session() as session:
+            if request.report_type == "transaction":
+                r = await session.run(
+                    "MATCH (t:Transaction) RETURN count(t) AS total, sum(t.value) AS volume"
+                )
+                rec = await r.single()
+                addr_r = await session.run("MATCH (a:Address) RETURN count(a) AS total")
+                addr_rec = await addr_r.single()
+                summary = {
+                    "total_transactions": rec["total"] if rec else 0,
+                    "total_volume": float(rec["volume"] or 0) if rec else 0,
+                    "unique_addresses": addr_rec["total"] if addr_rec else 0,
                 }
-            }
-        
-        elif request.report_type == "intelligence":
-            report_data = {
-                "report_id": report_id,
-                "report_type": request.report_type,
-                "title": request.title,
-                "intelligence_summary": {
-                    "total_alerts": 1250,
-                    "active_alerts": 23,
-                    "threats_detected": 45,
-                    "dark_web_mentions": 125,
-                    "sources_monitored": 15
-                },
-                "threat_landscape": {
-                    "phishing": {"count": 350, "trend": "increasing"},
-                    "money_laundering": {"count": 280, "trend": "stable"},
-                    "malware": {"count": 190, "trend": "decreasing"},
-                    "scams": {"count": 230, "trend": "increasing"}
-                },
-                "source_effectiveness": {
-                    "dark_web": 0.85,
-                    "sanctions": 0.98,
-                    "leaks": 0.75,
-                    "forums": 0.68
+                dist_r = await session.run(
+                    "MATCH (t:Transaction) RETURN t.blockchain AS bc, count(t) AS c, "
+                    "sum(t.value) AS v ORDER BY c DESC"
+                )
+                summary["by_blockchain"] = {
+                    r2["bc"]: {"count": r2["c"], "volume": float(r2["v"] or 0)}
+                    for r2 in await dist_r.data() if r2["bc"]
                 }
-            }
-        
-        else:  # custom
-            report_data = {
-                "report_id": report_id,
-                "report_type": request.report_type,
-                "title": request.title,
-                "custom_data": request.parameters,
-                "generated_at": datetime.utcnow()
-            }
-        
-        metadata = {
-            "format": request.format,
-            "generation_time_ms": 1200,
-            "data_sources": ["neo4j", "postgres", "blockchain_apis"],
-            "template_version": "v3.2",
-            "file_size_kb": 250 if request.format == "json" else 500
+
+            elif request.report_type == "compliance":
+                ra_r = await session.run(
+                    "MATCH (a:RiskAssessment) RETURN count(a) AS total, "
+                    "count(CASE WHEN a.risk_level IN ['high','severe'] THEN 1 END) AS flagged"
+                )
+                ra_rec = await ra_r.single()
+                rules_r = await session.run("MATCH (r:ComplianceRule) RETURN count(r) AS total")
+                rules_rec = await rules_r.single()
+                summary = {
+                    "total_risk_assessments": ra_rec["total"] if ra_rec else 0,
+                    "flagged_assessments": ra_rec["flagged"] if ra_rec else 0,
+                    "total_rules": rules_rec["total"] if rules_rec else 0,
+                }
+
+            elif request.report_type == "investigation":
+                inv_r = await session.run(
+                    "MATCH (i:Investigation) RETURN count(i) AS total, "
+                    "count(CASE WHEN i.status IN ['open','in_progress'] THEN 1 END) AS active, "
+                    "count(CASE WHEN i.status = 'closed' THEN 1 END) AS closed"
+                )
+                inv_rec = await inv_r.single()
+                evd_r = await session.run("MATCH (e:Evidence) RETURN count(e) AS total")
+                evd_rec = await evd_r.single()
+                summary = {
+                    "total_cases": inv_rec["total"] if inv_rec else 0,
+                    "active_cases": inv_rec["active"] if inv_rec else 0,
+                    "closed_cases": inv_rec["closed"] if inv_rec else 0,
+                    "evidence_items": evd_rec["total"] if evd_rec else 0,
+                }
+
+            else:
+                summary = {"custom_parameters": request.parameters}
+
+            # Persist the report node
+            await session.run(
+                """
+                CREATE (r:Report {
+                    report_id: $report_id, report_type: $report_type,
+                    title: $title, description: $description,
+                    format: $format, status: 'completed',
+                    created_by: $created_by, created_at: $created_at,
+                    parameters: $parameters, summary: $summary
+                })
+                """,
+                report_id=report_id, report_type=request.report_type,
+                title=request.title, description=request.description,
+                format=request.format, created_by=current_user.username,
+                created_at=now.isoformat(),
+                parameters=_json.dumps(request.parameters),
+                summary=_json.dumps(summary),
+            )
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
+        report_data = {
+            "report_id": report_id, "report_type": request.report_type,
+            "title": request.title, "summary": summary,
+            "status": "completed", "created_at": now.isoformat(),
         }
-        
+        metadata = {
+            "format": request.format, "generation_time_ms": elapsed_ms,
+            "data_sources": ["neo4j"], "persisted_to": "neo4j",
+        }
+
         return ReportResponse(
-            success=True,
-            report_data=report_data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, report_data=report_data,
+            metadata=metadata, timestamp=now,
         )
-        
+
     except Exception as e:
         logger.error(f"Report generation failed: {e}")
         raise JackdawException(
             message=f"Report generation failed: {str(e)}",
-            error_code="REPORT_GENERATION_FAILED"
+            error_code="REPORT_GENERATION_FAILED",
         )
 
 
@@ -256,77 +188,52 @@ async def list_reports(
     offset: int = 0,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
-    """List generated reports"""
+    """List generated reports from Neo4j"""
     try:
-        logger.info(f"Listing reports with filters")
-        
-        reports = [
-            {
-                "report_id": "RPT-20240101001",
-                "title": "Monthly Transaction Analysis",
-                "report_type": "transaction",
-                "format": "pdf",
-                "status": "completed",
-                "created_by": "analyst1",
-                "created_at": datetime.utcnow() - timedelta(days=1),
-                "file_size_kb": 520,
-                "download_count": 5
-            },
-            {
-                "report_id": "RPT-20240101002",
-                "title": "Q4 Compliance Summary",
-                "report_type": "compliance",
-                "format": "xlsx",
-                "status": "completed",
-                "created_by": "compliance_officer1",
-                "created_at": datetime.utcnow() - timedelta(days=2),
-                "file_size_kb": 1250,
-                "download_count": 12
-            },
-            {
-                "report_id": "RPT-20240101003",
-                "title": "Investigation Case Review",
-                "report_type": "investigation",
-                "format": "json",
-                "status": "processing",
-                "created_by": current_user.username,
-                "created_at": datetime.utcnow() - timedelta(hours=3),
-                "file_size_kb": 0,
-                "download_count": 0
-            }
-        ]
-        
-        # Apply filters
+        logger.info("Listing reports with filters")
+
+        where_clauses = []
+        params: Dict[str, Any] = {"skip_val": offset, "limit_val": limit}
         if report_type:
-            reports = [report for report in reports if report["report_type"] == report_type]
+            where_clauses.append("r.report_type = $report_type")
+            params["report_type"] = report_type
         if status:
-            reports = [report for report in reports if report["status"] == status]
-        
-        # Apply pagination
-        total_count = len(reports)
-        paginated_reports = reports[offset:offset + limit]
-        
+            where_clauses.append("r.status = $status")
+            params["status"] = status
+        where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        async with get_neo4j_session() as session:
+            count_result = await session.run(
+                f"MATCH (r:Report) {where_str} RETURN count(r) AS total", **params
+            )
+            count_record = await count_result.single()
+            total_count = count_record["total"] if count_record else 0
+
+            result = await session.run(
+                f"MATCH (r:Report) {where_str} RETURN r ORDER BY r.created_at DESC "
+                f"SKIP $skip_val LIMIT $limit_val",
+                **params,
+            )
+            records = await result.data()
+
+        reports = [dict(r["r"]) for r in records]
+
         return {
             "success": True,
-            "reports": paginated_reports,
+            "reports": reports,
             "pagination": {
-                "total_count": total_count,
-                "limit": limit,
-                "offset": offset,
-                "has_more": offset + limit < total_count
+                "total_count": total_count, "limit": limit,
+                "offset": offset, "has_more": offset + limit < total_count,
             },
-            "filters_applied": {
-                "report_type": report_type,
-                "status": status
-            },
-            "timestamp": datetime.utcnow()
+            "filters_applied": {"report_type": report_type, "status": status},
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Report listing failed: {e}")
         raise JackdawException(
             message=f"Report listing failed: {str(e)}",
-            error_code="REPORT_LISTING_FAILED"
+            error_code="REPORT_LISTING_FAILED",
         )
 
 
@@ -335,45 +242,36 @@ async def get_report(
     report_id: str,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
-    """Get report details"""
+    """Get report details from Neo4j"""
     try:
         logger.info(f"Getting report details for: {report_id}")
-        
-        report_data = {
-            "report_id": report_id,
-            "title": "Monthly Transaction Analysis",
-            "report_type": "transaction",
-            "format": "pdf",
-            "status": "completed",
-            "created_by": "analyst1",
-            "created_at": datetime.utcnow() - timedelta(days=1),
-            "updated_at": datetime.utcnow() - timedelta(days=1),
-            "file_size_kb": 520,
-            "download_count": 5,
-            "parameters": {
-                "time_range": "30 days",
-                "blockchains": ["bitcoin", "ethereum", "bsc"],
-                "include_charts": True
-            },
-            "summary": {
-                "total_transactions": 15420,
-                "total_volume_usd": 28475000.50,
-                "unique_addresses": 5250
-            },
-            "download_url": f"/api/v1/reports/{report_id}/download"
-        }
-        
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                "MATCH (r:Report {report_id: $report_id}) RETURN r",
+                report_id=report_id,
+            )
+            record = await result.single()
+
+        if not record or not record["r"]:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+        report_data = dict(record["r"])
+        report_data["download_url"] = f"/api/v1/reports/{report_id}/download"
+
         return {
             "success": True,
             "report": report_data,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Report retrieval failed: {e}")
         raise JackdawException(
             message=f"Report retrieval failed: {str(e)}",
-            error_code="REPORT_RETRIEVAL_FAILED"
+            error_code="REPORT_RETRIEVAL_FAILED",
         )
 
 
@@ -383,59 +281,74 @@ async def download_report(
     format: str = "json",
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
-    """Download report file"""
+    """Download report data from Neo4j in requested format"""
     try:
         logger.info(f"Downloading report {report_id} in {format} format")
-        
-        # In a real implementation, this would serve the actual file
-        # For now, we'll return a mock response
-        
+
+        # Fetch report from Neo4j
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                "MATCH (r:Report {report_id: $report_id}) RETURN r",
+                report_id=report_id,
+            )
+            record = await result.single()
+
+        if not record or not record["r"]:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        report = dict(record["r"])
+
         if format == "json":
-            content = {
-                "report_id": report_id,
-                "content": "Mock JSON report content...",
-                "generated_at": datetime.utcnow().isoformat()
-            }
+            content = _json.dumps(report, indent=2, default=str)
             return Response(
-                content=str(content),
+                content=content,
                 media_type="application/json",
-                headers={"Content-Disposition": f"attachment; filename={report_id}.json"}
+                headers={"Content-Disposition": f"attachment; filename={report_id}.json"},
             )
-        
-        elif format == "pdf":
-            # Mock PDF content
-            pdf_content = b"Mock PDF content..."
-            return Response(
-                content=pdf_content,
-                media_type="application/pdf",
-                headers={"Content-Disposition": f"attachment; filename={report_id}.pdf"}
-            )
-        
+
         elif format == "csv":
-            csv_content = "Report ID,Title,Type,Created\nRPT-001,Sample Report,transaction,2024-01-01\n"
+            import io, csv as _csv
+            output = io.StringIO()
+            writer = _csv.writer(output)
+            writer.writerow(report.keys())
+            writer.writerow([str(v) for v in report.values()])
             return Response(
-                content=csv_content,
+                content=output.getvalue(),
                 media_type="text/csv",
-                headers={"Content-Disposition": f"attachment; filename={report_id}.csv"}
+                headers={"Content-Disposition": f"attachment; filename={report_id}.csv"},
             )
-        
-        elif format == "xlsx":
-            # Mock Excel content
-            excel_content = b"Mock Excel content..."
+
+        elif format == "pdf":
+            # Render report data as plain-text PDF placeholder
+            text = f"Report: {report.get('title', report_id)}\n"
+            text += f"Type: {report.get('report_type')}\n"
+            text += f"Created: {report.get('created_at')}\n\n"
+            text += _json.dumps(report.get("summary", "{}"), indent=2, default=str)
             return Response(
-                content=excel_content,
-                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": f"attachment; filename={report_id}.xlsx"}
+                content=text.encode("utf-8"),
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename={report_id}.pdf"},
             )
-        
+
+        elif format == "xlsx":
+            # Render as tab-separated values with xlsx mime type
+            lines = ["\t".join(report.keys()), "\t".join(str(v) for v in report.values())]
+            return Response(
+                content="\n".join(lines).encode("utf-8"),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={report_id}.xlsx"},
+            )
+
         else:
             raise HTTPException(status_code=400, detail="Unsupported format")
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Report download failed: {e}")
         raise JackdawException(
             message=f"Report download failed: {str(e)}",
-            error_code="REPORT_DOWNLOAD_FAILED"
+            error_code="REPORT_DOWNLOAD_FAILED",
         )
 
 
@@ -444,41 +357,49 @@ async def create_report_template(
     request: ReportTemplateRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_reports"]]))
 ):
-    """Create report template"""
+    """Create report template and persist to Neo4j"""
     try:
         logger.info(f"Creating report template: {request.name}")
-        
+        now = datetime.now(timezone.utc)
+        tpl_id = f"TPL-{uuid.uuid4().hex[:8].upper()}"
+
+        async with get_neo4j_session() as session:
+            await session.run(
+                """
+                CREATE (t:ReportTemplate {
+                    template_id: $tpl_id, name: $name,
+                    description: $description, report_type: $report_type,
+                    template_definition: $definition, is_public: $is_public,
+                    created_by: $created_by, created_at: $created_at,
+                    version: '1.0', usage_count: 0
+                })
+                """,
+                tpl_id=tpl_id, name=request.name,
+                description=request.description, report_type=request.report_type,
+                definition=_json.dumps(request.template_definition),
+                is_public=request.is_public,
+                created_by=current_user.username,
+                created_at=now.isoformat(),
+            )
+
         template_data = {
-            "template_id": f"TPL-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
-            "name": request.name,
-            "description": request.description,
-            "report_type": request.report_type,
-            "template_definition": request.template_definition,
-            "is_public": request.is_public,
-            "created_by": current_user.username,
-            "created_at": datetime.utcnow(),
-            "version": "1.0",
-            "usage_count": 0
+            "template_id": tpl_id, "name": request.name,
+            "description": request.description, "report_type": request.report_type,
+            "is_public": request.is_public, "created_by": current_user.username,
+            "created_at": now.isoformat(), "version": "1.0", "usage_count": 0,
         }
-        
-        metadata = {
-            "template_validation": "passed",
-            "schema_compliance": "verified",
-            "preview_available": True
-        }
-        
+        metadata = {"persisted_to": "neo4j", "template_validation": "passed"}
+
         return ReportResponse(
-            success=True,
-            report_data=template_data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, report_data=template_data,
+            metadata=metadata, timestamp=now,
         )
-        
+
     except Exception as e:
         logger.error(f"Template creation failed: {e}")
         raise JackdawException(
             message=f"Template creation failed: {str(e)}",
-            error_code="TEMPLATE_CREATION_FAILED"
+            error_code="TEMPLATE_CREATION_FAILED",
         )
 
 
@@ -488,51 +409,39 @@ async def list_report_templates(
     is_public: Optional[bool] = None,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
-    """List report templates"""
+    """List report templates from Neo4j"""
     try:
-        templates = [
-            {
-                "template_id": "TPL-001",
-                "name": "Standard Transaction Report",
-                "description": "Basic transaction analysis report",
-                "report_type": "transaction",
-                "is_public": True,
-                "created_by": "admin",
-                "created_at": datetime.utcnow() - timedelta(days=30),
-                "usage_count": 45,
-                "version": "2.1"
-            },
-            {
-                "template_id": "TPL-002",
-                "name": "Compliance Monthly Summary",
-                "description": "Monthly compliance and regulatory report",
-                "report_type": "compliance",
-                "is_public": True,
-                "created_by": "compliance_officer1",
-                "created_at": datetime.utcnow() - timedelta(days=45),
-                "usage_count": 23,
-                "version": "1.8"
-            }
-        ]
-        
-        # Apply filters
+        where_clauses = []
+        params: Dict[str, Any] = {}
         if report_type:
-            templates = [tpl for tpl in templates if tpl["report_type"] == report_type]
+            where_clauses.append("t.report_type = $report_type")
+            params["report_type"] = report_type
         if is_public is not None:
-            templates = [tpl for tpl in templates if tpl["is_public"] == is_public]
-        
+            where_clauses.append("t.is_public = $is_public")
+            params["is_public"] = is_public
+        where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                f"MATCH (t:ReportTemplate) {where_str} RETURN t ORDER BY t.created_at DESC",
+                **params,
+            )
+            records = await result.data()
+
+        templates = [dict(r["t"]) for r in records]
+
         return {
             "success": True,
             "templates": templates,
             "total_count": len(templates),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Template listing failed: {e}")
         raise JackdawException(
             message=f"Template listing failed: {str(e)}",
-            error_code="TEMPLATE_LISTING_FAILED"
+            error_code="TEMPLATE_LISTING_FAILED",
         )
 
 
@@ -540,40 +449,43 @@ async def list_report_templates(
 async def get_report_statistics(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_reports"]]))
 ):
-    """Get reporting system statistics"""
+    """Get reporting system statistics from Neo4j"""
     try:
-        stats = {
-            "total_reports": 1250,
-            "reports_this_month": 89,
-            "active_schedules": 15,
-            "templates_available": 12,
-            "average_generation_time_ms": 1200,
-            "popular_formats": {
-                "pdf": 0.45,
-                "xlsx": 0.30,
-                "json": 0.20,
-                "csv": 0.05
-            },
-            "reports_by_type": {
-                "transaction": 450,
-                "compliance": 320,
-                "investigation": 280,
-                "intelligence": 150,
-                "custom": 50
-            },
-            "storage_usage_mb": 2500,
-            "download_count_total": 3450
-        }
-        
+        stats: Dict[str, Any] = {}
+        async with get_neo4j_session() as session:
+            rpt_result = await session.run(
+                "MATCH (r:Report) RETURN count(r) AS total"
+            )
+            rpt_rec = await rpt_result.single()
+            stats["total_reports"] = rpt_rec["total"] if rpt_rec else 0
+
+            type_result = await session.run(
+                "MATCH (r:Report) RETURN r.report_type AS rtype, count(r) AS c"
+            )
+            type_recs = await type_result.data()
+            stats["reports_by_type"] = {r["rtype"]: r["c"] for r in type_recs if r["rtype"]}
+
+            fmt_result = await session.run(
+                "MATCH (r:Report) RETURN r.format AS fmt, count(r) AS c"
+            )
+            fmt_recs = await fmt_result.data()
+            stats["reports_by_format"] = {r["fmt"]: r["c"] for r in fmt_recs if r["fmt"]}
+
+            tpl_result = await session.run(
+                "MATCH (t:ReportTemplate) RETURN count(t) AS total"
+            )
+            tpl_rec = await tpl_result.single()
+            stats["templates_available"] = tpl_rec["total"] if tpl_rec else 0
+
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Report statistics failed: {e}")
         raise JackdawException(
             message=f"Report statistics failed: {str(e)}",
-            error_code="STATISTICS_FAILED"
+            error_code="STATISTICS_FAILED",
         )

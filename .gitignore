@@ -375,7 +375,6 @@ docs/_static/
 docs/_templates/
 *.mdx
 *.json.gz
-*.html
 
 # =============================================================================
 # Performance & Profiling Data

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install flake8
+      - name: Flake8 (syntax & import errors only)
+        run: flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  test:
+    name: Unit & Smoke Tests
+    runs-on: ubuntu-latest
+    env:
+      TESTING: "true"
+      LOG_LEVEL: WARNING
+      API_SECRET_KEY: ci-secret-key-for-testing-only-1234
+      ENCRYPTION_KEY: ci-encryption-key-32-chars-long!!
+      JWT_SECRET_KEY: ci-jwt-secret-key-for-testing-ok
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: "30"
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      NEO4J_URI: bolt://localhost:7687
+      REDIS_URL: redis://localhost:6379/1
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+      DEBUG: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            fastapi==0.104.1 \
+            uvicorn==0.24.0 \
+            pydantic==2.5.0 \
+            pydantic-settings==2.1.0 \
+            python-jose[cryptography]==3.3.0 \
+            passlib[bcrypt]==1.7.4 \
+            PyJWT==2.8.0 \
+            bcrypt==4.1.2 \
+            asyncpg==0.29.0 \
+            neo4j==5.14.1 \
+            redis==5.0.1 \
+            httpx==0.25.2 \
+            psutil==5.9.7 \
+            aiofiles==23.2.1 \
+            python-multipart==0.0.6 \
+            python-dotenv==1.0.0 \
+            cryptography>=41.0.0 \
+            pytest==7.4.3 \
+            pytest-asyncio==0.21.1
+      - name: Run tests (skip integration)
+        run: pytest -m "not integration" --tb=short -q
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -f docker/Dockerfile -t jackdawsentry:ci .

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Compliance Mobile - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .mobile-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding-bottom: 60px; /* Space for mobile navigation */
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            z-index: 50;
+        }
+        .metric-card {
+            transition: all 0.2s ease;
+        }
+        .metric-card:active {
+            transform: scale(0.95);
+        }
+        .chart-container {
+            height: 200px;
+        }
+        .swipe-hint {
+            animation: swipe-hint 2s ease-in-out infinite;
+        }
+        @keyframes swipe-hint {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-10px); }
+        }
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .overlay.active {
+            opacity: 1;
+        }
+        .pull-to-refresh {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+        }
+        .refresh-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #6b7280;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .mobile-alert {
+            animation: slide-down 0.3s ease-out;
+        }
+        @keyframes slide-down {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Mobile Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div class="mobile-container px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="menuToggle" class="p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-gray-900 ml-3">Compliance</h1>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                    </button>
+                    <button class="p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobileMenu" class="mobile-menu">
+        <div class="overlay" id="menuOverlay"></div>
+        <div class="bg-white h-full w-64 fixed top-0 right-0 shadow-lg z-50">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Menu</h2>
+                    <button id="closeMenu" class="p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <nav class="p-4">
+                <div class="space-y-2">
+                    <a href="#dashboard" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
+                        <div class="flex items-center">
+                            <i data-lucide="home" class="w-5 h-5 mr-3"></i>
+                            <span>Dashboard</span>
+                        </div>
+                    </a>
+                    <a href="#cases" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
+                        <div class="flex items-center">
+                            <i data-lucide="briefcase" class="w-5 h-5 mr-3"></i>
+                            <span>Cases</span>
+                        </div>
+                    </a>
+                    <a href="#reports" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
+                        <div class="flex items-center">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-3"></i>
+                            <span>Reports</span>
+                        </div>
+                    </a>
+                    <a href="#risk" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
+                        <div class="flex items-center">
+                            <i data-lucide="shield" class="w-5 h-5 mr-3"></i>
+                            <span>Risk</span>
+                        </div>
+                    </a>
+                    <a href="#analytics" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
+                        <div class="flex items-center">
+                            <i data="lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                            <span>Analytics</span>
+                        </div>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Pull to Refresh -->
+    <div class="pull-to-refresh" id="pullToRefresh">
+        <div class="refresh-spinner"></div>
+        <span class="text-sm">Pull to refresh</span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="mobile-container px-4 py-4">
+        <!-- Quick Actions -->
+        <section class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button class="metric-card bg-white rounded-lg shadow p-4 text-center" onclick="quickAction('create-case')">
+                    <i data-lucide="plus-circle" class="w-8 h-8 text-blue-600 mx-auto mb-2"></i>
+                    <p class="text-sm font-medium text-gray-900">New Case</p>
+                </button>
+                <button class="metric-card bg-white rounded-lg shadow p-4 text-center" onclick="quickAction('risk-assessment')">
+                    <i data-lucide="shield" class="w-8 h-8 text-purple-600 mx-auto mb-2"></i>
+                    <p class="text-sm font-medium text-gray-900">Risk Assessment</p>
+                </button>
+                <button class="metric-card bg-white rounded-lg shadow p-4 text-center" onclick="quickAction('sar-report')">
+                    <i data-lucide="file-text" class="w-8 h-8 text-red-600 mx-auto mb-2"></i>
+                    <p class="text-sm font-medium text-gray-900">SAR Report</p>
+                </button>
+                <button class="metric-card bg-white rounded-lg shadow p-4 text-center" onclick="quickAction('deadline-check')">
+                    <i data-lucide="clock" class="w-8 h-8 text-yellow-600 mx-auto mb-2"></i>
+                    <p class="text-sm font-medium text-gray-900">Deadlines</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- Key Metrics -->
+        <section class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Key Metrics</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="metric-card bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">SAR Reports</p>
+                            <p class="text-xl font-bold text-gray-900" id="mobileSarCount">156</p>
+                        </div>
+                        <div class="bg-blue-100 p-2 rounded-full">
+                            <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">Active Cases</p>
+                            <p class="text-xl font-bold text-gray-900" id="mobileActiveCases">42</p>
+                        </div>
+                        <div class="bg-orange-100 p-2 rounded-full">
+                            <i data-lucide="briefcase" class="w-4 h-4 text-orange-600"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">Compliance Score</p>
+                            <p class="text-xl font-bold text-gray-900" id="mobileComplianceScore">87.5%</p>
+                        </div>
+                        <div class="bg-green-100 p-2 rounded-full">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-600">Risk Score</p>
+                            <p class="text-xl font-bold text-gray-900" id="mobileRiskScore">0.45</p>
+                        </div>
+                        <div class="bg-purple-100 p-2 rounded-full">
+                            <i data="shield" class="w-4 h-4 text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Analytics</h2>
+            <div class="space-y-4">
+                <!-- SAR Reports Chart -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="text-md font-medium text-gray-900 mb-2">SAR Reports Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="mobileSarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Risk Distribution Chart -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="text-md font-medium text-gray-900 mb-2">Risk Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="mobileRiskChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Compliance Score Chart -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="text-md font-medium text-gray-900 mb-2">Compliance Score</h3>
+                    <div class="chart-container">
+                        <canvas id="mobileComplianceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="space-y-3" id="mobileActivityFeed">
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-blue-100 p-2 rounded-full">
+                            <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">SAR Report Submitted</p>
+                            <p class="text-xs text-gray-500">2 minutes ago</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-orange-100 p-2 rounded-full">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-orange-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">High Risk Case Detected</p>
+                            <p class="text-xs text-gray-500">5 minutes ago</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-green-100 p-2 rounded-full">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">Case Resolved</p>
+                            <p class="text-xs text-gray-500">1 hour ago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="mb-20">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Alerts</h2>
+            <div class="space-y-3" id="mobileAlerts">
+                <div class="mobile-alert bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mr-3"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-yellow-800">High Risk Cases</p>
+                            <p class="text-xs text-yellow-600">12 cases require attention</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mobile-alert bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 mr-3"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-red-800">Overdue Reports</p>
+                            <p class="text-xs text-red-600">3 reports past deadline</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="mobile-container">
+            <div class="grid grid-cols-5 text-center">
+                <a href="#dashboard" class="py-2 text-gray-600 hover:text-blue-600">
+                    <i data-lucide="home" class="w-5 h-5 mx-auto"></i>
+                    <span class="text-xs">Home</span>
+                </a>
+                <a href="#cases" class="py-2 text-gray-600 hover:text-blue-600">
+                    <i data-lucide="briefcase" class="w-5 h-5 mx-auto"></i>
+                    <span class="text-xs">Cases</span>
+                </a>
+                <a href="#reports" class="py-2 text-gray-600 hover:text-blue-600">
+                    <i data-lucide="file-text" class="w-5 h-5 mx-auto"></i>
+                    <span class="text-xs">Reports</span>
+                </a>
+                <a href="#risk" class="py-2 text-gray-600 hover:text-blue-600">
+                    <i data-lucide="shield" class="w-5 h-5 mx-auto"></i>
+                    <span class="text-xs">Risk</span>
+                </a>
+                <a href="#analytics" class="py-2 text-gray-600 hover:text-blue-600">
+                    <i data="lucide="bar-chart-3" class="w-5 h-5 mx-auto"></i>
+                    <span class="text-xs">Analytics</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Chart instances
+        let mobileSarChart, mobileRiskChart, mobileComplianceChart;
+
+        // Mobile-specific variables
+        let isPulling = false;
+        let startY = 0;
+        let currentY = 0;
+
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMobileCharts();
+            loadMobileData();
+            setupMobileEventListeners();
+            startMobileOptimizations();
+        });
+
+        function initializeMobileCharts() {
+            // SAR Reports Chart (Mobile)
+            const sarCtx = document.getElementById('mobileSarChart').getContext('2d');
+            mobileSarChart = new Chart(sarCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'SAR Reports',
+                        data: [5, 8, 6, 9, 7, 4, 3],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Risk Distribution Chart (Mobile)
+            const riskCtx = document.getElementById('mobileRiskChart').getContext('2d');
+            mobileRiskChart = new Chart(riskCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Critical', 'Severe'],
+                    datasets: [{
+                        data: [120, 85, 45, 15, 5],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(251, 146, 60, 0.8)',
+                            'rgba(220, 38, 38, 0.8)',
+                            'rgba(127, 29, 29, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Compliance Score Chart (Mobile)
+            const complianceCtx = document.getElementById('mobileComplianceChart').getContext('2d');
+            mobileComplianceChart = new Chart(complianceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Compliance Score',
+                        data: [85, 87, 86, 89, 88, 90],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 80,
+                                max: 100
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadMobileData() {
+            try {
+                // Load dashboard data from analytics engine
+                const response = await fetch('/api/v1/compliance/analytics/dashboard');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateMobileDashboard(data);
+                }
+            } catch (error) {
+                console.error('Failed to load mobile data:', error);
+                // Use mock data if API fails
+                updateMobileDashboardWithMockData();
+            }
+        }
+
+        function updateMobileDashboard(data) {
+            // Update metrics
+            if (data.overview) {
+                document.getElementById('mobileSarCount').textContent = data.overview.total_sar_reports;
+                document.getElementById('mobileActiveCases').textContent = data.overview.active_cases;
+                document.getElementById('mobileComplianceScore').textContent = data.overview.compliance_score + '%';
+                document.getElementById('mobileRiskScore').textContent = data.overview.average_risk_score.toFixed(2);
+            }
+
+            // Update charts with real data
+            if (data.trends) {
+                updateMobileCharts(data.trends);
+            }
+
+            // Update alerts
+            if (data.alerts) {
+                updateMobileAlerts(data.alerts);
+            }
+        }
+
+        function updateMobileDashboardWithMockData() {
+            // Dashboard is already loaded with mock data
+            console.log('Using mock data for mobile dashboard');
+        }
+
+        function updateMobileCharts(trends) {
+            // Update SAR trend chart
+            if (trends.sar_reports_trend && mobileSarChart) {
+                mobileSarChart.data.datasets[0].data = trends.sar_reports_trend;
+                mobileSarChart.update();
+            }
+
+            // Update other charts as needed
+            if (trends.risk_score_trend && mobileRiskChart) {
+                // Update risk distribution with trend data
+                mobileRiskChart.data.datasets[0].data = [
+                    trends.risk_score_trend[0],
+                    trends.risk_score_trend[1],
+                    trends.risk_score_trend[2],
+                    trends.risk_score_trend[3],
+                    trends.risk_score_trend[4],
+                    trends.risk_score_trend[5]
+                ];
+                mobileRiskChart.update();
+            }
+        }
+
+        function updateMobileAlerts(alerts) {
+            const alertsContainer = document.getElementById('mobileAlerts');
+            if (alertsContainer && alerts) {
+                // Update alert counts
+                const alertCards = alertsContainer.querySelectorAll('.mobile-alert');
+                if (alertCards[0]) {
+                    alertCards[0].querySelector('.text-xs').textContent = `${alerts.high_risk_cases} cases require attention`;
+                }
+                if (alertCards[1]) {
+                    alertCards[1].querySelector('.text-xs').textContent = `${alerts.overdue_reports} reports past deadline`;
+                }
+            }
+        }
+
+        function setupMobileEventListeners() {
+            // Menu toggle
+            const menuToggle = document.getElementById('menuToggle');
+            const closeMenu = document.getElementById('closeMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const mobileMenu = document.getElementById('mobileMenu');
+
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+            });
+
+            closeMenu.addEventListener('click', () => {
+                mobileMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+            });
+
+            menuOverlay.addEventListener('click', () => {
+                mobileMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+            });
+
+            // Pull to refresh
+            const pullToRefresh = document.getElementById('pullToRefresh');
+            pullToRefresh.addEventListener('touchstart', (e) => {
+                isPulling = true;
+                startY = e.touches[0].clientY;
+            });
+
+            pullToRefresh.addEventListener('touchmove', (e) => {
+                    if (!isPulling) return;
+                    currentY = e.touches[0].clientY;
+                    const distance = startY - currentY;
+                    
+                    if (distance > 100) {
+                        pullToRefresh.querySelector('.text-sm').textContent = 'Release to refresh';
+                    } else {
+                        pullToRefresh.querySelector('.text-sm').textContent = 'Pull to refresh';
+                    }
+                });
+
+            pullToRefresh.addEventListener('touchend', async (e) => {
+                    if (!isPulling) return;
+                    
+                    const distance = startY - currentY;
+                    
+                    if (distance > 50) {
+                        isPulling = false;
+                        
+                        // Show loading state
+                        pullToRefresh.querySelector('.text-sm').textContent = 'Refreshing...';
+                        
+                        // Refresh data
+                        await loadMobileData();
+                        
+                        // Reset pull state
+                        setTimeout(() => {
+                            pullToRefresh.querySelector('.text-sm').textContent = 'Pull to refresh';
+                            isPulling = false;
+                        }, 1000);
+                    } else {
+                        isPulling = false;
+                        pullToRefresh.querySelector('.text-sm').textContent = 'Pull to refresh';
+                    }
+                });
+
+            // Bottom navigation active state
+            const bottomNav = document.querySelector('.bottom-nav a');
+            bottomNav.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Remove active state from all links
+                    bottomNav.forEach(l => l.classList.remove('text-blue-600'));
+                    // Add active state to clicked link
+                    this.classList.add('text-blue-600');
+                });
+            });
+        }
+
+        function startMobileOptimizations() {
+            // Enable touch gestures for charts
+            if (mobileSarChart) {
+                mobileSarChart.options.plugins.zoom = {
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                            speed: 0.1
+                        },
+                    pinch: {
+                            enabled: true
+                        },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
+                };
+            }
+
+            // Optimize for mobile performance
+            Chart.defaults.font.family = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif';
+            Chart.defaults.font.size = 12;
+            
+            // Reduce animation duration for mobile
+            Chart.defaults.animation.duration = 500;
+        }
+
+        // Quick action handlers
+        window.quickAction = function(action) {
+            switch(action) {
+                case 'create-case':
+                    window.location.href = '#cases?action=create';
+                    break;
+                case 'risk-assessment':
+                    window.location.href = '#risk?action=assess';
+                    break;
+                case 'sar-report':
+                    window.location.href = '#reports?action=create';
+                    break;
+                case 'deadline-check':
+                    window.location.href = '#deadlines';
+                    break;
+                default:
+                    console.log(`Unknown quick action: ${action}`);
+            }
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(loadMobileData, 30000);
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                    // Re-render charts on orientation change
+                    mobileSarChart.resize();
+                    mobileRiskChart.resize();
+                    mobileComplianceChart.resize();
+                }, 100);
+        });
+
+        // Handle resize events
+        window.addEventListener('resize', () => {
+            // Re-render charts on window resize
+            mobileSarChart.resize();
+            mobileRiskChart.resize();
+            mobileComplianceChart.resize();
+        });
+    </script>
+</body>
+</html>

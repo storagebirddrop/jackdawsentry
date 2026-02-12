@@ -257,7 +257,7 @@ class SanctionsManager:
     async def screen_address(self, address: str, blockchain: str = None) -> SanctionsScreeningResult:
         """Screen an address against all sanctions lists"""
         try:
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             
             # Check cache first
             cache_key = f"{address}_{blockchain}" if blockchain else address
@@ -290,7 +290,7 @@ class SanctionsManager:
             recommendations = self._generate_recommendations(matches, risk_level)
             
             # Create screening result
-            screening_duration = datetime.utcnow() - start_time
+            screening_duration = datetime.now(timezone.utc) - start_time
             result = SanctionsScreeningResult(
                 address=address,
                 blockchain=blockchain or "unknown",
@@ -316,7 +316,7 @@ class SanctionsManager:
             return SanctionsScreeningResult(
                 address=address,
                 blockchain=blockchain or "unknown",
-                screened_at=datetime.utcnow(),
+                screened_at=datetime.now(timezone.utc),
                 matches=[],
                 overall_risk_score=0.0,
                 risk_level="low",
@@ -498,7 +498,7 @@ class SanctionsManager:
                 'to_address': to_address,
                 'blockchain': blockchain,
                 'amount': amount,
-                'screening_timestamp': datetime.utcnow().isoformat(),
+                'screening_timestamp': datetime.now(timezone.utc).isoformat(),
                 'from_address_screening': {
                     'matches': len(from_screening.matches),
                     'risk_score': from_screening.overall_risk_score,
@@ -521,7 +521,7 @@ class SanctionsManager:
             logger.error(f"Error screening transaction: {e}")
             return {
                 'error': str(e),
-                'screening_timestamp': datetime.utcnow().isoformat()
+                'screening_timestamp': datetime.now(timezone.utc).isoformat()
             }
     
     async def update_sanctions_list(self, list_type: SanctionsListType, entities: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -564,7 +564,7 @@ class SanctionsManager:
                 'updated_count': updated_count,
                 'total_entities': updated_count,
                 'errors': errors,
-                'update_timestamp': datetime.utcnow().isoformat()
+                'update_timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -587,7 +587,7 @@ class SanctionsManager:
                 'list_breakdown': {},
                 'entity_type_breakdown': {},
                 'program_breakdown': {},
-                'last_updated': datetime.utcnow().isoformat()
+                'last_updated': datetime.now(timezone.utc).isoformat()
             }
             
             # List breakdown

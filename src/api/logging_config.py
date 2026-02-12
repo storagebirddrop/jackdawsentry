@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.api.config import settings
 
@@ -20,7 +20,7 @@ class JackdawSentryFormatter(logging.Formatter):
     def format(self, record):
         # Base format
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'module': record.module,
@@ -46,7 +46,7 @@ class JackdawSentryFormatter(logging.Formatter):
             log_entry['exception'] = {
                 'type': type(record.exc_info[1]).__name__,
                 'message': str(record.exc_info[1]),
-                'traceback': self.formatException(record.exc_info[1])
+                'traceback': self.formatException(record.exc_info)
             }
         
         return json.dumps(log_entry, default=str)
@@ -59,21 +59,24 @@ class GDPRFilter(logging.Filter):
         super().__init__()
         self.include_sensitive = include_sensitive
     
+    # Patterns that indicate a log line carries an actual secret value
+    # (not merely mentioning the concept, e.g. "checking password policy")
+    SENSITIVE_VALUE_PATTERNS = [
+        'password=', 'password":', 'password\':', 'passwd=',
+        'token=', 'token":', 'access_token=', 'refresh_token=',
+        'secret_key=', 'secret_key":', 'api_key=', 'api_key":',
+        'credential=', 'authorization: bearer',
+        'encryption_key=', 'encryption_key":',
+    ]
+
     def filter(self, record):
         # Remove sensitive data from logs unless explicitly included
         if not self.include_sensitive:
-            # Filter out potential sensitive data patterns
-            message = record.getMessage()
-            
-            # Remove potential passwords, tokens, keys
-            sensitive_patterns = [
-                'password', 'token', 'key', 'secret', 'credential',
-                'authorization', 'bearer', 'jwt', 'encryption_key'
-            ]
-            
-            for pattern in sensitive_patterns:
-                if pattern.lower() in message.lower():
-                    record.msg = f"[FILTERED: {pattern.upper()}]"
+            message = record.getMessage().lower()
+            for pattern in self.SENSITIVE_VALUE_PATTERNS:
+                if pattern in message:
+                    record.msg = str(record.msg) + " [GDPR: sensitive value redacted]"
+                    record.args = ()
                     break
         
         return True
@@ -85,7 +88,6 @@ class StructuredHandler(logging.Handler):
     def __init__(self, filename: str, level: int = logging.INFO):
         super().__init__(level)
         self.filename = filename
-        self.backup_count = 5
         self.backup_count = 5
         self.max_bytes = 100 * 1024 * 1024  # 100MB
         
@@ -311,7 +313,7 @@ def get_logger(name: str = 'jackdawsentry') -> logging.Logger:
 def log_with_context(logger: logging.Logger, level: int, message: str, **context):
     """Log with additional context for GDPR compliance"""
     extra = {
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         **context
     }
     logger.log(level, message, extra=extra)
@@ -326,7 +328,7 @@ def log_security_event(event_type: str, details: Dict[str, Any], user_id: str = 
             'event_type': event_type,
             'details': details,
             'user_id': user_id,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     )
 
@@ -345,20 +347,21 @@ def log_audit_event(action: str, resource_type: str, resource_id: str = None,
             'user_id': user_id,
             'success': success,
             'details': details,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     )
 
 
 def log_error_with_traceback(logger: logging.Logger, message: str, exception: Exception):
     """Log errors with full traceback"""
+    import traceback
     logger.error(
         f"Error: {message}",
         extra={
             'exception_type': type(exception).__name__,
             'exception_message': str(exception),
-            'traceback': logger.formatException(exception),
-            'timestamp': datetime.utcnow().isoformat()
+            'traceback': ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)),
+            'timestamp': datetime.now(timezone.utc).isoformat()
         },
         exc_info=True
     )

@@ -11,7 +11,7 @@ This module provides Redis caching functionality for compliance operations inclu
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 import redis.asyncio as redis
 import pickle
@@ -61,7 +61,7 @@ class ComplianceCacheManager:
                 "risk_factors_count": len(assessment_data.get("risk_factors", [])),
                 "created_at": assessment_data.get("created_at"),
                 "updated_at": assessment_data.get("updated_at"),
-                "cached_at": datetime.utcnow().isoformat()
+                "cached_at": datetime.now(timezone.utc).isoformat()
             }
             
             # Store in Redis with TTL
@@ -118,7 +118,7 @@ class ComplianceCacheManager:
                 "submitted_by": report_data.get("submitted_by"),
                 "submitted_at": report_data.get("submitted_at"),
                 "created_at": report_data.get("created_at"),
-                "cached_at": datetime.utcnow().isoformat()
+                "cached_at": datetime.now(timezone.utc).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -169,7 +169,7 @@ class ComplianceCacheManager:
                 "created_at": case_data.get("created_at"),
                 "updated_at": case_data.get("updated_at"),
                 "evidence_count": case_data.get("evidence_count", 0),
-                "cached_at": datetime.utcnow().isoformat()
+                "cached_at": datetime.now(timezone.utc).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -217,8 +217,8 @@ class ComplianceCacheManager:
             
             cache_data = {
                 "summary": summary_data,
-                "generated_at": datetime.utcnow().isoformat(),
-                "expires_at": (datetime.utcnow() + timedelta(seconds=self.ttl_config["risk_summary"])).isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=self.ttl_config["risk_summary"])).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -260,8 +260,8 @@ class ComplianceCacheManager:
             
             cache_data = {
                 "statistics": stats_data,
-                "generated_at": datetime.utcnow().isoformat(),
-                "expires_at": (datetime.utcnow() + timedelta(seconds=self.ttl_config["case_statistics"])).isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=self.ttl_config["case_statistics"])).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -304,7 +304,7 @@ class ComplianceCacheManager:
             cache_data = {
                 "user_id": user_id,
                 "case_ids": case_ids,
-                "cached_at": datetime.utcnow().isoformat()
+                "cached_at": datetime.now(timezone.utc).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -348,7 +348,7 @@ class ComplianceCacheManager:
                 "entity_id": entity_id,
                 "entity_type": entity_type,
                 "assessment_id": assessment_id,
-                "cached_at": datetime.utcnow().isoformat()
+                "cached_at": datetime.now(timezone.utc).isoformat()
             }
             
             success = await self.redis_client.setex(
@@ -606,7 +606,7 @@ class ComplianceCacheManager:
             await self.redis_client.setex(
                 cache_key,
                 self.ttl_config["case"],
-                json.dumps({"case_id": case_id, "cached_at": datetime.utcnow().isoformat()})
+                json.dumps({"case_id": case_id, "cached_at": datetime.now(timezone.utc).isoformat()})
             )
         except Exception as e:
             logger.warning(f"Failed to cache user case lookup: {e}")

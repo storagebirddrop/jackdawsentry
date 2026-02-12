@@ -106,7 +106,7 @@ cp .env.example .env
 # Edit .env with your configuration
 
 # Start compliance services
-docker-compose -f docker/compliance-compose.yml up -d
+docker compose -f docker/compliance-compose.yml up -d
 ```
 
 ### 2. Initialize Compliance System
@@ -364,7 +364,7 @@ curl http://localhost:8001/api/v1/compliance/cache/stats
 export COMPLIANCE_LOG_LEVEL=DEBUG
 
 # Run with debug configuration
-docker-compose -f docker/compliance-compose.yml --profile debug up
+docker compose -f docker/compliance-compose.yml --profile debug up
 ```
 
 ## 📞 Support & Resources
@@ -593,20 +593,19 @@ Risk Levels:
 
 ## 📞 Support & Resources
 
-### Compliance Resources
-- [Regulatory Guidelines](regulatory-guidelines.md)
-- [Policy Templates](policy-templates.md)
-- [Training Materials](training-materials.md)
-- [Best Practices](best-practices.md)
+### Compliance Resources *(Planned)*
+- Regulatory Guidelines
+- Policy Templates
+- Training Materials — see [Compliance Training](../training/compliance-training.md)
+- Best Practices
 
 ### Technical Support
-- [Troubleshooting Guide](../troubleshooting.md)
 - [API Documentation](../api/README.md)
 - [Database Schema](../database/README.md)
-- [System Administration](../administration.md)
+- [Security Guide](../security.md)
+- [Roadmap](../roadmap.md)
 
 ---
 
-**Last Updated**: January 2024
-**Next Review**: April 2024
+**Last Updated**: February 2026
 **Compliance Officer**: compliance@jackdawsentry.com

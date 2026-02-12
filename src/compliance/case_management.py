@@ -7,7 +7,7 @@ Chain of custody, evidence integrity, and investigation workflow
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import json
 import hashlib
@@ -292,7 +292,7 @@ class CaseManagementEngine:
                          metadata: Dict[str, Any] = None) -> Case:
         """Create new investigation case"""
         try:
-            case_id = f"case_{datetime.utcnow().timestamp()}"
+            case_id = f"case_{datetime.now(timezone.utc).timestamp()}"
             
             # Get workflow for case type
             workflow = self.workflows_cache.get(case_type)
@@ -301,8 +301,8 @@ class CaseManagementEngine:
             
             # Calculate due date if not provided
             if not due_date:
-                total_duration = sum(step.get('estimated_duration', timedelta(days=1)) for step in workflow.steps)
-                due_date = datetime.utcnow() + total_duration
+                total_duration = sum((step.get('estimated_duration', timedelta(days=1)) for step in workflow.steps), timedelta())
+                due_date = datetime.now(timezone.utc) + total_duration
             
             # Create case
             case = Case(
@@ -343,7 +343,7 @@ class CaseManagementEngine:
                           tags: List[str] = None) -> Evidence:
         """Add evidence to case"""
         try:
-            evidence_id = f"ev_{datetime.utcnow().timestamp()}"
+            evidence_id = f"ev_{datetime.now(timezone.utc).timestamp()}"
             
             # Create evidence
             evidence = Evidence(
@@ -354,7 +354,7 @@ class CaseManagementEngine:
                 description=description,
                 source=source,
                 collected_by=collected_by,
-                collected_at=datetime.utcnow(),
+                collected_at=datetime.now(timezone.utc),
                 data=data or {},
                 file_path=file_path,
                 tags=tags or []
@@ -396,7 +396,7 @@ class CaseManagementEngine:
             
             old_status = case.status
             case.status = new_status
-            case.updated_at = datetime.utcnow()
+            case.updated_at = datetime.now(timezone.utc)
             
             # Add status change to notes
             status_note = f"Status changed from {old_status.value} to {new_status.value} by {updated_by}"
@@ -406,7 +406,7 @@ class CaseManagementEngine:
             
             # Handle special status transitions
             if new_status == CaseStatus.CLOSED:
-                case.closed_at = datetime.utcnow()
+                case.closed_at = datetime.now(timezone.utc)
             elif new_status == CaseStatus.REOPENED and case.closed_at:
                 case.closed_at = None
             
@@ -461,7 +461,7 @@ class CaseManagementEngine:
             
             # Advance to next step
             case.current_step = next_step_index
-            case.updated_at = datetime.utcnow()
+            case.updated_at = datetime.now(timezone.utc)
             
             # Add workflow advancement note
             advancement_note = f"Advanced from step {current_step_index} ({current_step['name']}) by {advanced_by}"
@@ -525,9 +525,9 @@ class CaseManagementEngine:
             metrics = {
                 'evidence_count': len(evidence),
                 'evidence_by_type': {},
-                'days_open': (datetime.utcnow() - case.created_at).days,
-                'days_until_due': (case.due_date - datetime.utcnow()).days if case.due_date else None,
-                'overdue': case.due_date and datetime.utcnow() > case.due_date
+                'days_open': (datetime.now(timezone.utc) - case.created_at).days,
+                'days_until_due': (case.due_date - datetime.now(timezone.utc)).days if case.due_date else None,
+                'overdue': case.due_date and datetime.now(timezone.utc) > case.due_date
             }
             
             # Evidence by type
@@ -907,7 +907,7 @@ class CaseManagementEngine:
                 await session.run(query, {
                     'case_id': case_id,
                     'evidence_count': evidence_count,
-                    'updated_at': datetime.utcnow().isoformat()
+                    'updated_at': datetime.now(timezone.utc).isoformat()
                 })
         except Exception as e:
             logger.error(f"Failed to update case evidence count: {e}")

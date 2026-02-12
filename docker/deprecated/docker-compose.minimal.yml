@@ -1,5 +1,8 @@
 version: '3.8'
 
+# DEPRECATED: debug-only compose file.
+# Use docker-compose.yml for development and docker/docker-compose.prod.yml for production.
+
 services:
   # =============================================================================
   # Neo4j Graph Database
@@ -72,50 +75,6 @@ services:
       - jackdawsentry_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # =============================================================================
-  # Main API Service
-  # =============================================================================
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: jackdawsentry_api
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=jackdaw_sentry_neo4j_password
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=jackdawsentry_compliance
-      - POSTGRES_USER=jackdawsentry_user
-      - POSTGRES_PASSWORD=jackdawsentry_pg_password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LOG_LEVEL=INFO
-    volumes:
-      - ./logs:/app/logs
-      - ./data:/app/data
-      - ./uploads:/app/uploads
-    depends_on:
-      neo4j:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - jackdawsentry_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

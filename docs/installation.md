@@ -12,7 +12,7 @@ Complete installation instructions for Jackdaw Sentry on your local development 
 
 ### Software Dependencies
 - **Docker**: 20.10+ and Docker Compose 2.0+
-- **Python**: 3.9+ (for local development)
+- **Python**: 3.11+ (for local development)
 - **Git**: For version control
 - **Node.js**: 18+ (for frontend development)
 
@@ -35,36 +35,43 @@ nano .env
 
 **Critical Settings to Update:**
 - `API_SECRET_KEY`: Generate a secure random key
-- `ENCRYPTION_KEY`: 32-character encryption key
+- `ENCRYPTION_KEY`: At least 32-character encryption key
 - `JWT_SECRET_KEY`: JWT signing secret
 - Blockchain RPC URLs (if using custom nodes)
 
 ### 3. Start Services
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check service status
-docker-compose ps
+docker compose ps
 ```
 
-### 4. Initialize Databases
+### 4. Verify Services
 ```bash
-# Run database initialization
-docker-compose exec api python scripts/init_databases.py
+# Check all containers are healthy
+docker compose ps
 
-# Verify Neo4j connection
-docker-compose exec api python scripts/test_neo4j.py
-
-# Verify PostgreSQL connection
-docker-compose exec api python scripts/test_postgres.py
+# Verify the API is responding
+curl http://localhost/health
 ```
+
+PostgreSQL is automatically initialized via `docker/postgres/init.sql` on first start.
 
 ### 5. Access Applications
-- **Web Dashboard**: http://localhost:3000
-- **API Documentation**: http://localhost:8000/docs
+- **Web Dashboard (Nginx)**: http://localhost/
+- **API Documentation (via Nginx)**: http://localhost/docs
 - **Neo4j Browser**: http://localhost:7474
-- **API Health**: http://localhost:8000/health
+- **API Health (via Nginx)**: http://localhost/health
+
+### Optional: Compliance Microservices
+
+If you want to run the dedicated compliance microservice stack (separate containers), start it explicitly:
+
+```bash
+docker compose -f docker/compliance-compose.yml up -d
+```
 
 ## 🔧 Detailed Installation
 
@@ -104,15 +111,12 @@ brew install --cask docker
 
 #### Generate Secure Keys
 ```bash
-# Generate API secret key
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# Generate encryption key
-python -c "import secrets; print(secrets.token_hex(16))"
-
-# Generate JWT secret
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Generate all required secrets at once:
+for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYPTION_KEY JWT_SECRET_KEY; do
+  echo "$var=$(openssl rand -hex 32)"
+done
 ```
+See [security.md](security.md#-secrets-management) for details.
 
 #### Blockchain RPC Configuration
 
@@ -146,9 +150,9 @@ ETHEREUM_RPC_URL=http://localhost:8545
 # Access Neo4j Browser
 open http://localhost:7474
 
-# Login with credentials
+# Login with credentials from your .env file
 Username: neo4j
-Password: jackdaw_sentry_neo4j_password
+Password: <your NEO4J_PASSWORD from .env>
 
 # Run initialization script
 :play init-graph
@@ -157,7 +161,7 @@ Password: jackdaw_sentry_neo4j_password
 #### PostgreSQL Setup
 ```bash
 # Connect to PostgreSQL
-docker-compose exec postgres psql -U jackdawsentry_user -d jackdawsentry_compliance
+docker compose exec postgres psql -U jackdawsentry_user -d jackdawsentry_compliance
 
 # Verify tables
 \dt
@@ -169,36 +173,24 @@ docker-compose exec postgres psql -U jackdawsentry_user -d jackdawsentry_complia
 #### Redis Setup
 ```bash
 # Test Redis connection
-docker-compose exec redis redis-cli -a jackdaw_sentry_redis_password ping
+docker compose exec redis redis-cli -a ${REDIS_PASSWORD} ping
 
 # Check memory usage
-docker-compose exec redis redis-cli -a jackdaw_sentry_redis_password info memory
+docker compose exec redis redis-cli -a ${REDIS_PASSWORD} info memory
 ```
 
 ## 🧪 Verification
 
 ### Health Checks
 ```bash
-# Check all services
-docker-compose exec api curl -f http://localhost:8000/health
+# Check API health (via Nginx)
+curl -f http://localhost/health
 
-# Check database connections
-docker-compose exec api python scripts/health_check.py
-
-# Verify API endpoints
-curl -f http://localhost:8000/api/v1/status
-```
-
-### Test Data Collection
-```bash
-# Test Bitcoin collector
-docker-compose exec collectors python src/collectors/bitcoin_test.py
-
-# Test Ethereum collector
-docker-compose exec collectors python src/collectors/ethereum_test.py
+# Verify API status endpoint
+curl -f http://localhost/api/v1/status
 
 # Verify data in Neo4j
-docker-compose exec neo4j cypher-shell -u neo4j -p jackdaw_sentry_neo4j_password "MATCH (n) RETURN count(n) as node_count"
+docker compose exec neo4j cypher-shell -u neo4j -p ${NEO4J_PASSWORD} "MATCH (n) RETURN count(n) as node_count"
 ```
 
 ## 🔧 Troubleshooting
@@ -239,37 +231,37 @@ sudo chmod 666 /var/run/docker.sock
 #### Neo4j Won't Start
 ```bash
 # Check Neo4j logs
-docker-compose logs neo4j
+docker compose logs neo4j
 
 # Reset Neo4j data
-docker-compose down -v
-docker-compose up -d neo4j
+docker compose down -v
+docker compose up -d neo4j
 ```
 
 #### PostgreSQL Connection Issues
 ```bash
 # Check PostgreSQL logs
-docker-compose logs postgres
+docker compose logs postgres
 
 # Reset PostgreSQL
-docker-compose down -v postgres
-docker-compose up -d postgres
+docker compose down -v postgres
+docker compose up -d postgres
 ```
 
 #### API Won't Start
 ```bash
 # Check API logs
-docker-compose logs api
+docker compose logs api
 
 # Verify environment variables
-docker-compose exec api env | grep -E "(NEO4J|POSTGRES|REDIS)"
+docker compose exec api env | grep -E "(NEO4J|POSTGRES|REDIS)"
 ```
 
 ## 📊 Performance Optimization
 
 ### Resource Allocation
 ```yaml
-# In docker-compose.yml, adjust memory limits:
+# In the docker-compose.yml file, adjust memory limits:
 services:
   neo4j:
     environment:
@@ -292,33 +284,33 @@ sudo mount /dev/sdb1 ./data/blockchain
 git pull origin main
 
 # Rebuild containers
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Restart services
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Backup Data
 ```bash
 # Backup Neo4j
-docker-compose exec neo4j neo4j-admin dump --database=neo4j --to=/backup/neo4j.dump
+docker compose exec neo4j neo4j-admin dump --database=neo4j --to=/backup/neo4j.dump
 
 # Backup PostgreSQL
-docker-compose exec postgres pg_dump -U jackdawsentry_user jackdawsentry_compliance > backup/postgres.sql
+docker compose exec postgres pg_dump -U jackdawsentry_user jackdawsentry_compliance > backup/postgres.sql
 
 # Backup Redis
-docker-compose exec redis redis-cli --rdb /backup/redis.rdb
+docker compose exec redis redis-cli --rdb /backup/redis.rdb
 ```
 
 ## 📞 Support
 
 If you encounter issues during installation:
 
-1. **Check Logs**: `docker-compose logs [service_name]`
-2. **Review FAQ**: [Troubleshooting Guide](troubleshooting.md)
+1. **Check Logs**: `docker compose logs [service_name]`
+2. **Review FAQ**: See the Troubleshooting section above
 3. **Community Support**: [Discord Server](https://discord.gg/jackdawsentry)
 4. **Report Issues**: [GitHub Issues](https://github.com/yourusername/jackdaw-sentry/issues)
 
 ---
 
-**Next Steps**: After successful installation, proceed to the [Quick Start Guide](quickstart.md) to begin using Jackdaw Sentry.
+**Next Steps**: After successful installation, visit http://localhost/docs for API documentation, or see the [Roadmap](roadmap.md) for the project status.

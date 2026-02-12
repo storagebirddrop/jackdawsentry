@@ -239,7 +239,7 @@ class AmritaForensicsIntegration:
     async def start_forensics_investigation(self, target: str, methodology: ForensicsMethodology, user_id: str = None) -> ForensicsInvestigation:
         """Start forensics investigation based on educational framework"""
         try:
-            investigation_id = f"forensics_{datetime.utcnow().timestamp()}"
+            investigation_id = f"forensics_{datetime.now(timezone.utc).timestamp()}"
             
             # Get relevant educational module
             module = self._get_module_by_methodology(methodology)
@@ -260,7 +260,7 @@ class AmritaForensicsIntegration:
         except Exception as e:
             logger.error(f"Forensics investigation failed: {e}")
             return ForensicsInvestigation(
-                investigation_id=f"forensics_{datetime.utcnow().timestamp()}",
+                investigation_id=f"forensics_{datetime.now(timezone.utc).timestamp()}",
                 target=target,
                 target_type="unknown",
                 methodology=methodology,
@@ -360,12 +360,12 @@ class AmritaForensicsIntegration:
             {
                 'type': 'transaction_analysis',
                 'data': {'transactions_analyzed': 150, 'patterns_found': 3},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             },
             {
                 'type': 'address_clustering',
                 'data': {'clusters_found': 5, 'addresses_clustered': 25},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         ])
     
@@ -394,12 +394,12 @@ class AmritaForensicsIntegration:
             {
                 'type': 'contract_analysis',
                 'data': {'contracts_analyzed': 3, 'vulnerabilities_found': 1},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             },
             {
                 'type': 'token_transfers',
                 'data': {'transfers_traced': 75, 'unique_tokens': 5},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         ])
     
@@ -428,12 +428,12 @@ class AmritaForensicsIntegration:
             {
                 'type': 'nft_analysis',
                 'data': {'nfts_analyzed': 25, 'marketplaces_traced': 3},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             },
             {
                 'type': 'wash_trading',
                 'data': {'suspicious_patterns': 2, 'accounts_involved': 5},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         ])
     
@@ -462,12 +462,12 @@ class AmritaForensicsIntegration:
             {
                 'type': 'cross_chain',
                 'data': {'chains_analyzed': 5, 'bridges_used': 3},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             },
             {
                 'type': 'stablecoin_flows',
                 'data': {'stablecoins_traced': 1000000, 'currencies': 4},
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         ])
     
@@ -494,7 +494,7 @@ class AmritaForensicsIntegration:
             'steps_completed': steps_count,
             'methodology': investigation.methodology.value,
             'educational_framework': 'amrita_tifac_forensics',
-            'assessment_timestamp': datetime.utcnow().isoformat()
+            'assessment_timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     async def get_investigation_report(self, investigation_id: str) -> Dict[str, Any]:
@@ -503,7 +503,7 @@ class AmritaForensicsIntegration:
         # For now, return a sample report structure
         return {
             'report_id': f"forensics_report_{investigation_id}",
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now(timezone.utc).isoformat(),
             'educational_framework': 'Amrita-TIFAC Cyber-Blockchain Forensics',
             'investigation_summary': 'Educational framework-based blockchain investigation',
             'methodology_applied': 'Educational forensics methodology',

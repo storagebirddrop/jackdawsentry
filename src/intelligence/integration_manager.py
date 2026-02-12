@@ -122,8 +122,8 @@ class IntegrationManager:
         if capabilities is None:
             capabilities = self.integration_status.capabilities
         
-        analysis_id = f"comp_analysis_{datetime.utcnow().timestamp()}"
-        start_time = datetime.utcnow()
+        analysis_id = f"comp_analysis_{datetime.now(timezone.utc).timestamp()}"
+        start_time = datetime.now(timezone.utc)
         
         try:
             analysis = IntegratedAnalysis(
@@ -161,8 +161,8 @@ class IntegrationManager:
                 await self._collect_evidence(analysis)
             
             # Calculate processing time
-            analysis.processing_time = (datetime.utcnow() - start_time).total_seconds()
-            analysis.metadata['end_time'] = datetime.utcnow().isoformat()
+            analysis.processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            analysis.metadata['end_time'] = datetime.now(timezone.utc).isoformat()
             analysis.metadata['total_processing_time'] = analysis.processing_time
             
             # Store analysis
@@ -183,8 +183,8 @@ class IntegrationManager:
                 target_type=target_type,
                 capabilities_used=capabilities,
                 results={'error': str(e)},
-                metadata={'error_time': datetime.utcnow().isoformat()},
-                processing_time=(datetime.utcnow() - start_time).total_seconds()
+                metadata={'error_time': datetime.now(timezone.utc).isoformat()},
+                processing_time=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
             
             return error_analysis
@@ -230,7 +230,7 @@ class IntegrationManager:
                 analysis.evidence.append({
                     'type': 'professional_tool_evidence',
                     'data': evidence_item,
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': evidence_item.get('source', 'unknown')
                 })
             
@@ -242,7 +242,7 @@ class IntegrationManager:
                 analysis.evidence.append({
                     'type': 'professional_assessment',
                     'data': tools_result['combined_assessment'],
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'professional_tools_combined'
                 })
             
@@ -278,7 +278,7 @@ class IntegrationManager:
                     analysis.evidence.append({
                         'type': 'osint_evidence',
                         'data': evidence_item,
-                        'timestamp': evidence_item.get('timestamp', datetime.utcnow().isoformat()),
+                        'timestamp': evidence_item.get('timestamp', datetime.now(timezone.utc).isoformat()),
                         'source': evidence_item.get('platform', 'unknown')
                     })
                 
@@ -315,7 +315,7 @@ class IntegrationManager:
                 ],
                 'peer_reviewed_algorithms': True,
                 'research_backed': True,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'academic_research'
             }
             
@@ -325,7 +325,7 @@ class IntegrationManager:
             analysis.evidence.append({
                 'type': 'academic_validation',
                 'data': academic_result,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'academic_research'
             })
             
@@ -341,8 +341,8 @@ class IntegrationManager:
             # Generate comprehensive court-ready report
             court_report = {
                 'report_id': f"court_{analysis.analysis_id}",
-                'generated_at': datetime.utcnow().isoformat(),
-                'case_number': f"JC-{datetime.utcnow().strftime('%Y%m%d')}-{analysis.analysis_id[:8]}",
+                'generated_at': datetime.now(timezone.utc).isoformat(),
+                'case_number': f"JC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{analysis.analysis_id[:8]}",
                 'investigating_analyst': 'Jackdaw Sentry Integrated Intelligence',
                 'methodology': 'Multi-platform intelligence integration with MCP, professional tools, OSINT, and academic research',
                 'chain_of_custody': 'Immutable blockchain verification with cryptographic evidence',
@@ -406,7 +406,7 @@ class IntegrationManager:
                 'confidence': avg_confidence,
                 'risk_score': avg_weight if risk_levels else 0.0,
                 'finding_count': len(all_findings),
-                'assessment_timestamp': datetime.utcnow().isoformat(),
+                'assessment_timestamp': datetime.now(timezone.utc).isoformat(),
                 'sources_considered': list(set(finding.get('source', 'unknown') for finding in all_findings)),
                 'methodology': 'Integrated multi-platform risk assessment'
             }
@@ -437,7 +437,7 @@ class IntegrationManager:
             for evidence_item in analysis.evidence:
                 evidence_type = evidence_item.get('type', 'unknown')
                 source = evidence_item.get('source', 'unknown')
-                timestamp = evidence_item.get('timestamp', datetime.utcnow().isoformat())
+                timestamp = evidence_item.get('timestamp', datetime.now(timezone.utc).isoformat())
                 
                 # Group by type
                 if evidence_type not in organized_evidence['evidence_by_type']:
@@ -669,7 +669,7 @@ law enforcement agencies, and compliance professionals.
                 'mcp_cache_size': 1000,  # Simulated
                 'professional_tools_cache_size': 500,  # Simulated
                 'osint_cache_size': 200,  # Simulated
-                'last_cache_cleanup': datetime.utcnow().isoformat()
+                'last_cache_cleanup': datetime.now(timezone.utc).isoformat()
             }
             
             # Collect errors
@@ -688,13 +688,13 @@ law enforcement agencies, and compliance professionals.
             logger.error(f"Integration status check failed: {e}")
             return IntegrationStatus(
                 errors=[str(e)],
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
     
     async def cleanup_old_analyses(self, days: int = 30):
         """Clean up old analyses"""
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
             old_analyses = [
                 analysis_id for analysis_id, analysis in self.active_analyses.items()
                 if analysis.created_at < cutoff_date

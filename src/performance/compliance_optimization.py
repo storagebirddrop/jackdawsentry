@@ -11,7 +11,7 @@ This module provides performance optimization features for compliance operations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -146,7 +146,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"optimizations_applied": optimizations_applied}
             )
             
@@ -165,7 +165,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=[],
                 metrics_after=[],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"error": str(e)}
             )
 
@@ -214,7 +214,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"optimizations_applied": optimizations_applied}
             )
             
@@ -233,7 +233,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=[],
                 metrics_after=[],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"error": str(e)}
             )
 
@@ -284,7 +284,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=memory_saved,
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"optimizations_applied": optimizations_applied}
             )
             
@@ -303,7 +303,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=[],
                 metrics_after=[],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"error": str(e)}
             )
 
@@ -351,7 +351,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"optimizations_applied": optimizations_applied}
             )
             
@@ -370,7 +370,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=[],
                 metrics_after=[],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"error": str(e)}
             )
 
@@ -418,7 +418,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"optimizations_applied": optimizations_applied}
             )
             
@@ -437,7 +437,7 @@ class CompliancePerformanceOptimizer:
                 memory_saved_mb=0,
                 metrics_before=[],
                 metrics_after=[],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details={"error": str(e)}
             )
 
@@ -598,7 +598,7 @@ class CompliancePerformanceOptimizer:
                 name="connection_pool_size",
                 value=10.0,  # Placeholder
                 unit="count",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.DATABASE
             ))
             
@@ -607,7 +607,7 @@ class CompliancePerformanceOptimizer:
                 name="avg_query_time",
                 value=50.0,  # Placeholder
                 unit="ms",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.DATABASE
             ))
             
@@ -627,7 +627,7 @@ class CompliancePerformanceOptimizer:
                 name="cache_hit_rate",
                 value=0.85,  # Placeholder
                 unit="ratio",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.CACHE
             ))
             
@@ -636,7 +636,7 @@ class CompliancePerformanceOptimizer:
                 name="cache_size",
                 value=100.0,  # Placeholder
                 unit="MB",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.CACHE
             ))
             
@@ -657,7 +657,7 @@ class CompliancePerformanceOptimizer:
                 name="memory_usage",
                 value=memory_info.rss / 1024 / 1024,  # MB
                 unit="MB",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.MEMORY
             ))
             
@@ -667,7 +667,7 @@ class CompliancePerformanceOptimizer:
                 name="memory_percentage",
                 value=memory_percent,
                 unit="percent",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.MEMORY
             ))
             
@@ -687,7 +687,7 @@ class CompliancePerformanceOptimizer:
                 name="batch_processing_time",
                 value=100.0,  # Placeholder
                 unit="ms",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.BATCH_PROCESSING
             ))
             
@@ -696,7 +696,7 @@ class CompliancePerformanceOptimizer:
                 name="batch_throughput",
                 value=1000.0,  # Placeholder
                 unit="records/sec",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.BATCH_PROCESSING
             ))
             
@@ -716,7 +716,7 @@ class CompliancePerformanceOptimizer:
                 name="query_execution_time",
                 value=25.0,  # Placeholder
                 unit="ms",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.QUERY_OPTIMIZATION
             ))
             
@@ -725,7 +725,7 @@ class CompliancePerformanceOptimizer:
                 name="query_cache_hit_rate",
                 value=0.90,  # Placeholder
                 unit="ratio",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 optimization_type=OptimizationType.QUERY_OPTIMIZATION
             ))
             
@@ -770,7 +770,7 @@ class CompliancePerformanceOptimizer:
         try:
             recent_optimizations = [
                 result for result in self.optimization_results
-                if result.timestamp > datetime.utcnow() - timedelta(hours=24)
+                if result.timestamp > datetime.now(timezone.utc) - timedelta(hours=24)
             ]
             
             summary = {
@@ -833,7 +833,7 @@ class CompliancePerformanceOptimizer:
             # Check if it's been a while since last optimization
             if self.optimization_results:
                 last_optimization = max(r.timestamp for r in self.optimization_results)
-                if datetime.utcnow() - last_optimization > timedelta(hours=1):
+                if datetime.now(timezone.utc) - last_optimization > timedelta(hours=1):
                     return True
             else:
                 return True  # No optimizations performed yet

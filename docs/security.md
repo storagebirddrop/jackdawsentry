@@ -1,12 +1,13 @@
 # Jackdaw Sentry Security Guide
 
-🛡️ **Comprehensive Security Guide for Jackdaw Sentry**
+**Security Guide for Jackdaw Sentry** *(partially implemented)*
 
-Complete security implementation guide covering authentication, authorization, data protection, GDPR compliance, and security best practices for production deployments.
+Security architecture and practices for Jackdaw Sentry. Items marked ✅ are implemented in code; items marked ⚠️ are documented targets but **not yet wired up**.
 
 ## 📋 Table of Contents
 
 - [Security Overview](#security-overview)
+- [Secrets Management](#-secrets-management)
 - [Authentication & Authorization](#authentication--authorization)
 - [Data Protection](#data-protection)
 - [GDPR Compliance](#gdpr-compliance)
@@ -29,16 +30,62 @@ Jackdaw Sentry implements defense-in-depth security architecture with multiple l
 5. **Compliance Layer**: GDPR, audit trails, data retention
 
 ### Security Features
-- ✅ **JWT Authentication** with role-based access control
-- ✅ **AES-256 Encryption** for sensitive data
-- ✅ **GDPR Compliance** with data subject rights
-- ✅ **Audit Logging** for all system activities
-- ✅ **Rate Limiting** to prevent abuse
-- ✅ **Input Validation** to prevent injection attacks
-- ✅ **Security Headers** for web protection
-- ✅ **Secrets Management** for credentials
+- ✅ **JWT Authentication** with role-based access control (implemented in `src/api/auth.py`)
+- ✅ **Bcrypt Password Hashing** for user credentials
+- ✅ **GDPR Log Filter** redacts sensitive fields in structured logs
+- ✅ **Security Headers** via Nginx reverse proxy (`docker/nginx.conf`)
+- ✅ **Input Validation** via Pydantic models on all endpoints
+- ✅ **Parameterized Queries** via asyncpg (`$1`, `$2` placeholders)
+- ✅ **Fernet Encryption** (AES-128-CBC via `cryptography.fernet`) — key derived from `ENCRYPTION_KEY` via SHA-256; encrypt/decrypt verified
+- ⚠️ **Audit Logging** with hash-chain integrity (scaffolded, not wired)
+- ⚠️ **Rate Limiting** (middleware exists, Redis-backed limits not active)
+- ⚠️ **Data Subject Rights** (GDPR endpoints not yet implemented)
 
-## 🔐 Authentication & Authorization
+## � Secrets Management
+
+### Required Secrets
+
+Jackdaw Sentry requires **6 cryptographic secrets** that must be generated before first run. All secrets must be at least 32 characters and generated from a cryptographically secure source.
+
+| Variable | Purpose | Min Length |
+|---|---|---|
+| `API_SECRET_KEY` | FastAPI session signing | 32 chars |
+| `NEO4J_PASSWORD` | Neo4j graph database auth | any |
+| `POSTGRES_PASSWORD` | PostgreSQL database auth | any |
+| `REDIS_PASSWORD` | Redis cache/queue auth | any |
+| `ENCRYPTION_KEY` | AES-256-GCM data encryption | 32 chars |
+| `JWT_SECRET_KEY` | JWT token signing (HS256) | 32 chars |
+
+### Generating Secrets
+
+Generate a single secret:
+```bash
+openssl rand -hex 32
+```
+
+Generate all required secrets at once:
+```bash
+for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYPTION_KEY JWT_SECRET_KEY; do
+  echo "$var=$(openssl rand -hex 32)"
+done
+```
+
+Or using Python:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### Security Rules
+
+- **Never commit** real secrets to version control. Use `.env` (gitignored), not `.env.example`.
+- **Rotate secrets** periodically — at minimum after any personnel change or suspected compromise.
+- **Use unique secrets** per environment (dev, staging, production).
+- **Production deployments** should use a secrets manager (e.g., HashiCorp Vault, AWS Secrets Manager, Docker Secrets) rather than `.env` files.
+- The `.env.example` file contains pre-generated example values for local development only. **Regenerate all secrets** for any non-local deployment.
+
+---
+
+## �� Authentication & Authorization
 
 ### JWT-Based Authentication
 ```python
@@ -76,39 +123,27 @@ PERMISSIONS = {
 # Login Request
 POST /api/v1/auth/login
 {
-  "username": "analyst@example.com",
-  "password": "secure_password"
+  "username": "admin",
+  "password": "your_password"
 }
 
 # Response
 {
   "access_token": "jwt_token_here",
-  "refresh_token": "refresh_token_here",
-  "token_type": "Bearer",
-  "expires_in": 86400,
+  "token_type": "bearer",
+  "expires_in": 1800,
   "user": {
     "id": "uuid",
-    "username": "analyst@example.com",
-    "role": "analyst",
-    "permissions": ["read", "write"]
+    "username": "admin",
+    "role": "admin"
   }
 }
 ```
 
-### API Key Authentication
+### API Key Authentication (⚠️ Planned)
 ```python
-# API Key Generation
-def generate_api_key():
-    return secrets.token_urlsafe(32)
-
-# API Key Structure
-{
-  "key_id": "key_uuid",
-  "api_key": "jck_api_32_char_random_string",
-  "permissions": ["read", "analysis"],
-  "expires_at": "2024-12-31T23:59:59Z",
-  "created_by": "user_uuid"
-}
+# API key authentication is not yet implemented.
+# All endpoints currently use JWT Bearer tokens.
 ```
 
 ## 🔐 Data Protection
@@ -481,7 +516,7 @@ CREATE CONSTRAINT user_id_constraint IF NOT EXISTS FOR (n:Investigation) REQUIRE
 ```bash
 # Redis Configuration
 # redis.conf
-requirepass your_redis_password
+requirepass ${REDIS_PASSWORD}
 rename-command FLUSHDB ""
 rename-command FLUSHALL ""
 rename-command KEYS ""
@@ -849,7 +884,5 @@ class SecurityDashboard:
 
 ---
 
-**Security Version**: v1.0.0  
-**Last Updated**: January 2024  
-**Security Status**: ✅ Production Hardened  
-**Contact**: security@jackdawsentry.com
+**Last Updated**: February 2025  
+**Security Status**: ⚠️ Partial — see inline annotations above

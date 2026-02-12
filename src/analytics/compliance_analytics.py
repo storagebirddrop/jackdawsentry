@@ -11,7 +11,7 @@ This module provides comprehensive analytics and reporting functionality for com
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -105,10 +105,10 @@ class ComplianceAnalyticsEngine:
             if not period_start:
                 period_start = self._get_default_period_start(report_type)
             if not period_end:
-                period_end = datetime.utcnow()
+                period_end = datetime.now(timezone.utc)
             
             # Generate report ID
-            report_id = f"{report_type.value}_{period_start.strftime('%Y%m%d')}_{int(datetime.utcnow().timestamp())}"
+            report_id = f"{report_type.value}_{period_start.strftime('%Y%m%d')}_{int(datetime.now(timezone.utc).timestamp())}"
             
             # Collect metrics
             metrics = await self._collect_metrics(report_type, period_start, period_end, custom_config)
@@ -128,7 +128,7 @@ class ComplianceAnalyticsEngine:
                 report_type=report_type,
                 title=self._get_report_title(report_type, period_start, period_end),
                 description=self._get_report_description(report_type),
-                generated_at=datetime.utcnow(),
+                generated_at=datetime.now(timezone.utc),
                 period_start=period_start,
                 period_end=period_end,
                 metrics=metrics,
@@ -190,7 +190,7 @@ class ComplianceAnalyticsEngine:
                 value=sar_count,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Risk Assessments
@@ -200,7 +200,7 @@ class ComplianceAnalyticsEngine:
                 value=risk_count,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Cases Created
@@ -210,7 +210,7 @@ class ComplianceAnalyticsEngine:
                 value=case_count,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Average Risk Score
@@ -220,7 +220,7 @@ class ComplianceAnalyticsEngine:
                 value=avg_risk,
                 unit="score",
                 metric_type=MetricType.AVERAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Compliance Score
@@ -230,7 +230,7 @@ class ComplianceAnalyticsEngine:
                 value=compliance_score,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Processing Times
@@ -240,7 +240,7 @@ class ComplianceAnalyticsEngine:
                 value=avg_processing_time,
                 unit="seconds",
                 metric_type=MetricType.AVERAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             return metrics
@@ -261,7 +261,7 @@ class ComplianceAnalyticsEngine:
                 value=daily_sar_trend,
                 unit="trend",
                 metric_type=MetricType.TREND,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 metadata={"daily_values": await self._get_daily_sar_values(period_start, period_end)}
             ))
             
@@ -272,7 +272,7 @@ class ComplianceAnalyticsEngine:
                 value=resolution_rate,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # High-risk cases
@@ -282,7 +282,7 @@ class ComplianceAnalyticsEngine:
                 value=high_risk_count,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Deadline compliance
@@ -292,7 +292,7 @@ class ComplianceAnalyticsEngine:
                 value=deadline_compliance,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             return metrics
@@ -313,7 +313,7 @@ class ComplianceAnalyticsEngine:
                 value=sar_growth,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Risk distribution
@@ -323,7 +323,7 @@ class ComplianceAnalyticsEngine:
                 value=risk_distribution,
                 unit="distribution",
                 metric_type=MetricType.HISTOGRAM,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 metadata={"levels": ["low", "medium", "high", "critical", "severe"]}
             ))
             
@@ -334,7 +334,7 @@ class ComplianceAnalyticsEngine:
                 value=jurisdiction_breakdown,
                 unit="breakdown",
                 metric_type=MetricType.HISTOGRAM,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 metadata={"jurisdictions": ["usa_fincen", "uk_fca", "eu"]}
             ))
             
@@ -345,7 +345,7 @@ class ComplianceAnalyticsEngine:
                 value=team_performance,
                 unit="score",
                 metric_type=MetricType.AVERAGE,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 metadata={"metric": "cases_per_analyst"}
             ))
             
@@ -367,7 +367,7 @@ class ComplianceAnalyticsEngine:
                 value=quarterly_score,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Regulatory submission success rate
@@ -377,7 +377,7 @@ class ComplianceAnalyticsEngine:
                 value=submission_success,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Audit findings
@@ -387,7 +387,7 @@ class ComplianceAnalyticsEngine:
                 value=audit_findings,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Training completion
@@ -397,7 +397,7 @@ class ComplianceAnalyticsEngine:
                 value=training_completion,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             return metrics
@@ -418,7 +418,7 @@ class ComplianceAnalyticsEngine:
                 value=annual_score,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Year-over-year growth
@@ -428,7 +428,7 @@ class ComplianceAnalyticsEngine:
                 value=yoy_growth,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Total cases handled
@@ -438,7 +438,7 @@ class ComplianceAnalyticsEngine:
                 value=total_cases,
                 unit="count",
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             # Risk reduction
@@ -448,7 +448,7 @@ class ComplianceAnalyticsEngine:
                 value=risk_reduction,
                 unit="percentage",
                 metric_type=MetricType.PERCENTAGE,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ))
             
             return metrics
@@ -483,7 +483,7 @@ class ComplianceAnalyticsEngine:
                     value=value,
                     unit=metric_config.get("unit", "count"),
                     metric_type=metric_type,
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                     metadata=metric_config.get("metadata", {})
                 ))
             
@@ -804,7 +804,7 @@ class ComplianceAnalyticsEngine:
     # Utility methods
     def _get_default_period_start(self, report_type: ReportType) -> datetime:
         """Get default period start for report type"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         if report_type == ReportType.DAILY_SUMMARY:
             return now - timedelta(days=1)
@@ -853,7 +853,7 @@ class ComplianceAnalyticsEngine:
             cache_key = "dashboard_data"
             if cache_key in self.dashboard_cache:
                 cached_data = self.dashboard_cache[cache_key]
-                if datetime.utcnow() - cached_data["timestamp"] < timedelta(minutes=self.cache_ttl_minutes):
+                if datetime.now(timezone.utc) - cached_data["timestamp"] < timedelta(minutes=self.cache_ttl_minutes):
                     return cached_data["data"]
             
             # Generate dashboard data
@@ -861,8 +861,8 @@ class ComplianceAnalyticsEngine:
                 "overview": {
                     "total_sar_reports": await self._get_total_sar_reports(),
                     "active_cases": await self._get_active_cases_count(),
-                    "average_risk_score": await self._get_average_risk_score(datetime.utcnow() - timedelta(days=7), datetime.utcnow()),
-                    "compliance_score": await self._calculate_compliance_score(datetime.utcnow() - timedelta(days=7), datetime.utcnow())
+                    "average_risk_score": await self._get_average_risk_score(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc)),
+                    "compliance_score": await self._calculate_compliance_score(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc))
                 },
                 "trends": {
                     "sar_reports_trend": await self._get_sar_reports_trend(30),
@@ -875,7 +875,7 @@ class ComplianceAnalyticsEngine:
                     "overdue_reports": await self._get_overdue_reports_count()
                 },
                 "performance": {
-                    "average_processing_time": await self._get_average_processing_time(datetime.utcnow() - timedelta(days=7), datetime.utcnow()),
+                    "average_processing_time": await self._get_average_processing_time(datetime.now(timezone.utc) - timedelta(days=7), datetime.now(timezone.utc)),
                     "system_health": await self._get_system_health_score(),
                     "user_satisfaction": await self._get_user_satisfaction_score()
                 }
@@ -884,7 +884,7 @@ class ComplianceAnalyticsEngine:
             # Cache the data
             self.dashboard_cache[cache_key] = {
                 "data": dashboard_data,
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.now(timezone.utc)
             }
             
             return dashboard_data

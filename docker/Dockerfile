@@ -1,7 +1,7 @@
 # Jackdaw Sentry - Production Docker Image
 # Multi-stage build for security and optimization
 
-FROM python:3.14-slim AS builder
+FROM python:3.11-slim AS builder
 
 # Set environment variables for build
 ENV PYTHONUNBUFFERED=1
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Production stage
-FROM python:3.14-slim
+FROM python:3.11-slim
 
 # Create non-root user for security
 RUN groupadd -r jackdaw && useradd -r -g jackdaw jackdaw
@@ -37,6 +37,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 RUN apt-get update && apt-get install -y \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create app directory
 WORKDIR /app

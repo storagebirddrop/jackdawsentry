@@ -11,7 +11,7 @@ This module provides scheduled tasks for compliance operations including:
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -144,15 +144,24 @@ class ComplianceScheduler:
             metadata={}
         )
 
-    def add_task(self, task: ScheduledTask) -> bool:
-        """Add a scheduled task"""
+    def add_task(self, task: ScheduledTask = None, *, task_id: str = None, name: str = None, description: str = None, frequency: TaskFrequency = None, function: callable = None, metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """Add a scheduled task (accepts ScheduledTask or keyword arguments)"""
         try:
+            if task is None:
+                task = ScheduledTask(
+                    task_id=task_id,
+                    name=name,
+                    description=description or "",
+                    frequency=frequency,
+                    function=function,
+                    metadata=metadata,
+                )
             self.tasks[task.task_id] = task
             self._schedule_task(task)
             logger.info(f"Added scheduled task: {task.name}")
             return True
         except Exception as e:
-            logger.error(f"Failed to add task {task.task_id}: {e}")
+            logger.error(f"Failed to add task {getattr(task, 'task_id', task_id)}: {e}")
             return False
 
     def remove_task(self, task_id: str) -> bool:
@@ -236,7 +245,7 @@ class ComplianceScheduler:
             return
         
         task.status = TaskStatus.RUNNING
-        task.last_run = datetime.utcnow()
+        task.last_run = datetime.now(timezone.utc)
         
         try:
             logger.info(f"Executing task: {task.name}")
@@ -321,7 +330,7 @@ class ComplianceScheduler:
         """Clean up expired compliance data"""
         try:
             from src.database.compliance_schema import ComplianceSchemaManager
-            from src.database.neo4j_client import get_neo4j_session
+            from src.api.database import get_neo4j_session
             from src.cache.compliance_cache import ComplianceCacheManager
             from src.api.routers.compliance import router
             
@@ -380,7 +389,7 @@ class ComplianceScheduler:
             health_results = {
                 "overall_status": "healthy",
                 "checks": {},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "issues": []
             }
             
@@ -463,7 +472,7 @@ class ComplianceScheduler:
                     
                     results["reports_generated"].append({
                         "type": report_type,
-                        "generated_at": datetime.utcnow().isoformat(),
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
                         "report_id": report.get("report_id", "unknown")
                     })
                     
@@ -514,7 +523,7 @@ class ComplianceScheduler:
         """Perform routine database maintenance"""
         try:
             from src.database.compliance_schema import ComplianceSchemaManager
-            from src.database.neo4j_client import get_neo4j_session
+            from src.api.database import get_neo4j_session
             
             results = {
                 "operations_completed": [],
@@ -554,7 +563,7 @@ class ComplianceScheduler:
         """Calculate hours until deadline"""
         try:
             deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             delta = deadline - now
             return max(0, int(delta.total_seconds() / 3600))
         except Exception:
@@ -593,22 +602,22 @@ class ComplianceScheduler:
     async def _generate_summary_report(self) -> Dict[str, Any]:
         """Generate compliance summary report"""
         # Implementation would generate summary report
-        return {"report_id": f"summary_{datetime.utcnow().strftime('%Y%m%d')}", "type": "summary"}
+        return {"report_id": f"summary_{datetime.now(timezone.utc).strftime('%Y%m%d')}", "type": "summary"}
 
     async def _generate_risk_assessment_report(self) -> Dict[str, Any]:
         """Generate risk assessment report"""
         # Implementation would generate risk assessment report
-        return {"report_id": f"risk_{datetime.utcnow().strftime('%Y%m%d')}", "type": "risk_assessment"}
+        return {"report_id": f"risk_{datetime.now(timezone.utc).strftime('%Y%m%d')}", "type": "risk_assessment"}
 
     async def _generate_case_statistics_report(self) -> Dict[str, Any]:
         """Generate case statistics report"""
         # Implementation would generate case statistics report
-        return {"report_id": f"cases_{datetime.utcnow().strftime('%Y%m%d')}", "type": "case_statistics"}
+        return {"report_id": f"cases_{datetime.now(timezone.utc).strftime('%Y%m%d')}", "type": "case_statistics"}
 
     async def _generate_audit_summary_report(self) -> Dict[str, Any]:
         """Generate audit summary report"""
         # Implementation would generate audit summary report
-        return {"report_id": f"audit_{datetime.utcnow().strftime('%Y%m%d')}", "type": "audit_summary"}
+        return {"report_id": f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}", "type": "audit_summary"}
 
     def start(self):
         """Start the scheduler"""

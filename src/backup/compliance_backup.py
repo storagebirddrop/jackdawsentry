@@ -11,7 +11,7 @@ This module provides comprehensive backup and recovery functionality for complia
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -144,14 +144,14 @@ class ComplianceBackupEngine:
         """Create and execute backup job"""
         try:
             # Generate unique job ID
-            job_id = f"backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{hash(str(config)) % 10000}"
+            job_id = f"backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hash(str(config)) % 10000}"
             
             # Create backup job
             job = BackupJob(
                 job_id=job_id,
                 config=config,
                 status=BackupStatus.PENDING,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 metadata={"config_hash": self._calculate_config_hash(config)}
             )
             
@@ -176,7 +176,7 @@ class ComplianceBackupEngine:
         """Process backup job"""
         try:
             job.status = BackupStatus.RUNNING
-            job.started_at = datetime.utcnow()
+            job.started_at = datetime.now(timezone.utc)
             
             # Generate backup filename
             timestamp = job.started_at.strftime("%Y%m%d_%H%M%S")
@@ -215,7 +215,7 @@ class ComplianceBackupEngine:
             
             # Update job status
             job.status = BackupStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             job.file_path = str(backup_path)
             job.file_size = backup_path.stat().st_size
             job.checksum = await self._calculate_file_checksum(backup_path)
@@ -226,7 +226,7 @@ class ComplianceBackupEngine:
             logger.error(f"Backup processing failed for {job.job_id}: {e}")
             job.status = BackupStatus.FAILED
             job.error_message = str(e)
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             raise
 
     async def _create_full_backup(self, job: BackupJob, backup_path: Path):
@@ -477,7 +477,7 @@ class ComplianceBackupEngine:
         """Restore from backup"""
         try:
             # Generate unique job ID
-            job_id = f"recovery_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{hash(backup_file) % 10000}"
+            job_id = f"recovery_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hash(backup_file) % 10000}"
             
             # Create recovery job
             job = RecoveryJob(
@@ -486,7 +486,7 @@ class ComplianceBackupEngine:
                 recovery_type=recovery_type,
                 target_path=target_path,
                 status=BackupStatus.PENDING,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 recovered_files=[]
             )
             
@@ -506,7 +506,7 @@ class ComplianceBackupEngine:
         """Process recovery job"""
         try:
             job.status = BackupStatus.RUNNING
-            job.started_at = datetime.utcnow()
+            job.started_at = datetime.now(timezone.utc)
             
             backup_path = Path(job.backup_file)
             
@@ -532,7 +532,7 @@ class ComplianceBackupEngine:
             
             # Update job status
             job.status = BackupStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             
             # Get list of recovered files
             job.recovered_files = [str(f) for f in target.rglob('*') if f.is_file()]
@@ -543,7 +543,7 @@ class ComplianceBackupEngine:
             logger.error(f"Recovery processing failed for {job.job_id}: {e}")
             job.status = BackupStatus.FAILED
             job.error_message = str(e)
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             raise
 
     async def _decrypt_backup(self, encrypted_path: Path) -> Path:
@@ -641,7 +641,7 @@ class ComplianceBackupEngine:
     async def cleanup_old_backups(self, days: int = 30) -> int:
         """Clean up old backups"""
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
             deleted_count = 0
             
             # Check backup history
@@ -685,7 +685,7 @@ class ComplianceBackupEngine:
                     type_stats[backup_type]["failed"] += 1
             
             # Recent backups (last 7 days)
-            cutoff_date = datetime.utcnow() - timedelta(days=7)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
             recent_backups = len([b for b in self.backup_history if b.created_at > cutoff_date])
             
             return {
@@ -735,7 +735,7 @@ class ComplianceBackupEngine:
                         
                         next_backup_time = backup.completed_at + timedelta(hours=backup.config.schedule_interval_hours)
                         
-                        if datetime.utcnow() >= next_backup_time:
+                        if datetime.now(timezone.utc) >= next_backup_time:
                             # Create new backup with same configuration
                             await self.create_backup(backup.config)
                 

@@ -122,7 +122,7 @@ class ChainalysisIntegration:
                     return {
                         'address': address,
                         'chainalysis_data': data,
-                        'timestamp': datetime.utcnow().isoformat(),
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
                         'source': 'chainalysis_reactor'
                     }
                 else:
@@ -134,7 +134,7 @@ class ChainalysisIntegration:
             return {
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'chainalysis_reactor'
             }
     
@@ -221,7 +221,7 @@ class EllipticIntegration:
                     return {
                         'tx_hash': tx_hash,
                         'elliptic_data': data,
-                        'timestamp': datetime.utcnow().isoformat(),
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
                         'source': 'elliptic'
                     }
                 else:
@@ -233,7 +233,7 @@ class EllipticIntegration:
             return {
                 'tx_hash': tx_hash,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'elliptic'
             }
 
@@ -278,7 +278,7 @@ class CipherBladeIntegration:
                     return {
                         'address': address,
                         'cipherblade_data': data,
-                        'timestamp': datetime.utcnow().isoformat(),
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
                         'source': 'cipherblade'
                     }
                 else:
@@ -290,7 +290,7 @@ class CipherBladeIntegration:
             return {
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'cipherblade'
             }
 
@@ -340,7 +340,7 @@ class ArkhamIntegration:
                     return {
                         'address': address,
                         'arkham_data': data,
-                        'timestamp': datetime.utcnow().isoformat(),
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
                         'source': 'arkham_intelligence'
                     }
                 else:
@@ -352,7 +352,7 @@ class ArkhamIntegration:
             return {
                 'address': address,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'arkham_intelligence'
             }
 
@@ -404,7 +404,7 @@ class EtherscanLabelsImporter:
             return {
                 'labels_imported': len(self.labels_cache),
                 'phish_hack_imported': len(self.phish_hack_labels),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'etherscan_labels'
             }
         
@@ -412,7 +412,7 @@ class EtherscanLabelsImporter:
             logger.error(f"Etherscan labels import failed: {e}")
             return {
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'etherscan_labels'
             }
     
@@ -449,7 +449,7 @@ class EtherscanLabelsImporter:
             confidence=confidence,
             source='etherscan_labels',
             metadata={
-                'import_timestamp': datetime.utcnow().isoformat(),
+                'import_timestamp': datetime.now(timezone.utc).isoformat(),
                 'dataset_version': 'latest'
             }
         )
@@ -494,7 +494,7 @@ class ProfessionalToolsManager:
         """Analyze address with all available professional tools"""
         results = {
             'address': address,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'tool_results': {},
             'combined_assessment': {},
             'evidence': []
@@ -530,14 +530,14 @@ class ProfessionalToolsManager:
                     results['evidence'].append({
                         'tool': tool_type.value,
                         'result': result,
-                        'timestamp': result.get('timestamp', datetime.utcnow().isoformat())
+                        'timestamp': result.get('timestamp', datetime.now(timezone.utc).isoformat())
                     })
                 
             except Exception as e:
                 logger.error(f"Tool {tool_type.value} analysis failed: {e}")
                 results['tool_results'][tool_type.value] = {
                     'error': str(e),
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
         
         # Get Etherscan labels
@@ -638,13 +638,13 @@ class ProfessionalToolsManager:
             'total_labels': list(all_labels),
             'total_categories': list(all_categories),
             'evidence_count': len(results.get('evidence', [])),
-            'assessment_timestamp': datetime.utcnow().isoformat()
+            'assessment_timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     async def get_tool_status(self) -> Dict[str, Any]:
         """Get status of all professional tools"""
         status = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'enabled_tools': list(self.enabled_tools),
             'tool_configs': {},
             'etherscan_labels_status': {}
@@ -662,7 +662,7 @@ class ProfessionalToolsManager:
         status['etherscan_labels_status'] = {
             'labels_cached': len(self.etherscan_labels.labels_cache),
             'phish_hack_cached': len(self.etherscan_labels.phish_hack_labels),
-            'last_import': datetime.utcnow().isoformat()
+            'last_import': datetime.now(timezone.utc).isoformat()
         }
         
         return status

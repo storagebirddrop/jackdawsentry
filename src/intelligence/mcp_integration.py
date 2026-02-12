@@ -73,7 +73,7 @@ class EtherscanMCPServer:
     
     async def execute_command(self, request: MCPRequest) -> MCPResponse:
         """Execute MCP command"""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             # Check cache first
@@ -84,7 +84,7 @@ class EtherscanMCPServer:
                     success=True,
                     data=cached_result,
                     request_id=request.request_id,
-                    processing_time=(datetime.utcnow() - start_time).total_seconds()
+                    processing_time=(datetime.now(timezone.utc) - start_time).total_seconds()
                 )
             
             # Execute command
@@ -97,7 +97,7 @@ class EtherscanMCPServer:
                 success=True,
                 data=result,
                 request_id=request.request_id,
-                processing_time=(datetime.utcnow() - start_time).total_seconds()
+                processing_time=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
             
         except Exception as e:
@@ -106,7 +106,7 @@ class EtherscanMCPServer:
                 success=False,
                 error=str(e),
                 request_id=request.request_id,
-                processing_time=(datetime.utcnow() - start_time).total_seconds()
+                processing_time=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
     
     async def _execute_command_impl(self, request: MCPRequest) -> Any:
@@ -144,7 +144,7 @@ class EtherscanMCPServer:
                 return {
                     'address': address,
                     'balance': data.get('result', {}),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -171,7 +171,7 @@ class EtherscanMCPServer:
                     'page': page,
                     'offset': offset,
                     'limit': limit,
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -191,7 +191,7 @@ class EtherscanMCPServer:
                 return {
                     'contract_address': contract_address,
                     'abi': data.get('result', {}),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -209,7 +209,7 @@ class EtherscanMCPServer:
                     'safe_gas_price': result.get('SafeGasPrice'),
                     'propose_gas_price': result.get('ProposeGasPrice'),
                     'fast_gas_price': result.get('FastGasPrice'),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -230,14 +230,14 @@ class EtherscanMCPServer:
                 return {
                     'address': address,
                     'ens_name': data.get('name'),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'ens_ideas_api'
                 }
             else:
                 return {
                     'address': address,
                     'ens_name': None,
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'ens_ideas_api'
                 }
     
@@ -255,7 +255,7 @@ class EtherscanMCPServer:
                 return {
                     'block_number': block_number,
                     'block_data': data.get('result'),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -275,7 +275,7 @@ class EtherscanMCPServer:
                 return {
                     'contract_address': contract_address,
                     'token_info': data.get('result', {}),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'source': 'etherscan_mcp'
                 }
             else:
@@ -292,7 +292,7 @@ class EtherscanMCPServer:
         return {
             'address': address,
             'labels': [],
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'source': 'etherscan_labels'
         }
     
@@ -328,8 +328,8 @@ class AIInvestigationAssistant:
         try:
             investigation_result = {
                 'address': address,
-                'investigation_id': f"inv_{datetime.utcnow().timestamp()}",
-                'timestamp': datetime.utcnow().isoformat(),
+                'investigation_id': f"inv_{datetime.now(timezone.utc).timestamp()}",
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'depth': depth,
                 'analysis_steps': [],
                 'findings': [],
@@ -428,7 +428,7 @@ class AIInvestigationAssistant:
             return {
                 'address': address,
                 'investigation_id': investigation_result.get('investigation_id', 'error'),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'error': str(e),
                 'analysis_steps': [],
                 'findings': [],
@@ -475,7 +475,7 @@ class AIInvestigationAssistant:
             'confidence': avg_confidence,
             'risk_score': avg_risk,
             'finding_count': len(findings),
-            'assessment_timestamp': datetime.utcnow().isoformat()
+            'assessment_timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     def _generate_evidence_report(self, investigation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -525,7 +525,7 @@ class MCPIntegration:
     
     async def execute_mcp_command(self, command: MCPCommandType, parameters: Dict[str, Any]) -> MCPResponse:
         """Execute MCP command with full integration"""
-        request_id = f"mcp_{datetime.utcnow().timestamp()}"
+        request_id = f"mcp_{datetime.now(timezone.utc).timestamp()}"
         request = MCPRequest(
             command=command,
             parameters=parameters,
@@ -536,7 +536,7 @@ class MCPIntegration:
     
     async def start_ai_investigation(self, address: str, user_id: str = None) -> Dict[str, Any]:
         """Start AI-powered investigation"""
-        investigation_id = f"ai_inv_{datetime.utcnow().timestamp()}"
+        investigation_id = f"ai_inv_{datetime.now(timezone.utc).timestamp()}"
         
         # Start investigation
         investigation = await self.ai_assistant.investigate_address(address)
@@ -568,8 +568,8 @@ class MCPIntegration:
         report = {
             'report_id': f"court_report_{investigation_id}",
             'investigation_id': investigation_id,
-            'generated_at': datetime.utcnow().isoformat(),
-            'case_number': f"JC-{datetime.utcnow().strftime('%Y%m%d')}-{investigation_id[:8]}",
+            'generated_at': datetime.now(timezone.utc).isoformat(),
+            'case_number': f"JC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{investigation_id[:8]}",
             'investigating_analyst': 'Jackdaw Sentry AI Assistant',
             'chain_of_custody': 'Immutable blockchain verification',
             'evidence': investigation.get('evidence', []),

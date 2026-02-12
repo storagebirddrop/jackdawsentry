@@ -1,3 +1,6 @@
+# DEPRECATED: debug-only Dockerfile.
+# Use docker/Dockerfile for canonical builds.
+
 FROM python:3.11-slim
 
 # =============================================================================

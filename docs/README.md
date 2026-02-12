@@ -1,33 +1,25 @@
 # Jackdaw Sentry Documentation
 
-Welcome to the comprehensive documentation for Jackdaw Sentry, your enterprise-grade blockchain onchain analysis platform.
+Documentation for Jackdaw Sentry, a blockchain onchain analysis platform *(in active development)*.
 
 ## 📚 Documentation Structure
 
 ### Getting Started
 - [Installation Guide](installation.md) - Complete setup instructions
-- [Quick Start](quickstart.md) - Get running in 15 minutes
-- [Configuration Guide](configuration.md) - Environment variables and settings
+- [Roadmap](roadmap.md) - Remaining work and priorities (P0/P1/P2)
 
 ### Architecture & Design
-- [System Architecture](architecture.md) - Technical overview and design patterns
 - [Database Schema](database/README.md) - Neo4j and PostgreSQL schemas
-- [API Reference](api/README.md) - REST and GraphQL endpoints
-
-### Blockchain Integration
-- [Supported Blockchains](blockchains/README.md) - 15+ blockchain configurations
-- [Stablecoin Tracking](stablecoins/README.md) - 13 stablecoin implementations
-- [Lightning Network](lightning/README.md) - Channel state and routing analysis
+- [API Reference](api/README.md) - REST API endpoints
 
 ### Compliance & Reporting
 - [Compliance Framework](compliance/README.md) - GDPR/DORA/MiCA/AMLR compliance
-- [SAR Generation](compliance/sar.md) - Suspicious Activity Reporting
-- [Investigation Workflows](compliance/investigations.md) - Case management procedures
+- [Developer Guide](compliance/developer-guide.md) - Compliance system development
+- [User Guide](compliance/user-guide.md) - Compliance workflows for analysts
 
-### Development
-- [Development Guide](development.md) - Contributing and extending the platform
-- [Testing Guide](testing.md) - Unit and integration testing
+### Operations
 - [Deployment Guide](deployment.md) - Production deployment strategies
+- [Security](security.md) - Security architecture and practices
 
 ## 🎯 Key Features Documentation
 
@@ -51,10 +43,10 @@ Welcome to the comprehensive documentation for Jackdaw Sentry, your enterprise-g
 | Topic | Description | Link |
 |-------|-------------|------|
 | **Setup** | Installation and configuration | [Installation Guide](installation.md) |
-| **API** | REST and GraphQL endpoints | [API Reference](api/README.md) |
+| **API** | REST API endpoints | [API Reference](api/README.md) |
 | **Database** | Schema and migrations | [Database Schema](database/README.md) |
 | **Compliance** | Regulatory frameworks | [Compliance Framework](compliance/README.md) |
-| **Blockchains** | Supported chains and setup | [Supported Blockchains](blockchains/README.md) |
+| **Roadmap** | Remaining work and priorities | [Roadmap](roadmap.md) |
 
 ## 📖 Documentation Standards
 
@@ -80,6 +72,4 @@ This documentation is licensed under the same MIT License as the Jackdaw Sentry 
 ---
 
 **Need Help?**
-- Check our [FAQ](faq.md) for common questions
-- Join our [Discord Community](https://discord.gg/jackdawsentry)
-- Review our [Troubleshooting Guide](troubleshooting.md)
+- [Open an issue](https://github.com/yourusername/jackdaw-sentry/issues) on GitHub

@@ -2,6 +2,6 @@
 Jackdaw Sentry - API Routers Package
 """
 
-from . import analysis, compliance, investigations, blockchain, intelligence, reports, admin
+from . import analysis, analytics, compliance, export, investigations, blockchain, intelligence, reports, admin, workflows, monitoring, rate_limit, visualization, scheduler, mobile
 
-__all__ = ["analysis", "compliance", "investigations", "blockchain", "intelligence", "reports", "admin"]
+__all__ = ["analysis", "analytics", "compliance", "export", "investigations", "blockchain", "intelligence", "reports", "admin", "workflows", "monitoring", "rate_limit", "visualization", "scheduler", "mobile"]

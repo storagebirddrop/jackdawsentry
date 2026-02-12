@@ -133,7 +133,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.WATCHER_SERVICE,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         metadata={'cache_key': cache_key}
                     )
                 else:
@@ -142,7 +142,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.WATCHER_SERVICE,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -151,7 +151,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.WATCHER_SERVICE,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
             )
     
     async def explore_transactions(self, address: str, limit: int = 100) -> BlokBustrResult:
@@ -174,7 +174,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.EXPLORER_SERVICE,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         metadata={'cache_key': cache_key}
                     )
                 else:
@@ -183,7 +183,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.EXPLORER_SERVICE,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -192,7 +192,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.EXPLORER_SERVICE,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
             )
     
     async def identify_address(self, address: str) -> BlokBustrResult:
@@ -215,7 +215,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.IDENTIFIER_SERVICE,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         metadata={'cache_key': cache_key}
                     )
                 else:
@@ -224,7 +224,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.IDENTIFIER_SERVICE,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -233,7 +233,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.IDENTIFIER_SERVICE,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
                     )
     
     async def get_address_clusters(self, address: str) -> BlokBustrResult:
@@ -256,7 +256,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.EXPLORER_SERVICE,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         metadata={'cache_key': cache_key}
                     )
                 else:
@@ -265,7 +265,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.EXPLORER_SERVICE,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -274,7 +274,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.EXPLORER_SERVICE,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
                     )
     
     async def create_investigation(self, target: str, investigation_data: Dict[str, Any]) -> BlokBustrResult:
@@ -299,7 +299,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.INTEGRATION_API,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         metadata={'cache_key': cache_key}
                     )
                 else:
@@ -308,7 +308,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.INTEGRATION_API,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -317,7 +317,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.INTEGRATION_API,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
                     )
     
     async def get_investigation_status(self, investigation_id: str) -> BlokBustrResult:
@@ -333,7 +333,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.INTEGRATION_API,
                         success=True,
                         data=data,
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
                 else:
                     error_text = await response.text()
@@ -341,7 +341,7 @@ class BlokBustrIntegration:
                         feature=BlokBustrFeature.INTEGRATION_API,
                         success=False,
                         error=f"HTTP {response.status}: {error_text}",
-                        timestamp=datetime.utcnow().isoformat()
+                        timestamp=datetime.now(timezone.utc).isoformat()
                     )
             
         except Exception as e:
@@ -350,7 +350,7 @@ class BlokBustrIntegration:
                 feature=BlokBustrFeature.INTEGRATION_API,
                 success=False,
                 error=str(e),
-                timestamp=datetime.utcnow().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
                     )
     
     def _get_headers(self) -> Dict[str, str]:

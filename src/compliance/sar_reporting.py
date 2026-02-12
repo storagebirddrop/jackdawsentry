@@ -359,7 +359,7 @@ class SARManager:
                 raise ValueError("No valid activities found")
             
             # Calculate due date
-            due_date = datetime.utcnow() + timedelta(days=self.due_date_days)
+            due_date = datetime.now(timezone.utc) + timedelta(days=self.due_date_days)
             
             # Auto-populate fields from activities
             auto_data = await self._auto_populate_fields(activities, template)
@@ -458,13 +458,13 @@ class SARManager:
             if status:
                 report.status = status
                 if status == SARStatus.SUBMITTED:
-                    report.submitted_date = datetime.utcnow()
+                    report.submitted_date = datetime.now(timezone.utc)
                 elif status == SARStatus.APPROVED:
                     report.approved_by = "system"  # Would be actual user
                 elif status == SARStatus.ACKNOWLEDGED:
-                    report.acknowledged_date = datetime.utcnow()
+                    report.acknowledged_date = datetime.now(timezone.utc)
             
-            report.updated_at = datetime.utcnow()
+            report.updated_at = datetime.now(timezone.utc)
             
             # Cache update
             await self.cache_sar_data()
@@ -517,7 +517,7 @@ class SARManager:
                 'valid': is_valid,
                 'errors': errors,
                 'warnings': warnings,
-                'validation_timestamp': datetime.utcnow().isoformat()
+                'validation_timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -613,8 +613,8 @@ class SARManager:
             # For now, simulate submission
             submission_result = {
                 'success': True,
-                'submission_id': f"SUB-{datetime.utcnow().timestamp()}",
-                'submitted_at': datetime.utcnow().isoformat(),
+                'submission_id': f"SUB-{datetime.now(timezone.utc).timestamp()}",
+                'submitted_at': datetime.now(timezone.utc).isoformat(),
                 'report_id': report_id,
                 'jurisdiction': report.jurisdiction.value,
                 'confirmation_number': f"CONF-{uuid.uuid4().hex[:8].upper()}"
@@ -632,7 +632,7 @@ class SARManager:
     async def get_sar_statistics(self, time_range: int = 30) -> Dict[str, Any]:
         """Get SAR reporting statistics"""
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=time_range)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=time_range)
             
             # Filter reports by date range
             recent_reports = [report for report in self.reports.values() if report.created_at >= cutoff_date]
@@ -680,7 +680,7 @@ class SARManager:
                 'jurisdiction_breakdown': jurisdiction_breakdown,
                 'sar_type_breakdown': sar_type_breakdown,
                 'average_processing_days': avg_processing_time,
-                'statistics_timestamp': datetime.utcnow().isoformat()
+                'statistics_timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -696,7 +696,7 @@ class SARManager:
                     'total_templates': len(self.templates),
                     'total_reports': len(self.reports),
                     'total_activities': len(self.activities),
-                    'last_updated': datetime.utcnow().isoformat()
+                    'last_updated': datetime.now(timezone.utc).isoformat()
                 }
                 await redis.setex("sar_stats", self.cache_ttl, json.dumps(stats))
                 

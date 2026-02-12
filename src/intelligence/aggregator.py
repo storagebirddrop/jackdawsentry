@@ -276,8 +276,8 @@ class IntelligenceAggregator:
         
         # Load sample intelligence items
         for item_data in sample_items:
-            item_data['first_seen'] = datetime.utcnow() - timedelta(days=30)
-            item_data['last_seen'] = datetime.utcnow()
+            item_data['first_seen'] = datetime.now(timezone.utc) - timedelta(days=30)
+            item_data['last_seen'] = datetime.now(timezone.utc)
             item = IntelligenceItem(**item_data)
             self.intelligence_items[item.item_id] = item
     
@@ -330,7 +330,7 @@ class IntelligenceAggregator:
                 metadata={
                     'total_items': len(intelligence_items),
                     'total_correlations': len(correlations),
-                    'aggregation_timestamp': datetime.utcnow().isoformat()
+                    'aggregation_timestamp': datetime.now(timezone.utc).isoformat()
                 }
             )
             
@@ -620,7 +620,7 @@ class IntelligenceAggregator:
             return {
                 'item_id': item.item_id,
                 'status': 'added',
-                'added_at': datetime.utcnow().isoformat()
+                'added_at': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -661,13 +661,13 @@ class IntelligenceAggregator:
             
             # Emerging threats (recent items with high confidence)
             emerging_threats = []
-            recent_threshold = datetime.utcnow() - timedelta(hours=time_range)
+            recent_threshold = datetime.now(timezone.utc) - timedelta(hours=time_range)
             for item in self.intelligence_items.values():
                 if item.last_seen > recent_threshold and item.confidence > 0.7:
                     emerging_threats.append(item.value)
             
             summary = IntelligenceSummary(
-                summary_id=f"summary_{datetime.utcnow().timestamp()}",
+                summary_id=f"summary_{datetime.now(timezone.utc).timestamp()}",
                 time_range=f"{time_range}h",
                 total_targets=total_targets,
                 total_intelligence_items=total_intelligence_items,
@@ -759,7 +759,7 @@ class IntelligenceAggregator:
                     'total_items': len(self.intelligence_items),
                     'total_correlations': len(self.correlations),
                     'source_types': list(set(item.source_type.value for item in self.intelligence_items.values())),
-                    'last_updated': datetime.utcnow().isoformat()
+                    'last_updated': datetime.now(timezone.utc).isoformat()
                 }
                 await redis.setex("intelligence_stats", self.cache_ttl, json.dumps(stats))
         except Exception as e:

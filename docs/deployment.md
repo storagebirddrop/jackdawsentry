@@ -26,7 +26,7 @@ Complete guide for deploying Jackdaw Sentry in production environments with Dock
 
 ### Software Requirements
 - **Docker**: 20.10+ with Docker Compose 2.0+
-- **Python**: 3.14+
+- **Python**: 3.11+
 - **Git**: For source code management
 - **SSL Certificate**: For HTTPS (recommended)
 
@@ -163,25 +163,25 @@ CACHE_MAX_SIZE=1000
 ### Production Docker Compose
 ```bash
 # Deploy with production configuration
-docker-compose -f docker/docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml up -d
 
 # Check service status
-docker-compose -f docker/docker-compose.prod.yml ps
+docker compose -f docker/docker-compose.prod.yml ps
 
 # View logs
-docker-compose -f docker/docker-compose.prod.yml logs -f
+docker compose -f docker/docker-compose.prod.yml logs -f
 ```
 
 ### Service Health Checks
 ```bash
 # Check API health
-curl http://localhost:8000/health
+curl http://localhost/health
 
 # Check database connectivity
-curl http://localhost:8000/health/detailed
+curl http://localhost/health/detailed
 
 # Check system metrics
-curl http://localhost:8000/metrics
+curl http://localhost/metrics
 ```
 
 ### Automated Deployment Script
@@ -231,10 +231,10 @@ docker exec jackdawsentry_neo4j_prod cypher-shell -u neo4j -p your_neo4j_passwor
 ### Redis Setup
 ```bash
 # Verify Redis connection
-docker exec jackdawsentry_redis_prod redis-cli -a your_redis_password ping
+docker exec jackdawsentry_redis_prod redis-cli -a ${REDIS_PASSWORD} ping
 
 # Check Redis memory usage
-docker exec jackdawsentry_redis_prod redis-cli -a your_redis_password info memory
+docker exec jackdawsentry_redis_prod redis-cli -a ${REDIS_PASSWORD} info memory
 ```
 
 ## 🔒 Security Configuration
@@ -279,7 +279,7 @@ docker logs jackdawsentry_api_prod
 docker stats jackdawsentry_api_prod
 
 # Check health endpoints
-curl -s http://localhost:8000/health | jq .
+curl -s http://localhost/health | jq .
 ```
 
 ### Log Management
@@ -297,13 +297,13 @@ tail -f /app/logs/errors.log
 ### Metrics Collection
 ```bash
 # Get system metrics
-curl http://localhost:8000/metrics
+curl http://localhost/metrics
 
 # Get detailed health status
-curl http://localhost:8000/health/detailed
+curl http://localhost/health/detailed
 
 # Monitor database connections
-curl http://localhost:8000/api/v1/admin/system/status
+curl http://localhost/api/v1/admin/system/status
 ```
 
 ### Alert Configuration
@@ -320,7 +320,7 @@ curl http://localhost:8000/api/v1/admin/system/status
 
 ### Horizontal Scaling
 ```yaml
-# docker-compose.prod.yml scaling example
+# docker/docker-compose.prod.yml scaling example
 services:
   api:
     deploy:
@@ -337,7 +337,7 @@ services:
 ### Database Scaling
 ```bash
 # PostgreSQL read replicas
-# Configure in docker-compose.prod.yml
+# Configure in docker/docker-compose.prod.yml
 postgres_replica:
   image: postgres:16-alpine
   environment:
@@ -438,12 +438,12 @@ find $BACKUP_DIR -name "*.backup" -mtime +7 -delete
 #### 1. Database Connection Errors
 ```bash
 # Check database status
-docker-compose -f docker/docker-compose.prod.yml ps postgres neo4j redis
+docker compose -f docker/docker-compose.prod.yml ps postgres neo4j redis
 
 # Check logs
-docker-compose -f docker/docker-compose.prod.yml logs postgres
-docker-compose -f docker/docker-compose.prod.yml logs neo4j
-docker-compose -f docker/docker-compose.prod.yml logs redis
+docker compose -f docker/docker-compose.prod.yml logs postgres
+docker compose -f docker/docker-compose.prod.yml logs neo4j
+docker compose -f docker/docker-compose.prod.yml logs redis
 
 # Verify network connectivity
 docker network ls
@@ -459,10 +459,10 @@ docker ps | grep jackdawsentry_api
 docker logs jackdawsentry_api_prod
 
 # Restart API service
-docker-compose -f docker/docker-compose.prod.yml restart api
+docker compose -f docker/docker-compose.prod.yml restart api
 
 # Check port availability
-netstat -tlnp | grep :8000
+netstat -tlnp | grep :80
 ```
 
 #### 3. High Memory Usage
@@ -474,7 +474,7 @@ docker stats jackdawsentry_api_prod
 docker exec jackdawsentry_api_prod ps aux
 
 # Restart if needed
-docker-compose -f docker/docker-compose.prod.yml restart api
+docker compose -f docker/docker-compose.prod.yml restart api
 ```
 
 #### 4. Slow Database Queries
@@ -495,7 +495,7 @@ echo "=== Jackdaw Sentry Health Check ==="
 
 # Check API health
 echo "Checking API..."
-API_HEALTH=$(curl -s http://localhost:8000/health | jq -r .status)
+API_HEALTH=$(curl -s http://localhost/health | jq -r .status)
 echo "API Status: $API_HEALTH"
 
 # Check databases
@@ -512,7 +512,7 @@ else
 fi
 
 echo "Checking Redis..."
-REDIS_STATUS=$(docker exec jackdawsentry_redis_prod redis-cli -a your_redis_password ping)
+REDIS_STATUS=$(docker exec jackdawsentry_redis_prod redis-cli -a ${REDIS_PASSWORD} ping)
 echo "Redis: $REDIS_STATUS"
 
 # Check system resources
@@ -528,7 +528,7 @@ echo "=== Health Check Complete ==="
 - [API Documentation](docs/api/README.md)
 - [Database Schema](docs/database/README.md)
 - [Security Guide](docs/security.md)
-- [Development Guide](docs/development.md)
+- [Roadmap](docs/roadmap.md)
 
 ### Support
 - [GitHub Issues](https://github.com/yourusername/jackdaw-sentry/issues)

@@ -11,7 +11,7 @@ This module provides comprehensive data export functionality for compliance oper
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -93,7 +93,7 @@ class ComplianceExportEngine:
             result = ExportResult(
                 export_id=request.export_id,
                 status="pending",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 metadata=request.metadata
             )
             
@@ -117,7 +117,7 @@ class ComplianceExportEngine:
             if request.export_id in self.active_exports:
                 self.active_exports[request.export_id].status = "failed"
                 self.active_exports[request.export_id].error_message = str(e)
-                self.active_exports[request.export_id].completed_at = datetime.utcnow()
+                self.active_exports[request.export_id].completed_at = datetime.now(timezone.utc)
             
             raise
 
@@ -145,7 +145,7 @@ class ComplianceExportEngine:
             result.file_path = file_path
             result.file_size = file_size
             result.record_count = record_count
-            result.completed_at = datetime.utcnow()
+            result.completed_at = datetime.now(timezone.utc)
             
             logger.info(f"Export completed: {request.export_id} ({file_size} bytes)")
             
@@ -153,7 +153,7 @@ class ComplianceExportEngine:
             logger.error(f"Export processing failed for {request.export_id}: {e}")
             result.status = "failed"
             result.error_message = str(e)
-            result.completed_at = datetime.utcnow()
+            result.completed_at = datetime.now(timezone.utc)
             raise
 
     async def _get_export_data(self, request: ExportRequest) -> Union[List[Dict], Dict]:
@@ -451,14 +451,14 @@ class ComplianceExportEngine:
             # Get summary statistics
             summary = {
                 "period": request.date_range or {
-                    "start_date": (datetime.utcnow() - timedelta(days=30)).isoformat(),
-                    "end_date": datetime.utcnow().isoformat()
+                    "start_date": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
+                    "end_date": datetime.now(timezone.utc).isoformat()
                 },
                 "regulatory_reports": await router.regulatory_engine.get_report_statistics(),
                 "cases": await router.case_engine.get_case_statistics(),
                 "risk_assessments": await router.risk_engine.get_risk_summary(),
                 "audit_events": await router.audit_engine.get_event_statistics(),
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat()
             }
             
             return summary
@@ -469,7 +469,7 @@ class ComplianceExportEngine:
 
     async def _format_export_data(self, request: ExportRequest, data: Union[List[Dict], Dict]) -> str:
         """Format data based on requested format"""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"{request.export_type.value}_{timestamp}"
         
         if request.format == ExportFormat.JSON:
@@ -492,7 +492,7 @@ class ComplianceExportEngine:
         async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
             json_data = {
                 "export_metadata": {
-                    "exported_at": datetime.utcnow().isoformat(),
+                    "exported_at": datetime.now(timezone.utc).isoformat(),
                     "record_count": len(data) if isinstance(data, list) else 1,
                     "format": "json"
                 },
@@ -572,7 +572,7 @@ class ComplianceExportEngine:
         
         xml_content = dict_to_xml({
             "export_metadata": {
-                "exported_at": datetime.utcnow().isoformat(),
+                "exported_at": datetime.now(timezone.utc).isoformat(),
                 "record_count": len(data) if isinstance(data, list) else 1,
                 "format": "xml"
             },
@@ -625,7 +625,7 @@ class ComplianceExportEngine:
             
             # Add metadata
             metadata = [
-                ["Exported At:", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")],
+                ["Exported At:", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")],
                 ["Record Count:", str(len(data) if isinstance(data, list) else 1)],
                 ["Format:", "PDF"]
             ]
@@ -683,7 +683,7 @@ class ComplianceExportEngine:
             text_file_path = self.export_dir / f"{filename}.txt"
             async with aiofiles.open(text_file_path, 'w', encoding='utf-8') as f:
                 await f.write(f"Compliance Export - {filename}\n")
-                await f.write(f"Exported At: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                await f.write(f"Exported At: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n")
                 await f.write(f"Record Count: {len(data) if isinstance(data, list) else 1}\n")
                 await f.write("\n" + "="*50 + "\n")
                 
@@ -763,7 +763,7 @@ class ComplianceExportEngine:
     async def cleanup_old_exports(self, days: int = 30) -> int:
         """Clean up old export files"""
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
             deleted_count = 0
             
             # Check export history

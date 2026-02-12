@@ -7,7 +7,7 @@ Automated report generation, submission, and tracking
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import aiohttp
 import json
@@ -267,7 +267,7 @@ class RegulatoryReportingEngine:
                                     report_data: Dict[str, Any]) -> RegulatoryReport:
         """Create regulatory report"""
         try:
-            report_id = f"reg_{jurisdiction.value}_{report_type.value}_{datetime.utcnow().timestamp()}"
+            report_id = f"reg_{jurisdiction.value}_{report_type.value}_{datetime.now(timezone.utc).timestamp()}"
             
             # Get regulatory requirements
             requirement = self._get_regulatory_requirement(jurisdiction, report_type)
@@ -275,7 +275,7 @@ class RegulatoryReportingEngine:
                 raise ValueError(f"No requirements found for {jurisdiction.value} {report_type.value}")
             
             # Calculate deadlines
-            triggered_time = datetime.utcnow()
+            triggered_time = datetime.now(timezone.utc)
             filing_deadline = triggered_time + requirement.filing_deadline
             submission_deadline = filing_deadline + timedelta(days=1)  # Buffer for submission
             
@@ -295,8 +295,8 @@ class RegulatoryReportingEngine:
                 filing_deadline=filing_deadline,
                 submission_deadline=submission_deadline,
                 report_data=report_data,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             
             # Store report
@@ -339,8 +339,8 @@ class RegulatoryReportingEngine:
             if submission_result['success']:
                 # Update report status
                 report.status = ReportStatus.SUBMITTED
-                report.submitted_at = datetime.utcnow()
-                report.updated_at = datetime.utcnow()
+                report.submitted_at = datetime.now(timezone.utc)
+                report.updated_at = datetime.now(timezone.utc)
                 report.external_reference = submission_result.get('reference_number')
                 
                 # Add to submission history
@@ -401,7 +401,7 @@ class RegulatoryReportingEngine:
                 if new_status != report.status:
                     old_status = report.status
                     report.status = new_status
-                    report.updated_at = datetime.utcnow()
+                    report.updated_at = datetime.now(timezone.utc)
                     
                     # Add to submission history
                     report.submission_history.append({
@@ -437,7 +437,7 @@ class RegulatoryReportingEngine:
     async def get_upcoming_deadlines(self, days_ahead: int = 30) -> List[Dict[str, Any]]:
         """Get upcoming filing deadlines"""
         try:
-            cutoff_date = datetime.utcnow() + timedelta(days=days_ahead)
+            cutoff_date = datetime.now(timezone.utc) + timedelta(days=days_ahead)
             
             # Get all reports
             all_reports = await self._get_all_reports()
@@ -446,7 +446,7 @@ class RegulatoryReportingEngine:
             for report in all_reports:
                 if report.status in [ReportStatus.DRAFT, ReportStatus.PENDING_REVIEW]:
                     if report.filing_deadline <= cutoff_date:
-                        days_remaining = (report.filing_deadline - datetime.utcnow()).days
+                        days_remaining = (report.filing_deadline - datetime.now(timezone.utc)).days
                         urgency = 'high' if days_remaining <= 7 else 'medium' if days_remaining <= 14 else 'low'
                         
                         upcoming_deadlines.append({
@@ -526,14 +526,14 @@ class RegulatoryReportingEngine:
             preferred_method = submission_methods[0] if submission_methods else 'electronic_filing'
             
             # Simulate successful submission
-            reference_number = f"{jurisdiction.value.upper()}-{datetime.utcnow().strftime('%Y%m%d')}-{int(datetime.utcnow().timestamp())}"
+            reference_number = f"{jurisdiction.value.upper()}-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{int(datetime.now(timezone.utc).timestamp())}"
             
             return {
                 'success': True,
                 'method': preferred_method,
                 'reference_number': reference_number,
-                'submitted_at': datetime.utcnow().isoformat(),
-                'acknowledged_at': (datetime.utcnow() + timedelta(hours=1)).isoformat()
+                'submitted_at': datetime.now(timezone.utc).isoformat(),
+                'acknowledged_at': (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
             }
             
         except Exception as e:
@@ -551,12 +551,12 @@ class RegulatoryReportingEngine:
             
             # Simulate different statuses
             statuses = ['acknowledged', 'under_review', 'completed']
-            current_status = statuses[datetime.utcnow().second % len(statuses)]
+            current_status = statuses[datetime.now(timezone.utc).second % len(statuses)]
             
             return {
                 'success': True,
                 'status': current_status,
-                'last_updated': datetime.utcnow().isoformat(),
+                'last_updated': datetime.now(timezone.utc).isoformat(),
                 'next_action': None
             }
             

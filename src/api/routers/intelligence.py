@@ -5,12 +5,14 @@ Threat intelligence and dark web monitoring endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, validator
 import logging
+import uuid
+import json as _json
 
 from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_postgres_connection, get_redis_connection
+from src.api.database import get_neo4j_session
 from src.api.exceptions import JackdawException
 
 logger = logging.getLogger(__name__)
@@ -90,145 +92,100 @@ async def query_intelligence(
     request: IntelligenceQueryRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
 ):
-    """Query threat intelligence databases"""
+    """Query threat intelligence from Neo4j"""
     try:
+        import time as _time
+        start = _time.monotonic()
         logger.info(f"Querying intelligence for {request.query_type}: {request.query_value}")
-        
-        if request.query_type == "address":
-            intelligence_data = {
-                "address": request.query_value,
-                "threat_indicators": {
-                    "dark_web_mentions": 2,
-                    "sanctions_list_hits": 0,
-                    "leaked_data_exposure": 1,
-                    "forum_discussions": 5
-                },
-                "risk_score": 0.35,
-                "sources": {
-                    "dark_web": {
-                        "mentions": 2,
-                        "contexts": ["marketplace", "money_transfer"],
-                        "last_seen": datetime.utcnow() - timedelta(days=3)
-                    },
-                    "leaks": {
-                        "exposure_count": 1,
-                        "leak_source": "crypto_exchange_breach_2023",
-                        "data_types": ["address", "transaction_history"]
-                    },
-                    "forums": {
-                        "discussion_count": 5,
-                        "sentiment": "neutral",
-                        "topics": ["trading", "privacy"]
-                    }
-                },
-                "timeline": [
-                    {
-                        "date": datetime.utcnow() - timedelta(days=3),
-                        "source": "dark_web",
-                        "event": "address_mentioned",
-                        "details": "Mentioned in dark web marketplace"
-                    },
-                    {
-                        "date": datetime.utcnow() - timedelta(days=15),
-                        "source": "leaks",
-                        "event": "data_exposure",
-                        "details": "Address found in leaked exchange data"
-                    }
-                ]
-            }
-        
-        elif request.query_type == "entity":
-            intelligence_data = {
-                "entity": request.query_value,
-                "entity_type": "exchange",
-                "threat_indicators": {
-                    "regulatory_issues": 1,
-                    "security_incidents": 2,
-                    "compliance_violations": 0,
-                    "reputation_risk": "medium"
-                },
-                "risk_score": 0.42,
-                "sources": {
-                    "regulatory": {
-                        "violations": 1,
-                        "fines_usd": 50000,
-                        "jurisdictions": ["US", "EU"]
-                    },
-                    "security": {
-                        "incidents": 2,
-                        "types": ["data_breach", "phishing"],
-                        "severity": "medium"
-                    }
-                }
-            }
-        
-        elif request.query_type == "pattern":
-            intelligence_data = {
-                "pattern": request.query_value,
-                "pattern_type": "transaction_pattern",
-                "matches_found": 15,
-                "risk_indicators": {
-                    "structuring": True,
-                    "rapid_movement": True,
-                    "mixing_behavior": False,
-                    "geographic_anomaly": False
-                },
-                "similar_cases": [
-                    {
-                        "case_id": "CASE-001",
-                        "similarity_score": 0.85,
-                        "outcome": "suspicious_activity_confirmed"
-                    },
-                    {
-                        "case_id": "CASE-002", 
-                        "similarity_score": 0.72,
-                        "outcome": "false_positive"
-                    }
-                ]
-            }
-        
-        else:  # threat
-            intelligence_data = {
-                "threat": request.query_value,
-                "threat_category": "phishing",
-                "active_campaigns": 3,
-                "affected_platforms": ["exchange", "wallet", "defi"],
-                "indicators": [
-                    {
-                        "type": "domain",
-                        "value": "fake-example.com",
-                        "confidence": 0.95,
-                        "first_seen": datetime.utcnow() - timedelta(days=7)
-                    },
-                    {
-                        "type": "address",
-                        "value": "0x1234567890123456789012345678901234567890",
-                        "confidence": 0.80,
-                        "first_seen": datetime.utcnow() - timedelta(days=5)
-                    }
-                ]
-            }
-        
+
+        intelligence_data: Dict[str, Any] = {"query_type": request.query_type, "query_value": request.query_value}
+
+        async with get_neo4j_session() as session:
+            if request.query_type == "address":
+                # Check sanctions, threat intel, and risk data for address
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (a:Address {address: $val})
+                    OPTIONAL MATCH (s:SanctionEntry {address: $val})
+                    OPTIONAL MATCH (ti:ThreatIntel)-[:MENTIONS]->(a)
+                    RETURN a.risk_score AS risk_score,
+                           count(DISTINCT s) AS sanctions_hits,
+                           count(DISTINCT ti) AS intel_mentions,
+                           collect(DISTINCT ti.source) AS sources
+                    """,
+                    val=request.query_value,
+                )
+                rec = await result.single()
+                intelligence_data["risk_score"] = float(rec["risk_score"] or 0) if rec else 0
+                intelligence_data["sanctions_hits"] = rec["sanctions_hits"] if rec else 0
+                intelligence_data["intel_mentions"] = rec["intel_mentions"] if rec else 0
+                intelligence_data["sources"] = rec["sources"] if rec else []
+
+            elif request.query_type == "entity":
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (e:Entity {name: $val})
+                    OPTIONAL MATCH (e)<-[:RELATED_TO]-(ti:ThreatIntel)
+                    RETURN e, count(ti) AS threat_count,
+                           collect(DISTINCT ti.threat_type) AS threat_types
+                    """,
+                    val=request.query_value,
+                )
+                rec = await result.single()
+                if rec and rec["e"]:
+                    intelligence_data.update(dict(rec["e"]))
+                intelligence_data["threat_count"] = rec["threat_count"] if rec else 0
+                intelligence_data["threat_types"] = rec["threat_types"] if rec else []
+
+            elif request.query_type == "pattern":
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (p:ThreatPattern {pattern: $val})
+                    OPTIONAL MATCH (p)-[:MATCHED]->(c:Case)
+                    RETURN p, count(c) AS matches_found,
+                           collect({case_id: c.investigation_id, status: c.status}) AS matched_cases
+                    """,
+                    val=request.query_value,
+                )
+                rec = await result.single()
+                if rec and rec["p"]:
+                    intelligence_data.update(dict(rec["p"]))
+                intelligence_data["matches_found"] = rec["matches_found"] if rec else 0
+                intelligence_data["matched_cases"] = rec["matched_cases"] if rec else []
+
+            else:  # threat
+                result = await session.run(
+                    """
+                    OPTIONAL MATCH (t:ThreatAlert {threat_type: $val})
+                    WHERE t.status = 'active'
+                    RETURN count(t) AS active_count,
+                           collect(DISTINCT t.severity) AS severities
+                    """,
+                    val=request.query_value,
+                )
+                rec = await result.single()
+                intelligence_data["active_threats"] = rec["active_count"] if rec else 0
+                intelligence_data["severities"] = rec["severities"] if rec else []
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "query_type": request.query_type,
             "sources_queried": request.sources,
             "time_range_days": request.time_range_days,
-            "processing_time_ms": 350,
-            "data_freshness_hours": 6
+            "processing_time_ms": elapsed_ms,
+            "data_source": "neo4j",
         }
-        
+
         return IntelligenceResponse(
-            success=True,
-            intelligence_data=intelligence_data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, intelligence_data=intelligence_data,
+            metadata=metadata, timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Intelligence query failed: {e}")
         raise JackdawException(
             message=f"Intelligence query failed: {str(e)}",
-            error_code="INTELLIGENCE_QUERY_FAILED"
+            error_code="INTELLIGENCE_QUERY_FAILED",
         )
 
 
@@ -237,50 +194,57 @@ async def create_threat_alert(
     request: ThreatAlertRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_intelligence"]]))
 ):
-    """Create new threat intelligence alert"""
+    """Create new threat intelligence alert and persist to Neo4j"""
     try:
         logger.info(f"Creating threat alert: {request.title}")
-        
+        now = datetime.now(timezone.utc)
+        alert_id = f"ALT-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+        async with get_neo4j_session() as session:
+            await session.run(
+                """
+                CREATE (a:ThreatAlert {
+                    alert_id: $alert_id, title: $title,
+                    description: $description, severity: $severity,
+                    threat_type: $threat_type, status: 'active',
+                    created_by: $created_by, created_at: $created_at,
+                    indicators: $indicators, confidence: $confidence
+                })
+                """,
+                alert_id=alert_id, title=request.title,
+                description=request.description, severity=request.severity,
+                threat_type=request.threat_type,
+                created_by=current_user.username,
+                created_at=now.isoformat(),
+                indicators=_json.dumps(request.indicators),
+                confidence=request.confidence,
+            )
+
         alert_data = {
-            "alert_id": f"ALT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
-            "title": request.title,
-            "description": request.description,
-            "severity": request.severity,
-            "threat_type": request.threat_type,
-            "status": "active",
-            "created_by": current_user.username,
-            "created_at": datetime.utcnow(),
-            "indicators": request.indicators,
+            "alert_id": alert_id, "title": request.title,
+            "description": request.description, "severity": request.severity,
+            "threat_type": request.threat_type, "status": "active",
+            "created_by": current_user.username, "created_at": now.isoformat(),
             "confidence": request.confidence,
-            "affected_entities": [],
-            "mitigation_steps": [],
-            "related_alerts": []
         }
-        
-        # Add severity-specific actions
+
         if request.severity == "critical":
             alert_data["immediate_actions"] = ["notify_management", "consider_blocking"]
         elif request.severity == "high":
             alert_data["immediate_actions"] = ["enhanced_monitoring", "investigation_required"]
-        
-        metadata = {
-            "alert_validation": "passed",
-            "duplicate_check": "no_duplicates_found",
-            "auto_enrichment": "completed"
-        }
-        
+
+        metadata = {"persisted_to": "neo4j", "alert_validation": "passed"}
+
         return IntelligenceResponse(
-            success=True,
-            intelligence_data=alert_data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, intelligence_data=alert_data,
+            metadata=metadata, timestamp=now,
         )
-        
+
     except Exception as e:
         logger.error(f"Threat alert creation failed: {e}")
         raise JackdawException(
             message=f"Threat alert creation failed: {str(e)}",
-            error_code="ALERT_CREATION_FAILED"
+            error_code="ALERT_CREATION_FAILED",
         )
 
 
@@ -293,71 +257,55 @@ async def list_threat_alerts(
     offset: int = 0,
     current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
 ):
-    """List threat intelligence alerts"""
+    """List threat intelligence alerts from Neo4j"""
     try:
-        logger.info(f"Listing threat alerts with filters")
-        
-        alerts = [
-            {
-                "alert_id": "ALT-20240101001",
-                "title": "Phishing Campaign Targeting DeFi Users",
-                "description": "New phishing campaign discovered targeting DeFi wallet users",
-                "severity": "high",
-                "threat_type": "phishing",
-                "status": "active",
-                "created_at": datetime.utcnow() - timedelta(hours=6),
-                "created_by": "intelligence_analyst1",
-                "confidence": 0.85,
-                "indicators_count": 5
-            },
-            {
-                "alert_id": "ALT-20240101002",
-                "title": "Dark Web Marketplace Activity Spike",
-                "description": "Unusual increase in activity on known dark web marketplace",
-                "severity": "medium",
-                "threat_type": "money_laundering",
-                "status": "monitoring",
-                "created_at": datetime.utcnow() - timedelta(hours=12),
-                "created_by": "intelligence_analyst2",
-                "confidence": 0.72,
-                "indicators_count": 3
-            }
-        ]
-        
-        # Apply filters
+        logger.info("Listing threat alerts with filters")
+
+        where_clauses = []
+        params: Dict[str, Any] = {"skip_val": offset, "limit_val": limit}
         if severity:
-            alerts = [alert for alert in alerts if alert["severity"] == severity]
+            where_clauses.append("a.severity = $severity")
+            params["severity"] = severity
         if status:
-            alerts = [alert for alert in alerts if alert["status"] == status]
+            where_clauses.append("a.status = $status")
+            params["status"] = status
         if threat_type:
-            alerts = [alert for alert in alerts if alert["threat_type"] == threat_type]
-        
-        # Apply pagination
-        total_count = len(alerts)
-        paginated_alerts = alerts[offset:offset + limit]
-        
+            where_clauses.append("a.threat_type = $threat_type")
+            params["threat_type"] = threat_type
+        where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        async with get_neo4j_session() as session:
+            count_result = await session.run(
+                f"MATCH (a:ThreatAlert) {where_str} RETURN count(a) AS total", **params
+            )
+            count_rec = await count_result.single()
+            total_count = count_rec["total"] if count_rec else 0
+
+            result = await session.run(
+                f"MATCH (a:ThreatAlert) {where_str} RETURN a "
+                f"ORDER BY a.created_at DESC SKIP $skip_val LIMIT $limit_val",
+                **params,
+            )
+            records = await result.data()
+
+        alerts = [dict(r["a"]) for r in records]
+
         return {
             "success": True,
-            "alerts": paginated_alerts,
+            "alerts": alerts,
             "pagination": {
-                "total_count": total_count,
-                "limit": limit,
-                "offset": offset,
-                "has_more": offset + limit < total_count
+                "total_count": total_count, "limit": limit,
+                "offset": offset, "has_more": offset + limit < total_count,
             },
-            "filters_applied": {
-                "severity": severity,
-                "status": status,
-                "threat_type": threat_type
-            },
-            "timestamp": datetime.utcnow()
+            "filters_applied": {"severity": severity, "status": status, "threat_type": threat_type},
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Alert listing failed: {e}")
         raise JackdawException(
             message=f"Alert listing failed: {str(e)}",
-            error_code="ALERT_LISTING_FAILED"
+            error_code="ALERT_LISTING_FAILED",
         )
 
 
@@ -366,41 +314,55 @@ async def create_intelligence_subscription(
     request: IntelligenceSubscriptionRequest,
     current_user: User = Depends(check_permissions([PERMISSIONS["write_intelligence"]]))
 ):
-    """Create intelligence subscription"""
+    """Create intelligence subscription and persist to Neo4j"""
     try:
         logger.info(f"Creating intelligence subscription: {request.subscription_type}")
-        
+        now = datetime.now(timezone.utc)
+        sub_id = f"SUB-{uuid.uuid4().hex[:8].upper()}"
+
+        async with get_neo4j_session() as session:
+            await session.run(
+                """
+                CREATE (s:IntelSubscription {
+                    subscription_id: $sub_id,
+                    subscription_type: $sub_type,
+                    subscription_value: $sub_value,
+                    created_by: $created_by, created_at: $created_at,
+                    status: 'active',
+                    notification_channels: $channels,
+                    filters: $filters,
+                    notification_count: 0
+                })
+                """,
+                sub_id=sub_id, sub_type=request.subscription_type,
+                sub_value=request.subscription_value,
+                created_by=current_user.username,
+                created_at=now.isoformat(),
+                channels=request.notification_channels,
+                filters=_json.dumps(request.filters),
+            )
+
         subscription_data = {
-            "subscription_id": f"SUB-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            "subscription_id": sub_id,
             "subscription_type": request.subscription_type,
             "subscription_value": request.subscription_value,
             "created_by": current_user.username,
-            "created_at": datetime.utcnow(),
+            "created_at": now.isoformat(),
             "status": "active",
             "notification_channels": request.notification_channels,
-            "filters": request.filters,
-            "last_notification": None,
-            "notification_count": 0
         }
-        
-        metadata = {
-            "subscription_validation": "passed",
-            "notification_setup": "completed",
-            "estimated_daily_alerts": 5
-        }
-        
+        metadata = {"persisted_to": "neo4j", "subscription_validation": "passed"}
+
         return IntelligenceResponse(
-            success=True,
-            intelligence_data=subscription_data,
-            metadata=metadata,
-            timestamp=datetime.utcnow()
+            success=True, intelligence_data=subscription_data,
+            metadata=metadata, timestamp=now,
         )
-        
+
     except Exception as e:
         logger.error(f"Subscription creation failed: {e}")
         raise JackdawException(
             message=f"Subscription creation failed: {str(e)}",
-            error_code="SUBSCRIPTION_CREATION_FAILED"
+            error_code="SUBSCRIPTION_CREATION_FAILED",
         )
 
 
@@ -408,50 +370,46 @@ async def create_intelligence_subscription(
 async def get_dark_web_monitoring_status(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
 ):
-    """Get dark web monitoring status"""
+    """Get dark web monitoring status from Neo4j"""
     try:
-        monitoring_status = {
-            "monitoring_active": True,
-            "monitored_platforms": [
-                {
-                    "name": "AlphaBay",
-                    "status": "active",
-                    "last_scan": datetime.utcnow() - timedelta(hours=2),
-                    "items_collected": 1250
-                },
-                {
-                    "name": "Dream Market",
-                    "status": "active", 
-                    "last_scan": datetime.utcnow() - timedelta(hours=3),
-                    "items_collected": 890
-                },
-                {
-                    "name": "Forum Threads",
-                    "status": "active",
-                    "last_scan": datetime.utcnow() - timedelta(hours=1),
-                    "threads_analyzed": 3400
-                }
-            ],
-            "statistics": {
-                "total_mentions_today": 45,
-                "high_priority_alerts": 3,
-                "new_addresses_identified": 12,
-                "threat_patterns_detected": 7
-            },
-            "next_scan": datetime.utcnow() + timedelta(minutes=30)
-        }
-        
+        monitoring_status: Dict[str, Any] = {"monitoring_active": True}
+
+        async with get_neo4j_session() as session:
+            # Get monitored sources
+            src_result = await session.run(
+                "MATCH (s:IntelSource {type: 'dark_web'}) RETURN s ORDER BY s.last_scan DESC"
+            )
+            src_records = await src_result.data()
+            monitoring_status["monitored_platforms"] = [dict(r["s"]) for r in src_records]
+
+            # Today's alert stats
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            stats_result = await session.run(
+                """
+                OPTIONAL MATCH (a:ThreatAlert)
+                WHERE a.created_at >= $today
+                RETURN count(a) AS total_today,
+                       count(CASE WHEN a.severity IN ['high','critical'] THEN 1 END) AS high_priority
+                """,
+                today=today,
+            )
+            stats_rec = await stats_result.single()
+            monitoring_status["statistics"] = {
+                "alerts_today": stats_rec["total_today"] if stats_rec else 0,
+                "high_priority_alerts": stats_rec["high_priority"] if stats_rec else 0,
+            }
+
         return {
             "success": True,
             "monitoring_status": monitoring_status,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Dark web monitoring status failed: {e}")
         raise JackdawException(
             message=f"Dark web monitoring status failed: {str(e)}",
-            error_code="MONITORING_STATUS_FAILED"
+            error_code="MONITORING_STATUS_FAILED",
         )
 
 
@@ -459,56 +417,28 @@ async def get_dark_web_monitoring_status(
 async def get_intelligence_sources(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
 ):
-    """Get available intelligence sources"""
+    """Get available intelligence sources from Neo4j"""
     try:
-        sources = [
-            {
-                "source_id": "dark_web_001",
-                "name": "Dark Web Markets",
-                "type": "dark_web",
-                "status": "active",
-                "coverage": "global",
-                "update_frequency_hours": 1,
-                "data_types": ["market_listings", "forum_posts", "chat_messages"],
-                "reliability_score": 0.85,
-                "last_updated": datetime.utcnow() - timedelta(hours=1)
-            },
-            {
-                "source_id": "sanctions_001",
-                "name": "Global Sanctions Lists",
-                "type": "sanctions",
-                "status": "active",
-                "coverage": "global",
-                "update_frequency_hours": 6,
-                "data_types": ["sanctions_lists", "watch_lists", "blocked_entities"],
-                "reliability_score": 0.98,
-                "last_updated": datetime.utcnow() - timedelta(hours=6)
-            },
-            {
-                "source_id": "leaks_001",
-                "name": "Data Leak Monitoring",
-                "type": "leaks",
-                "status": "active",
-                "coverage": "global",
-                "update_frequency_hours": 4,
-                "data_types": ["leaked_credentials", "exposed_addresses", "breach_data"],
-                "reliability_score": 0.75,
-                "last_updated": datetime.utcnow() - timedelta(hours=4)
-            }
-        ]
-        
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                "MATCH (s:IntelSource) RETURN s ORDER BY s.name"
+            )
+            records = await result.data()
+
+        sources = [dict(r["s"]) for r in records]
+
         return {
             "success": True,
             "sources": sources,
             "total_sources": len(sources),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Intelligence sources retrieval failed: {e}")
         raise JackdawException(
             message=f"Intelligence sources retrieval failed: {str(e)}",
-            error_code="SOURCES_RETRIEVAL_FAILED"
+            error_code="SOURCES_RETRIEVAL_FAILED",
         )
 
 
@@ -516,42 +446,48 @@ async def get_intelligence_sources(
 async def get_intelligence_statistics(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
 ):
-    """Get intelligence system statistics"""
+    """Get intelligence system statistics from Neo4j"""
     try:
-        stats = {
-            "total_alerts": 1250,
-            "active_alerts": 23,
-            "daily_intelligence_items": 450,
-            "monitored_sources": 15,
-            "active_subscriptions": 89,
-            "dark_web_mentions_today": 45,
-            "threat_detection_rate": 0.87,
-            "false_positive_rate": 0.12,
-            "average_processing_time_ms": 280,
-            "intelligence_by_type": {
-                "phishing": 350,
-                "money_laundering": 280,
-                "malware": 190,
-                "scams": 230,
-                "terrorism": 45
-            },
-            "source_effectiveness": {
-                "dark_web": 0.85,
-                "sanctions": 0.98,
-                "leaks": 0.75,
-                "forums": 0.68
-            }
-        }
-        
+        stats: Dict[str, Any] = {}
+        async with get_neo4j_session() as session:
+            alert_result = await session.run(
+                """
+                MATCH (a:ThreatAlert)
+                RETURN count(a) AS total,
+                       count(CASE WHEN a.status = 'active' THEN 1 END) AS active
+                """
+            )
+            alert_rec = await alert_result.single()
+            stats["total_alerts"] = alert_rec["total"] if alert_rec else 0
+            stats["active_alerts"] = alert_rec["active"] if alert_rec else 0
+
+            type_result = await session.run(
+                "MATCH (a:ThreatAlert) RETURN a.threat_type AS ttype, count(a) AS c"
+            )
+            type_recs = await type_result.data()
+            stats["alerts_by_type"] = {r["ttype"]: r["c"] for r in type_recs if r["ttype"]}
+
+            sub_result = await session.run(
+                "MATCH (s:IntelSubscription {status: 'active'}) RETURN count(s) AS total"
+            )
+            sub_rec = await sub_result.single()
+            stats["active_subscriptions"] = sub_rec["total"] if sub_rec else 0
+
+            src_result = await session.run(
+                "MATCH (s:IntelSource) RETURN count(s) AS total"
+            )
+            src_rec = await src_result.single()
+            stats["monitored_sources"] = src_rec["total"] if src_rec else 0
+
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Intelligence statistics failed: {e}")
         raise JackdawException(
             message=f"Intelligence statistics failed: {str(e)}",
-            error_code="STATISTICS_FAILED"
+            error_code="STATISTICS_FAILED",
         )

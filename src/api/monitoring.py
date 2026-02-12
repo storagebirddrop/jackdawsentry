@@ -96,7 +96,7 @@ class MetricsCollector:
                 name=name,
                 value=self.counters[key],
                 metric_type=MetricType.COUNTER,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 labels=labels or {}
             ))
     
@@ -109,7 +109,7 @@ class MetricsCollector:
                 name=name,
                 value=value,
                 metric_type=MetricType.GAUGE,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 labels=labels or {}
             ))
     
@@ -122,7 +122,7 @@ class MetricsCollector:
                 name=name,
                 value=value,
                 metric_type=MetricType.HISTOGRAM,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 labels=labels or {}
             ))
     
@@ -135,7 +135,7 @@ class MetricsCollector:
                 name=name,
                 value=duration,
                 metric_type=MetricType.TIMER,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 labels=labels or {}
             ))
     
@@ -202,7 +202,7 @@ class AlertManager:
             title=title,
             message=message,
             source=source,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             metadata=metadata or {}
         )
         
@@ -220,7 +220,7 @@ class AlertManager:
         async with self._lock:
             if alert_id in self.alerts:
                 self.alerts[alert_id].resolved = True
-                self.alerts[alert_id].resolved_at = datetime.utcnow()
+                self.alerts[alert_id].resolved_at = datetime.now(timezone.utc)
                 logger.info(f"Alert resolved: {alert_id}")
                 return True
         return False
@@ -267,7 +267,7 @@ class ErrorHandler:
             message=str(exception),
             stack_trace=traceback.format_exc(),
             context=context or {},
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             severity=severity
         )
         
@@ -298,7 +298,7 @@ class ErrorHandler:
             total_errors = len(self.error_events)
             recent_errors = [
                 e for e in self.error_events.values()
-                if e.timestamp > datetime.utcnow() - timedelta(hours=24)
+                if e.timestamp > datetime.now(timezone.utc) - timedelta(hours=24)
             ]
             
             return {
@@ -405,8 +405,9 @@ class HealthChecker:
     async def _collect_system_metrics(self):
         """Collect system-level metrics"""
         try:
-            # CPU metrics
-            cpu_percent = psutil.cpu_percent(interval=1)
+            # CPU metrics (run in executor to avoid blocking the event loop)
+            loop = asyncio.get_event_loop()
+            cpu_percent = await loop.run_in_executor(None, psutil.cpu_percent, 1)
             await self.metrics_collector.set_gauge("system_cpu_percent", cpu_percent)
             
             # Memory metrics
@@ -484,7 +485,7 @@ class MonitoringSystem:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(f"http://{settings.API_HOST}:{settings.API_PORT}/health", timeout=5) as response:
                         return response.status == 200
-            except:
+            except Exception:
                 return False
         
         async def check_database_health():
@@ -494,7 +495,7 @@ class MonitoringSystem:
                 async with get_postgres_connection() as conn:
                     await conn.fetchval("SELECT 1")
                 return True
-            except:
+            except Exception:
                 return False
         
         self.health_checker.add_health_check("api", check_api_health)
@@ -507,7 +508,7 @@ class MonitoringSystem:
             "metrics": await self.metrics_collector.get_metrics_summary(),
             "active_alerts": await self.alert_manager.get_active_alerts(),
             "error_summary": await self.error_handler.get_error_summary(),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
 

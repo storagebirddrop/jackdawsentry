@@ -1,28 +1,27 @@
 # Jackdaw Sentry
 
-🚀 **Production-Ready Enterprise Blockchain Analysis Platform**
+**Enterprise Blockchain Analysis Platform** *(in active development)*
 
-Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed for freelance crypto compliance investigators. It provides cross-chain stablecoin tracking across 15+ blockchains, Lightning Network analysis, and full EU regulatory compliance (GDPR/DORA/MiCA/AMLR) with advanced compliance workflows, automation, and mobile support.
+Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance crypto compliance investigators. It targets cross-chain stablecoin tracking, Lightning Network analysis, and EU regulatory compliance (GDPR/DORA/MiCA/AMLR).
 
-## 🎯 Production Status
+## Current Status
 
-✅ **FULLY PRODUCTION-READY** - All critical components implemented and tested  
-✅ **68 API Endpoints** - Complete REST API with authentication & authorization  
-✅ **Docker Deployment** - Production containerization with orchestration  
-✅ **Database Migrations** - Automated schema management  
-✅ **Comprehensive Testing** - Unit, integration, and performance tests  
-✅ **Monitoring & Logging** - GDPR-compliant observability system  
-✅ **Compliance Suite** - Full regulatory compliance with EU framework  
-✅ **Mobile Support** - Responsive mobile interface with touch optimization  
-✅ **Advanced Analytics** - Real-time dashboards and data visualization  
-✅ **Workflow Automation** - Automated compliance workflows and rules  
-✅ **Training System** - Complete training program with certification  
+✅ **~130 API Endpoints** mounted — REST API with JWT auth & RBAC  
+✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)  
+✅ **Database Migrations** — Automated schema management; seed admin user  
+✅ **Structured Logging** — GDPR-compliant JSON logging with audit trail  
+✅ **Secrets Management** — Cryptographic secrets with generation tooling  
+⚠️ **Business Logic** — Core routers wired to Neo4j/engines; collectors and ML engines are scaffolded  
+✅ **Testing** — 136 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows)  
+⚠️ **Frontend** — Static HTML placeholders; not connected to API  
+
+See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
-- Python 3.14+
+- Python 3.11+
 - 8GB+ RAM
 - 50GB+ storage
 
@@ -45,23 +44,31 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
    pip3 install -r requirements.txt
    ```
 
-4. **Start production services:**
+4. **Start services (development):**
    ```bash
-   ./scripts/deploy.sh deploy
+   docker compose up -d
    ```
 
 5. **Access services:**
-   - API: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
+   - Web UI (Nginx): http://localhost/
+   - API Docs (via Nginx): http://localhost/docs
    - Neo4j Browser: http://localhost:7474
-   - Health Check: http://localhost:8000/health
+   - Health Check (via Nginx): http://localhost/health
+
+### Compliance Microservices (optional)
+
+To run the dedicated compliance microservice stack (separate containers), start it explicitly:
+
+```bash
+docker compose -f docker/compliance-compose.yml up -d
+```
 
 ## 🏗️ Production Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Nginx Proxy   │    │   FastAPI App   │    │   Background    │
-│   (Load Balancer)│───▶│   (68 Endpoints)│───▶│   Tasks         │
+│   Nginx Proxy   │    │   FastAPI App    │    │   Background    │
+│  (Load Balancer) │───▶│  (~130 Endpoints)│───▶│   Tasks         │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
@@ -71,7 +78,7 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 API Endpoints (68 Total)
+## 📊 API Endpoints (~130 Mounted)
 
 ### Core Endpoints
 - `GET /health` - System health check
@@ -126,7 +133,9 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 
 ## 📊 Multi-Chain Data Collection
 
-### ✅ **PRODUCTION-READY COLLECTORS (10+ Blockchains)**
+### ⚠️ **Blockchain Collectors (10+ Blockchains) — Scaffolded**
+
+> These collectors are scaffolded with data models and API integration points but are **not yet connected to live RPC nodes**. They will produce real data once configured with valid RPC endpoints.
 
 #### Bitcoin Ecosystem
 - **Bitcoin** - Core Bitcoin blockchain with Lightning Network support
@@ -193,33 +202,20 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-### �️ **Compliance & Regulatory Reporting (Production Ready)**
+### 🛡️ **Compliance & Regulatory Reporting**
 
 #### Comprehensive Compliance Framework
 - **Regulatory Reporting Integration**: Multi-jurisdictional support for USA FINCEN, UK FCA, Singapore MAS, EU AMLD, and more
 - **Case Management & Evidence Tracking**: Full lifecycle case management with chain-of-custody evidence tracking
 - **Audit Trail & Compliance Logging**: Immutable audit events with hash chaining for integrity verification
-- **Automated Risk Assessment Workflows**: AI-powered risk scoring with configurable thresholds and escalation procedures
-
-#### Regulatory Capabilities
-- **Multi-Jurisdictional Reports**: SAR, CTR, STR, AML, CTF, sanctions, and risk assessment reports
-- **Automated Submission**: Simulated regulatory API integration with status tracking
-- **Deadline Management**: Automated deadline monitoring and compliance alerts
-- **Report Templates**: Standardized templates for different regulatory requirements
-
-#### Risk Assessment Features
-- **Real-Time Scoring**: Automated risk factor analysis across multiple categories
-- **Threshold Monitoring**: Configurable risk thresholds with automatic escalation
-- **Workflow Management**: Structured assessment workflows with approval processes
-- **Comprehensive Analytics**: Risk trends, patterns, and statistical reporting
-
-#### Technical Implementation
 - **Neo4j Persistence**: Graph database for complex compliance relationships
 - **Redis Caching**: High-performance caching for risk assessments and escalations
 - **Async Processing**: Scalable asynchronous compliance workflows
 - **Immutable Logging**: Cryptographically secure audit trail with hash chaining
 
-### ��️ **Frontend Dashboard (Production Ready)**
+### ⚠️ **Frontend Dashboard — Static Placeholders**
+
+> The frontend consists of static HTML pages with Chart.js. They are **not connected to the API** and display hardcoded sample data.
 
 #### Modern Web Dashboard
 - **Responsive Design**: Mobile-first responsive layout with Tailwind CSS
@@ -242,7 +238,9 @@ Jackdaw Sentry is a comprehensive blockchain onchain analysis platform designed 
 - **Security**: XSS protection and secure coding practices
 - **Mobile Support**: Full responsive design for all devices
 
-### 🧠 **Intelligence Integration (Production Ready)**
+### ⚠️ **Intelligence Integration — Scaffolded**
+
+> Integration modules are scaffolded with configuration and data models. External API calls require valid API keys and are **not yet tested against live services**.
 
 #### Multi-Platform Intelligence Integration
 - **AI-Powered Analysis**: Model Context Protocol (MCP) integration with real-time blockchain data access
@@ -308,7 +306,9 @@ The Jackdaw Sentry project incorporates significant contributions from the open-
 **Special Thanks:**
 To all contributors who have shared their expertise and code to advance blockchain intelligence and analysis capabilities. Your contributions make Jackdaw Sentry a comprehensive, enterprise-grade platform that serves the global blockchain community.
 
-### ✅ **PRODUCTION-READY ML-POWERED ANALYSIS (6 Engines)**
+### ⚠️ **ML-Powered Analysis (6 Engines) — Scaffolded**
+
+> Analysis engines have code structure and risk-scoring logic but use **rule-based heuristics, not trained ML models**. No model training or inference pipeline exists yet.
 
 #### Cross-Chain Transaction Analysis Engine
 - **Multi-Chain Pattern Detection**: Identifies patterns across 10+ blockchains
@@ -466,58 +466,52 @@ To all contributors who have shared their expertise and code to advance blockcha
 - Input validation
 - SQL injection prevention
 
-## � Production Deployment
+##  Production Deployment
 
 ### Docker Setup
 ```bash
 # Production deployment
-docker-compose -f docker/docker-compose.prod.yml up -d
+docker compose -f docker/docker-compose.prod.yml up -d
 
 # Health check
-curl http://localhost:8000/health
+curl http://localhost/health
 ```
 
 ### Environment Variables
+
+Copy `.env.example` to `.env` and **regenerate all secrets** before first run:
 ```bash
-# Database Configuration
-POSTGRES_PASSWORD=your_secure_password
-NEO4J_PASSWORD=your_secure_password
-REDIS_PASSWORD=your_secure_password
-
-# Security Configuration
-API_SECRET_KEY=your_api_secret_key
-ENCRYPTION_KEY=your_32_char_encryption_key
-JWT_SECRET_KEY=your_jwt_secret_key
-
-# API Configuration
-API_HOST=127.0.0.1
-API_PORT=8000
-LOG_LEVEL=INFO
+cp .env.example .env
+# Generate all secrets at once:
+for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYPTION_KEY JWT_SECRET_KEY; do
+  echo "$var=$(openssl rand -hex 32)"
+done
 ```
+See [docs/security.md](docs/security.md#-secrets-management) for details.
 
 ## 🧪 Testing
 
-### Run Tests
+**136 tests passing** (`pytest -m "not integration"` in ~3s):
+
+| Suite | Tests | Description |
+|---|---|---|
+| Smoke | 9 | App imports, `/health`, `/openapi.json`, `/docs`, 404 |
+| Auth | 15 | Bcrypt hash/verify, JWT create/decode/expiry, RBAC roles |
+| Analysis | 13 | `AnalysisManager` API with mocked engines |
+| Audit Trail | 18 | `AuditTrailEngine` — logging, hash chain, reports |
+| Risk Assessment | 24 | `AutomatedRiskAssessmentEngine` — scoring, thresholds, workflows |
+| Case Management | 22 | `CaseManagementEngine` — cases, evidence, status |
+| Regulatory Reporting | 17 | `RegulatoryReportingEngine` — reports, submission, deadlines |
+| API Integration | 13 | Compliance router auth, engine patching, validation |
+| Workflows | 5 | Cross-engine pipelines (risk→case→audit→report) |
+
 ```bash
-# Unit tests
-pytest tests/unit/
+# Run all non-integration tests
+pytest -m "not integration"
 
-# Integration tests
-pytest tests/integration/
-
-# Performance tests
-pytest tests/performance/
-
-# Coverage report
-pytest --cov=src --cov-report=html
+# Run integration tests (requires running services)
+pytest -m integration
 ```
-
-### Test Categories
-- **Unit Tests** - Component testing
-- **Integration Tests** - Database and API testing
-- **Performance Tests** - Load and stress testing
-- **Security Tests** - Vulnerability scanning
-- **Compliance Tests** - GDPR/AML validation
 
 ## 📊 Monitoring & Logging
 
@@ -554,10 +548,10 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Code Quality
-- **Type Hints** - Full type annotation
-- **Documentation** - Comprehensive docstrings
-- **Linting** - Code style enforcement
-- **Testing** - 80%+ coverage requirement
+- **Type Hints** - Used throughout
+- **Documentation** - Docstrings on public functions
+- **Linting** - Planned (M3/M5)
+- **Testing** - Planned (M5)
 
 ## 📚 Documentation
 
@@ -569,6 +563,20 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 - [Compliance User Guide](docs/compliance/user-guide.md) - User documentation
 - [Compliance Developer Guide](docs/compliance/developer-guide.md) - Developer documentation
 - [Compliance Training](docs/training/compliance-training.md) - Training materials
+- [Roadmap](docs/roadmap.md) - Remaining work and priorities
+
+## 🧭 Canonical Docker Commands
+
+```bash
+# Development (main stack)
+docker compose up -d
+
+# Optional compliance microservices (separate stack)
+docker compose -f docker/compliance-compose.yml up -d
+
+# Production
+docker compose -f docker/docker-compose.prod.yml up -d
+```
 
 ## � Performance
 
@@ -608,4 +616,4 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 ---
 
-**Jackdaw Sentry** 🚀 - Production-ready blockchain analysis platform for modern compliance investigators.
+**Jackdaw Sentry** — Blockchain analysis platform for crypto compliance investigators. *In active development.*

@@ -10,12 +10,12 @@ This module provides API endpoints for compliance analytics and reporting includ
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import logging
 
 from src.api.auth import get_current_user, check_permissions
-from src.api.models.auth import User
+from src.api.auth import User
 from src.api.models.analytics import (
     AnalyticsReportRequest,
     AnalyticsReportResponse,
@@ -30,14 +30,14 @@ from src.analytics.compliance_analytics import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/compliance/analytics", tags=["analytics"])
+router = APIRouter()
 analytics_engine = ComplianceAnalyticsEngine()
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard_data(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get analytics dashboard data"""
     try:
@@ -46,7 +46,7 @@ async def get_dashboard_data(
         return DashboardResponse(
             success=True,
             data=dashboard_data,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -58,7 +58,7 @@ async def get_dashboard_data(
 async def generate_analytics_report(
     request: AnalyticsReportRequest,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Generate analytics report"""
     try:
@@ -103,7 +103,7 @@ async def generate_analytics_report(
 async def get_analytics_report(
     report_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get analytics report details"""
     try:
@@ -158,7 +158,7 @@ async def list_analytics_reports(
     offset: int = 0,
     report_type: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """List analytics reports"""
     try:
@@ -215,7 +215,7 @@ async def get_analytics_metrics(
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get analytics metrics"""
     try:
@@ -230,9 +230,9 @@ async def get_analytics_metrics(
         
         # Set default period if not provided
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=7)
+            start_date = datetime.now(timezone.utc) - timedelta(days=7)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
         
         # Collect metrics
         if metric_type:
@@ -281,7 +281,7 @@ async def get_analytics_charts(
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get analytics charts"""
     try:
@@ -296,9 +296,9 @@ async def get_analytics_charts(
         
         # Set default period if not provided
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=7)
+            start_date = datetime.now(timezone.utc) - timedelta(days=7)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
         
         # Generate charts
         charts = await analytics_engine._generate_charts(
@@ -330,8 +330,8 @@ async def get_analytics_insights(
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Get analytics insights"""
     try:
         # Parse dates
@@ -345,9 +345,9 @@ async def get_analytics_insights(
         
         # Set default period if not provided
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=7)
+            start_date = datetime.now(timezone.utc) - timedelta(days=7)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
         
         # Generate insights
         insights = await analytics_engine._generate_insights(
@@ -370,120 +370,12 @@ async def get_analytics_insights(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/recommendations")
-async def get_analytics_recommendations(
-    period_start: Optional[str] = None,
-    period_end: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-):
-    """Get analytics recommendations"""
-    try:
-        # Parse dates
-        start_date = None
-        end_date = None
-        
-        if period_start:
-            start_date = datetime.fromisoformat(period_start)
-        if period_end:
-            end_date = datetime.fromisoformat(period_end)
-        
-        # Set default period if not provided
-        if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=7)
-        if not end_date:
-            end_date = datetime.utcnow()
-        
-        # Generate recommendations
-        recommendations = await analytics_engine._generate_recommendations(
-            ReportType.WEEKLY_ANALYSIS,
-            [],
-            []
-        )
-        
-        return {
-            "success": True,
-            "recommendations": recommendations,
-            "period_start": start_date,
-            "period_end": end_date,
-            "total_recommendations": len(recommendations)
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get analytics recommendations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/download/{report_id}")
-async def download_analytics_report(
-    report_id: str,
-    format: str = "json",
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-):
-    """Download analytics report"""
-    try:
-        # Find report
-        report = None
-        for r in analytics_engine.reports:
-            if r.report_id == report_id:
-                report = r
-                break
-        
-        if not report:
-            raise HTTPException(status_code=404, detail="Report not found")
-        
-        # Generate report data
-        report_data = {
-            "report_id": report.report_id,
-            "report_type": report.report_type.value,
-            "title": report.title,
-            "description": report.description,
-            "generated_at": report.generated_at,
-            "period_start": report.period_start,
-            "period_end": report.period_end,
-            "metrics": [
-                {
-                    "name": metric.name,
-                    "value": metric.value,
-                    "unit": metric.unit,
-                    "metric_type": metric.metric_type.value,
-                    "timestamp": metric.timestamp,
-                    "metadata": metric.metadata
-                }
-                for metric in report.metrics
-            ],
-            "charts": report.charts,
-            "insights": report.insights,
-            "recommendations": report.recommendations,
-            "metadata": report.metadata
-        }
-        
-        # Return based on format
-        if format == "json":
-            return report_data
-        elif format == "csv":
-            # Convert to CSV format
-            return {"message": "CSV format not implemented yet"}
-        elif format == "pdf":
-            # Convert to PDF format
-            return {"message": "PDF format not implemented yet"}
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported format")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to download analytics report: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.delete("/report/{report_id}")
 async def delete_analytics_report(
     report_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin_compliance"]))
-:
+    _: None = Depends(check_permissions(["admin:full"]))
+):
     """Delete analytics report"""
     try:
         # Find and remove report
@@ -509,8 +401,8 @@ async def delete_analytics_report(
 @router.get("/statistics")
 async def get_analytics_statistics(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Get analytics statistics"""
     try:
         total_reports = len(analytics_engine.reports)
@@ -524,7 +416,7 @@ async def get_analytics_statistics(
             type_stats[report_type] += 1
         
         # Recent reports (last 7 days)
-        cutoff_date = datetime.utcnow() - timedelta(days=7)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
         recent_reports = len([r for r in analytics_engine.reports if r.generated_at > cutoff_date])
         
         return {
@@ -534,7 +426,7 @@ async def get_analytics_statistics(
                 "recent_reports_7_days": recent_reports,
                 "by_report_type": type_stats,
                 "cache_status": "active",
-                "last_updated": datetime.utcnow()
+                "last_updated": datetime.now(timezone.utc)
             }
         }
         
@@ -543,29 +435,11 @@ async def get_analytics_statistics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/health")
-async def analytics_health_check():
-    """Analytics service health check"""
-    try:
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "service": "compliance_analytics",
-            "version": "1.5.0",
-            "cache_status": "active",
-            "reports_count": len(analytics_engine.reports)
-        }
-        
-    except Exception as e:
-        logger.error(f"Analytics health check failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/refresh")
 async def refresh_analytics_data(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Refresh analytics data"""
     try:
         # Clear cache
@@ -577,7 +451,7 @@ async def refresh_analytics_data(
         return {
             "success": True,
             "message": "Analytics data refreshed successfully",
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:

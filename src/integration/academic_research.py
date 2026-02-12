@@ -186,7 +186,7 @@ class BlockSciIntegration:
                         'throughput': 2000  # queries per second
                     }
                 },
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'blocksci_simulation'
             }
             
@@ -200,14 +200,14 @@ class BlockSciIntegration:
             return {
                 'query': query,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'source': 'blocksci'
             }
     
     async def validate_algorithm(self, algorithm_id: str, test_data: Dict[str, Any]) -> AcademicValidationResult:
         """Validate algorithm implementation against academic standards"""
         try:
-            validation_id = f"val_{datetime.utcnow().timestamp()}"
+            validation_id = f"val_{datetime.now(timezone.utc).timestamp()}"
             
             # Get paper reference
             paper = self.papers_cache.get(algorithm_id.split('_')[0])
@@ -249,7 +249,7 @@ class BlockSciIntegration:
         except Exception as e:
             logger.error(f"Algorithm validation failed: {e}")
             return AcademicValidationResult(
-                validation_id=f"val_{datetime.utcnow().timestamp()}",
+                validation_id=f"val_{datetime.now(timezone.utc).timestamp()}",
                 algorithm_id=algorithm_id,
                 validation_type=AcademicResearchType.ALGORITHM_VALIDATION,
                 test_results={'error': str(e)},
@@ -365,7 +365,7 @@ class AcademicValidationEngine:
     async def validate_implementation(self, algorithm_id: str, implementation: Dict[str, Any], test_cases: List[Dict[str, Any]] = None) -> AcademicValidationResult:
         """Validate algorithm implementation against academic benchmarks"""
         try:
-            validation_id = f"val_{datetime.utcnow().timestamp()}"
+            validation_id = f"val_{datetime.now(timezone.utc).timestamp()}"
             
             # Run test cases if provided
             test_results = {}
@@ -404,7 +404,7 @@ class AcademicValidationEngine:
         except Exception as e:
             logger.error(f"Implementation validation failed: {e}")
             return AcademicValidationResult(
-                validation_id=f"val_{datetime.utcnow().timestamp()}",
+                validation_id=f"val_{datetime.now(timezone.utc).timestamp()}",
                 algorithm_id=algorithm_id,
                 validation_type=AcademicResearchType.PEER_REVIEW,
                 test_results={'error': str(e)},
@@ -427,11 +427,11 @@ class AcademicValidationEngine:
             elif test_type == 'performance':
                 # Performance test
                 input_size = test_case.get('input_size', 1000)
-                start_time = datetime.utcnow()
+                start_time = datetime.now(timezone.utc)
                 
                 # Simulate execution
                 await asyncio.sleep(0.01)  # Simulate 10ms execution time
-                end_time = datetime.utcnow()
+                end_time = datetime.now(timezone.utc)
                 
                 actual_output = {
                     'input_size': input_size,
@@ -448,7 +448,7 @@ class AcademicValidationEngine:
                 'success': success,
                 'expected_output': expected_output,
                 'actual_output': actual_output,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
         except Exception as e:
@@ -457,7 +457,7 @@ class AcademicValidationEngine:
                 'test_type': test_type,
                 'success': False,
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
     
     def _simulate_functional_test(self, test_case: Dict[str, Any], implementation: Dict[str, Any]) -> Any:

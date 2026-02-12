@@ -13,6 +13,8 @@ LOG_DIR="/var/log/jackdawsentry"
 HEALTH_CHECK_TIMEOUT=300
 ROLLBACK_ENABLED=true
 
+COMPOSE_FILE="docker/docker-compose.prod.yml"
+
 # =============================================================================
 # Colors for output
 # =============================================================================
@@ -57,8 +59,8 @@ pre_deployment_checks() {
         exit 1
     fi
     
-    # Check if docker-compose is available
-    if ! command -v docker-compose &> /dev/null; then
+    # Check if Docker Compose v2 is available
+    if ! docker compose version >/dev/null 2>&1; then
         error "Docker Compose is not installed"
         exit 1
     fi
@@ -93,7 +95,7 @@ backup_current_deployment() {
     mkdir -p "$BACKUP_PATH"
     
     # Backup current containers
-    docker-compose -f docker-compose.prod.yml ps --format json > "$BACKUP_PATH/containers.json" 2>/dev/null || true
+    docker compose -f "$COMPOSE_FILE" ps --format json > "$BACKUP_PATH/containers.json" 2>/dev/null || true
     
     # Backup volumes
     docker run --rm -v jackdawsentry_postgres_prod_data:/data -v "$BACKUP_PATH":/backup alpine tar czf /backup/postgres_data.tar.gz -C /data 2>/dev/null || true
@@ -111,15 +113,15 @@ deploy_new_version() {
     
     # Pull latest images
     info "Pulling latest images..."
-    docker-compose -f docker-compose.prod.yml pull --quiet
+    docker compose -f "$COMPOSE_FILE" pull --quiet
     
     # Stop current services
     log "Stopping current services..."
-    docker-compose -f docker-compose.prod.yml down --timeout 60
+    docker compose -f "$COMPOSE_FILE" down --timeout 60
     
     # Start new services
     log "Starting new services..."
-    docker-compose -f docker-compose.prod.yml up -d --timeout 300
+    docker compose -f "$COMPOSE_FILE" up -d --timeout 300
     
     # Wait for services to be healthy
     wait_for_health()
@@ -185,10 +187,10 @@ check_service_health() {
             docker exec "$container_name" redis-cli -a "${REDIS_PASSWORD}" ping >/dev/null 2>&1
             ;;
         "api")
-            curl -f http://localhost:8000/health >/dev/null 2>&1
+            curl -f http://localhost/health >/dev/null 2>&1
             ;;
         "nginx")
-            curl -f http://localhost/health >/dev/null 2>&1
+            curl -f http://localhost/nginx-health >/dev/null 2>&1
             ;;
         *)
             warning "Unknown service: $service"
@@ -216,7 +218,7 @@ rollback_deployment() {
     log "Rolling back to: $latest_backup"
     
     # Stop current services
-    docker-compose -f docker-compose.prod.yml down --timeout 60
+    docker compose -f "$COMPOSE_FILE" down --timeout 60
     
     # Restore volumes from backup
     if [[ -f "$latest_backup/postgres_data.tar.gz" ]]; then
@@ -232,7 +234,7 @@ rollback_deployment() {
     fi
     
     # Restart services
-    docker-compose -f docker-compose.prod.yml up -d --timeout 300
+    docker compose -f "$COMPOSE_FILE" up -d --timeout 300
     
     # Wait for health
     wait_for_health

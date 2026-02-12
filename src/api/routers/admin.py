@@ -83,8 +83,8 @@ async def list_users(
                 "role": "admin",
                 "permissions": list(PERMISSIONS.values()),
                 "is_active": True,
-                "created_at": datetime.utcnow() - timedelta(days=365),
-                "last_login": datetime.utcnow() - timedelta(hours=2),
+                "created_at": datetime.now(timezone.utc) - timedelta(days=365),
+                "last_login": datetime.now(timezone.utc) - timedelta(hours=2),
                 "login_count": 1250
             },
             {
@@ -94,8 +94,8 @@ async def list_users(
                 "role": "analyst",
                 "permissions": ["analysis:read", "analysis:write", "investigations:read", "investigations:write"],
                 "is_active": True,
-                "created_at": datetime.utcnow() - timedelta(days=180),
-                "last_login": datetime.utcnow() - timedelta(hours=6),
+                "created_at": datetime.now(timezone.utc) - timedelta(days=180),
+                "last_login": datetime.now(timezone.utc) - timedelta(hours=6),
                 "login_count": 450
             },
             {
@@ -105,8 +105,8 @@ async def list_users(
                 "role": "compliance_officer",
                 "permissions": ["compliance:read", "compliance:write", "investigations:read", "investigations:write"],
                 "is_active": True,
-                "created_at": datetime.utcnow() - timedelta(days=90),
-                "last_login": datetime.utcnow() - timedelta(days=1),
+                "created_at": datetime.now(timezone.utc) - timedelta(days=90),
+                "last_login": datetime.now(timezone.utc) - timedelta(days=1),
                 "login_count": 230
             }
         ]
@@ -134,7 +134,7 @@ async def list_users(
                 "role": role,
                 "is_active": is_active
             },
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -155,14 +155,14 @@ async def create_user(
         logger.info(f"Creating user: {request.username}")
         
         user_data = {
-            "user_id": f"USR-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            "user_id": f"USR-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             "username": request.username,
             "email": request.email,
             "role": request.role,
             "permissions": request.permissions,
             "is_active": request.is_active,
             "created_by": current_user.username,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
             "last_login": None,
             "login_count": 0
         }
@@ -177,7 +177,7 @@ async def create_user(
             success=True,
             admin_data=user_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -206,7 +206,7 @@ async def update_user(
             "permissions": request.permissions,
             "is_active": request.is_active,
             "updated_by": current_user.username,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         }
         
         metadata = {
@@ -219,7 +219,7 @@ async def update_user(
             success=True,
             admin_data=update_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -245,7 +245,7 @@ async def delete_user(
         delete_data = {
             "user_id": user_id,
             "deleted_by": current_user.username,
-            "deleted_at": datetime.utcnow(),
+            "deleted_at": datetime.now(timezone.utc),
             "gdpr_compliant": True,
             "data_retention_days": 2555  # 7 years as per EU AML
         }
@@ -260,7 +260,7 @@ async def delete_user(
             success=True,
             admin_data=delete_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -317,14 +317,14 @@ async def get_system_status(
                 "collectors": {
                     "running": 7,
                     "total": 8,
-                    "last_collection": datetime.utcnow() - timedelta(minutes=2)
+                    "last_collection": datetime.now(timezone.utc) - timedelta(minutes=2)
                 }
             },
             "alerts": [
                 {
                     "level": "warning",
                     "message": "High memory usage on API server",
-                    "timestamp": datetime.utcnow() - timedelta(hours=1)
+                    "timestamp": datetime.now(timezone.utc) - timedelta(hours=1)
                 }
             ]
         }
@@ -332,7 +332,7 @@ async def get_system_status(
         return {
             "success": True,
             "system_status": status_data,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -384,7 +384,7 @@ async def get_system_config(
         return {
             "success": True,
             "configuration": config_data,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -410,7 +410,7 @@ async def update_system_config(
             "description": request.description,
             "is_sensitive": request.is_sensitive,
             "updated_by": current_user.username,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc)
         }
         
         metadata = {
@@ -423,7 +423,7 @@ async def update_system_config(
             success=True,
             admin_data=config_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -444,9 +444,9 @@ async def schedule_maintenance(
         logger.info(f"Scheduling maintenance: {request.maintenance_type}")
         
         maintenance_data = {
-            "maintenance_id": f"MTN-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            "maintenance_id": f"MTN-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             "maintenance_type": request.maintenance_type,
-            "scheduled_time": request.schedule_time or datetime.utcnow() + timedelta(hours=2),
+            "scheduled_time": request.schedule_time or datetime.now(timezone.utc) + timedelta(hours=2),
             "duration_minutes": request.duration_minutes,
             "notification_required": request.notification_required,
             "scheduled_by": current_user.username,
@@ -468,7 +468,7 @@ async def schedule_maintenance(
             success=True,
             admin_data=maintenance_data,
             metadata=metadata,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
     except Exception as e:
@@ -493,21 +493,21 @@ async def get_system_logs(
         
         logs = [
             {
-                "timestamp": datetime.utcnow() - timedelta(minutes=5),
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=5),
                 "level": "INFO",
                 "component": "api_server",
                 "message": "Request processed successfully",
                 "details": {"endpoint": "/api/v1/analysis/address", "duration_ms": 250}
             },
             {
-                "timestamp": datetime.utcnow() - timedelta(minutes=10),
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=10),
                 "level": "WARNING",
                 "component": "collectors",
                 "message": "Bitcoin collector connection timeout",
                 "details": {"node": "bitcoin_node_1", "timeout_seconds": 30}
             },
             {
-                "timestamp": datetime.utcnow() - timedelta(minutes=15),
+                "timestamp": datetime.now(timezone.utc) - timedelta(minutes=15),
                 "level": "ERROR",
                 "component": "database",
                 "message": "Neo4j query failed",
@@ -538,7 +538,7 @@ async def get_system_logs(
                 "level": level,
                 "component": component
             },
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -591,7 +591,7 @@ async def get_admin_statistics(
         return {
             "success": True,
             "statistics": stats,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:

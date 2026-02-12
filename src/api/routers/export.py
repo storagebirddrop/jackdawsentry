@@ -11,12 +11,12 @@ This module provides API endpoints for compliance data export functionality incl
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import logging
 
 from src.api.auth import get_current_user, check_permissions
-from src.api.models.auth import User
+from src.api.auth import User
 from src.api.models.export import (
     ExportRequestCreate,
     ExportRequestResponse,
@@ -34,7 +34,7 @@ from src.export.compliance_export import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/compliance/export", tags=["export"])
+router = APIRouter()
 export_engine = ComplianceExportEngine()
 background_tasks = BackgroundTasks()
 
@@ -43,7 +43,7 @@ background_tasks = BackgroundTasks()
 async def create_export_request(
     request: ExportRequestCreate,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Create a new export request"""
     try:
@@ -61,7 +61,7 @@ async def create_export_request(
             compression=request.compression,
             metadata={
                 "requested_by": current_user.username,
-                "requested_at": datetime.utcnow().isoformat(),
+                "requested_at": datetime.now(timezone.utc).isoformat(),
                 "user_id": current_user.id
             }
         )
@@ -88,7 +88,7 @@ async def create_export_request(
 async def get_export_status(
     export_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
+    _: None = Depends(check_permissions(["compliance:read"]))
 ):
     """Get export status"""
     try:
@@ -121,8 +121,8 @@ async def get_export_status(
 async def download_export(
     export_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Download export file"""
     try:
         result = await export_engine.get_export_status(export_id)
@@ -193,8 +193,8 @@ async def list_exports(
     export_type: Optional[str] = None,
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """List export requests"""
     try:
         # Get all exports
@@ -247,8 +247,8 @@ async def list_exports(
 async def delete_export(
     export_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin_compliance"]))
-:
+    _: None = Depends(check_permissions(["admin:full"]))
+):
     """Delete export"""
     try:
         success = await export_engine.delete_export(export_id)
@@ -269,8 +269,8 @@ async def delete_export(
 async def cleanup_old_exports(
     days: int = 30,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin_compliance"]))
-:
+    _: None = Depends(check_permissions(["admin:full"]))
+):
     """Clean up old exports"""
     try:
         if days < 1:
@@ -294,8 +294,8 @@ async def cleanup_old_exports(
 @router.get("/templates")
 async def get_export_templates(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Get available export templates"""
     try:
         templates = {
@@ -365,8 +365,8 @@ async def get_export_templates(
 @router.get("/statistics")
 async def get_export_statistics(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["read_compliance"]))
-:
+    _: None = Depends(check_permissions(["compliance:read"]))
+):
     """Get export statistics"""
     try:
         # Get all exports
@@ -404,7 +404,7 @@ async def get_export_statistics(
                 format_stats[export_format] += 1
         
         # Recent exports (last 7 days)
-        cutoff_date = datetime.utcnow() - timedelta(days=7)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
         recent_exports = len([e for e in all_exports if e.created_at > cutoff_date])
         
         return {
@@ -436,7 +436,7 @@ async def export_health_check():
         
         return {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "service": "compliance_export",
             "version": "1.5.0"
         }

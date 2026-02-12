@@ -11,7 +11,7 @@ This module provides comprehensive workflow automation for compliance operations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional, Union, Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -109,9 +109,9 @@ class WorkflowDefinition:
     workflow_type: WorkflowType
     triggers: List[WorkflowTrigger]
     steps: List[WorkflowStep]
+    created_at: datetime
     enabled: bool = True
     priority: int = 0
-    created_at: datetime
     updated_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
 
@@ -123,9 +123,9 @@ class WorkflowExecution:
     workflow_id: str
     status: WorkflowStatus
     started_at: datetime
+    context: Dict[str, Any]
     completed_at: Optional[datetime] = None
     current_step: Optional[str] = None
-    context: Dict[str, Any]
     results: Dict[str, Any] = None
     error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -221,7 +221,7 @@ class ComplianceWorkflowEngine:
             ],
             enabled=True,
             priority=1,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         
         # Risk Assessment Workflow
@@ -303,7 +303,7 @@ class ComplianceWorkflowEngine:
             ],
             enabled=True,
             priority=2,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         
         # Regulatory Reporting Workflow
@@ -378,7 +378,7 @@ class ComplianceWorkflowEngine:
             ],
             enabled=True,
             priority=3,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         
         # Deadline Monitoring Workflow
@@ -436,7 +436,7 @@ class ComplianceWorkflowEngine:
             ],
             enabled=True,
             priority=1,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         
         # Add workflows to engine
@@ -473,7 +473,7 @@ class ComplianceWorkflowEngine:
                 execution_id=str(uuid.uuid4()),
                 workflow_id=workflow_id,
                 status=WorkflowStatus.PENDING,
-                started_at=datetime.utcnow(),
+                started_at=datetime.now(timezone.utc),
                 context=context or {},
                 results={},
                 metadata={"trigger_data": trigger_data}
@@ -515,7 +515,7 @@ class ComplianceWorkflowEngine:
                     if not step.continue_on_error:
                         execution.status = WorkflowStatus.FAILED
                         execution.error_message = str(e)
-                        execution.completed_at = datetime.utcnow()
+                        execution.completed_at = datetime.now(timezone.utc)
                         return
                     
                     # Store error result
@@ -525,7 +525,7 @@ class ComplianceWorkflowEngine:
             
             # Mark as completed
             execution.status = WorkflowStatus.COMPLETED
-            execution.completed_at = datetime.utcnow()
+            execution.completed_at = datetime.now(timezone.utc)
             
             # Move to history
             self.execution_history.append(execution)
@@ -538,7 +538,7 @@ class ComplianceWorkflowEngine:
             logger.error(f"Workflow execution failed: {e}")
             execution.status = WorkflowStatus.FAILED
             execution.error_message = str(e)
-            execution.completed_at = datetime.utcnow()
+            execution.completed_at = datetime.now(timezone.utc)
 
     async def _execute_step(self, execution: WorkflowExecution, step: WorkflowStep):
         """Execute workflow step"""
@@ -924,7 +924,7 @@ class ComplianceWorkflowEngine:
                 return False
             
             workflow.enabled = True
-            workflow.updated_at = datetime.utcnow()
+            workflow.updated_at = datetime.now(timezone.utc)
             
             logger.info(f"Workflow enabled: {workflow_id}")
             return True
@@ -941,7 +941,7 @@ class ComplianceWorkflowEngine:
                 return False
             
             workflow.enabled = False
-            workflow.updated_at = datetime.utcnow()
+            workflow.updated_at = datetime.now(timezone.utc)
             
             logger.info(f"Workflow disabled: {workflow_id}")
             return True
@@ -975,7 +975,7 @@ class ComplianceWorkflowEngine:
     async def _check_scheduled_triggers(self):
         """Check for scheduled triggers"""
         try:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
             
             for workflow in self.workflows.values():
                 if not workflow.enabled:

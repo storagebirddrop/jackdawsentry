@@ -360,7 +360,7 @@ class GDPRComplianceManager:
         
         return {
             "controller": "Jackdaw Sentry",
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "processing_activities": [dict(record) for record in records]
         }
     
