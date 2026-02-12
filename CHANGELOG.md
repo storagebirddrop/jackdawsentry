@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > live external services (blockchain RPC, ML models, third-party APIs).
 > See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
+### Initial Admin Setup Flow
+
+- **Setup router** (`src/api/routers/setup.py`): Unauthenticated `GET /api/v1/setup/status` (checks if admin exists) and `POST /api/v1/setup/initialize` (creates first admin); locked after first admin is created (409 Conflict)
+- **Setup page** (`frontend/setup.html`): First-launch wizard — username, email, password form with client-side validation; auto-redirects to login on success
+- **Login page** (`frontend/login.html`): Now checks setup status on load; redirects to `/setup` if no admin exists
+- **Nginx**: Added `/setup` route
+- **Seed SQL** (`002_seed_admin_user.sql`): Retained as fallback for CI/automated environments; setup page is the primary path for new deployments
+
+### Docker Runtime & Nginx Fixes
+
+- **Dockerfile**: Switched from `requirements.txt` (unresolvable blockchain SDK deps) to new `requirements.docker.txt`; added `/app/exports` directory for `ComplianceExportEngine`
+- **requirements.docker.txt** (new): Runtime deps — core API + PyJWT, pandas, numpy, matplotlib, aiohttp, prometheus-client, schedule, grpcio (excludes web3/eth-abi)
+- **nginx.conf**: Added `include mime.types` (fixes `.js` served as `text/plain`), removed invalid `buffer=32k` from `error_log`, added `'unsafe-inline'` to CSP `script-src` (required by Tailwind CDN config and inline auth scripts)
+- **Seed SQL** (`002_seed_admin_user.sql`): Fixed bcrypt hash to match default password `admin`
+
 ### M7 "It scales" — Load Testing & Performance (complete)
 
 - **Locust load test** (`tests/load/locustfile.py`): Auth flow (login → JWT → bearer), read-heavy mix (60% compliance/statistics, 20% blockchain/statistics, 10% analysis/statistics, 10% intelligence/alerts), write mix (5% audit/log, 3% risk/assessments, 2% cases)

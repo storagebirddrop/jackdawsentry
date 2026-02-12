@@ -33,6 +33,7 @@ from src.api.routers import (
     mobile,
 )
 from src.api.routers import auth as auth_router
+from src.api.routers import setup as setup_router
 from src.api.middleware import (
     SecurityMiddleware,
     AuditMiddleware,
@@ -290,6 +291,12 @@ async def api_status(current_user: User = Depends(get_current_user)):
 
 
 # Include routers
+app.include_router(
+    setup_router.router,
+    prefix="/api/v1/setup",
+    tags=["Setup"]
+)
+
 app.include_router(
     auth_router.router,
     prefix="/api/v1/auth",

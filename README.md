@@ -6,9 +6,9 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 
 ## Current Status
 
-✅ **~130 API Endpoints** mounted — REST API with JWT auth & RBAC  
+✅ **122 API Endpoints** mounted — REST API with JWT auth & RBAC  
 ✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)  
-✅ **Database Migrations** — Automated schema management; seed admin user  
+✅ **Database Migrations** — Automated schema management; first-launch admin setup wizard  
 ✅ **Structured Logging** — GDPR-compliant JSON logging with audit trail  
 ✅ **Secrets Management** — Cryptographic secrets with generation tooling  
 ⚠️ **Business Logic** — Core routers wired to Neo4j/engines; collectors and ML engines are scaffolded  
@@ -39,17 +39,22 @@ See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
    # Edit .env with your configuration
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies (local development):**
    ```bash
-   pip3 install -r requirements.txt
+   pip3 install -r requirements-test.txt
    ```
+   > The Docker image uses `requirements.docker.txt` (runtime deps without blockchain SDKs).
 
 4. **Start services (development):**
    ```bash
    docker compose up -d
    ```
 
-5. **Access services:**
+5. **Initial setup (first launch only):**
+   Open http://localhost/ — you will be redirected to the setup page to create your admin account.
+   On subsequent launches, you will go straight to the login page.
+
+6. **Access services:**
    - Web UI (Nginx): http://localhost/
    - API Docs (via Nginx): http://localhost/docs
    - Neo4j Browser: http://localhost:7474
@@ -68,7 +73,7 @@ docker compose -f docker/compliance-compose.yml up -d
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Nginx Proxy   │    │   FastAPI App    │    │   Background    │
-│  (Load Balancer) │───▶│  (~130 Endpoints)│───▶│   Tasks         │
+│  (Load Balancer) │───▶│  (122 Endpoints) │───▶│   Tasks         │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
@@ -78,7 +83,7 @@ docker compose -f docker/compliance-compose.yml up -d
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 API Endpoints (~130 Mounted)
+## 📊 API Endpoints (122 Mounted)
 
 ### Core Endpoints
 - `GET /health` - System health check

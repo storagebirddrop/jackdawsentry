@@ -173,6 +173,19 @@ docker compose -f docker/docker-compose.prod.yml ps
 docker compose -f docker/docker-compose.prod.yml logs -f
 ```
 
+### Docker Dependencies
+
+The Docker image uses `requirements.docker.txt` (not the full `requirements.txt`) to avoid
+unresolvable blockchain SDK packages (`web3`, `eth-abi`) that require external RPC nodes.
+The file includes all runtime deps needed by the API and its routers:
+core API (`requirements.minimal.txt`), PyJWT, pandas, numpy, matplotlib, aiohttp,
+prometheus-client, schedule, and grpcio.
+
+To rebuild the image after dependency changes:
+```bash
+docker compose build api --no-cache
+```
+
 ### Service Health Checks
 ```bash
 # Check API health

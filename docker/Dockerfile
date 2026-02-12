@@ -18,9 +18,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY requirements.minimal.txt requirements.docker.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.docker.txt
 
 # Production stage
 FROM python:3.11-slim
@@ -51,8 +51,8 @@ WORKDIR /app
 COPY --chown=jackdaw:jackdaw . .
 
 # Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/uploads && \
-    chown -R jackdaw:jackdaw /app/logs /app/data /app/uploads
+RUN mkdir -p /app/logs /app/data /app/uploads /app/exports && \
+    chown -R jackdaw:jackdaw /app/logs /app/data /app/uploads /app/exports
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

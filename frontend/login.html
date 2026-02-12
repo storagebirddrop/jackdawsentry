@@ -32,6 +32,13 @@
         if (dk === '1' || (dk === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         }
+        // Check if initial setup is needed
+        fetch('/api/v1/setup/status')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.setup_required) { window.location.href = '/setup'; }
+            })
+            .catch(function () { /* API not ready, show login anyway */ });
     </script>
 
     <div class="w-full max-w-md fade-in">
