@@ -429,12 +429,10 @@ class ComplianceMonitoringEngine:
                 misses_metric = self.metrics.get('compliance_cache_misses_total')
                 
                 if hits_metric and misses_metric:
-                    hits = 0
-                    misses = 0
-                    for sample in prometheus.REGISTRY.get_sample_value('compliance_cache_hits_total') or [0]:
-                        hits = sample if isinstance(sample, (int, float)) else 0
-                    for sample in prometheus.REGISTRY.get_sample_value('compliance_cache_misses_total') or [0]:
-                        misses = sample if isinstance(sample, (int, float)) else 0
+                    hits_val = prometheus.REGISTRY.get_sample_value('compliance_cache_hits_total')
+                    hits = hits_val if isinstance(hits_val, (int, float)) else 0
+                    misses_val = prometheus.REGISTRY.get_sample_value('compliance_cache_misses_total')
+                    misses = misses_val if isinstance(misses_val, (int, float)) else 0
                     
                     if hits + misses > 0:
                         hit_rate = hits / (hits + misses)

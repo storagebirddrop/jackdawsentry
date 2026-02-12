@@ -2,9 +2,9 @@
 
 **REST API for Multi-Chain Blockchain Analysis and Compliance** *(in active development)*
 
-RESTful API with ~130 routes (including sub-endpoints) across 16 routers for blockchain analysis, compliance, investigations, intelligence, reports, admin, analytics, export, monitoring, mobile, visualization, workflows, scheduler, and rate limiting. Core routers are wired to Neo4j and compliance engines.
+RESTful API with ~140 routes (including sub-endpoints) across 16 routers for blockchain analysis, compliance, investigations, intelligence, reports, admin, analytics, export, monitoring, mobile, visualization, workflows, scheduler, and rate limiting. Core routers are wired to Neo4j and compliance engines.
 
-> **Note:** All 16 routers are mounted in the application routing layer. Core routers (compliance, analysis, investigations, reports, blockchain, intelligence, analytics, export) are fully wired to Neo4j or their compliance engines. Routers marked ⚠️ SCAFFOLDED have routes and stubs but depend on external services (blockchain RPC nodes, third-party APIs) that are not yet connected to live data sources.
+> **Note:** All 16 routers are mounted in the application routing layer. Core routers (compliance, analysis, investigations, reports, blockchain, intelligence, analytics, export) are fully wired to Neo4j or their compliance engines. The "⚠️ SCAFFOLDED" marker below applies only to the **Blockchain Collectors** data-collection infrastructure (RPC node integrations), not to the mounted API routers. Monitoring and scheduler endpoints are included under Workflow Automation.
 
 ## 🚀 Getting Started
 
@@ -97,14 +97,14 @@ Authorization: Bearer <your_jwt_token>
 - **RLUSD (Ripple)** - XRP Ledger ecosystem
 - **BRZ (Brazilian Real)** - Ethereum ecosystem
 
-## Mounted API Endpoints (~66 Total)
+## Mounted API Endpoints (~141 Total)
 
 ### 🔧 System Endpoints (3)
 - `GET /health` - System health check
 - `GET /info` - Application information  
 - `GET /metrics` - Performance metrics
 
-### 📊 Frontend (2 endpoints)
+### 📊 Frontend (8 endpoints)
 - `GET /` - Main dashboard page
 - `GET /compliance` - Compliance dashboard page
 - `GET /compliance/analytics` - Compliance analytics page

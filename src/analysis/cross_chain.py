@@ -76,6 +76,9 @@ class CrossChainAnalyzer:
         self.mixer_contracts = self._get_mixer_contracts()
         self.privacy_tools = self._get_privacy_tools()
         
+        # Process logger for validation warnings
+        self._logger = logger
+        
         # Analysis thresholds
         self.large_amount_threshold = 100000  # USD
         self.high_frequency_threshold = 10  # transactions per hour
@@ -166,6 +169,22 @@ class CrossChainAnalyzer:
             }
         }
     
+    def _parse_timestamp(self, ts: Any) -> datetime:
+        """Safely parse a timestamp from Neo4j or string data.
+        
+        Handles: None, datetime objects, strings (including trailing 'Z').
+        Returns UTC datetime.
+        """
+        if ts is None:
+            return datetime.now(timezone.utc)
+        if isinstance(ts, datetime):
+            return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+        if isinstance(ts, str):
+            if ts.endswith('Z'):
+                ts = ts[:-1] + '+00:00'
+            return datetime.fromisoformat(ts)
+        return datetime.now(timezone.utc)
+
     async def analyze_transaction(self, tx_hash: str, blockchain: str) -> Optional[CrossChainTransaction]:
         """Analyze a single transaction for cross-chain patterns"""
         try:
@@ -174,15 +193,25 @@ class CrossChainAnalyzer:
             if not tx_data:
                 return None
             
+            # Validate critical address fields
+            from_addr = tx_data.get('from_address')
+            to_addr = tx_data.get('to_address')
+            if not from_addr or not to_addr:
+                self._logger.warning(
+                    "Transaction %s on %s missing address fields: from_address=%r, to_address=%r",
+                    tx_hash, blockchain, from_addr, to_addr
+                )
+                return None
+            
             # Create cross-chain transaction object
             cross_chain_tx = CrossChainTransaction(
                 tx_hash=tx_hash,
                 blockchain=blockchain,
-                from_address=tx_data.get('from_address', ''),
-                to_address=tx_data.get('to_address', ''),
+                from_address=from_addr,
+                to_address=to_addr,
                 amount=tx_data.get('value', 0),
                 token_symbol=tx_data.get('token_symbol'),
-                timestamp=datetime.fromisoformat(tx_data.get('timestamp', datetime.now(timezone.utc).isoformat())),
+                timestamp=self._parse_timestamp(tx_data.get('timestamp')),
                 block_number=tx_data.get('block_number'),
                 gas_used=tx_data.get('gas_used'),
                 fee=tx_data.get('fee'),
@@ -577,6 +606,7 @@ class CrossChainAnalyzer:
             'block_number': tx.block_number,
             'gas_used': tx.gas_used,
             'fee': tx.fee,
+            'memo': tx.memo,
             'related_transactions': tx.related_transactions,
             'patterns': [p.value for p in tx.patterns],
             'risk_score': tx.risk_score,

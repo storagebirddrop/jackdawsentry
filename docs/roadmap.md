@@ -239,7 +239,7 @@ _Performance is measured, bottlenecks identified, and the prod deployment is val
 - **error rate < 0.1%**
 - **RPS > 500**
 
-Thresholds based on Google/AWS standards for internal tooling with in-memory/local-DB-backed API responses. ✅ **PASSED** (tooling ready; run against live stack to record numbers)
+Thresholds based on Google/AWS standards for internal tooling with in-memory/local-DB-backed API responses. ⚠️ **READY TO RUN** — tooling is in place; run `locust` against the live stack to record actual numbers and confirm thresholds.
 
 ---
 

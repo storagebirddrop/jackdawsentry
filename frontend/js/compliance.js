@@ -113,12 +113,38 @@ function createSARRow(report) {
     var stCls = { draft: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', under_review: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', approved: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', submitted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', rejected: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' };
     var cls = stCls[st] || stCls.draft;
     var id = report.report_id || report.id || '—';
-    var esc = JDS.escapeHTML;
-    row.innerHTML = '<td class="py-3 px-4 font-medium">' + esc(id) + '</td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(report.type || report.report_type || 'SAR') + '</td>'
-        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(st) + '</span></td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(JDS.formatDate(report.due_date)) + '</td>'
-        + '<td class="py-3 px-4"><button onclick="viewSARReport(\'' + esc(id) + '\')" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">View</button></td>';
+    var tdId = document.createElement('td');
+    tdId.className = 'py-3 px-4 font-medium';
+    tdId.textContent = id;
+
+    var tdType = document.createElement('td');
+    tdType.className = 'py-3 px-4 text-slate-500 dark:text-slate-400';
+    tdType.textContent = report.type || report.report_type || 'SAR';
+
+    var tdStatus = document.createElement('td');
+    tdStatus.className = 'py-3 px-4';
+    var statusSpan = document.createElement('span');
+    statusSpan.className = 'px-2 py-1 rounded-full text-xs font-semibold ' + cls;
+    statusSpan.textContent = st;
+    tdStatus.appendChild(statusSpan);
+
+    var tdDate = document.createElement('td');
+    tdDate.className = 'py-3 px-4 text-slate-500 dark:text-slate-400';
+    tdDate.textContent = JDS.formatDate(report.due_date);
+
+    var tdAction = document.createElement('td');
+    tdAction.className = 'py-3 px-4';
+    var btn = document.createElement('button');
+    btn.className = 'text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium';
+    btn.textContent = 'View';
+    btn.addEventListener('click', function() { viewSARReport(id); });
+    tdAction.appendChild(btn);
+
+    row.appendChild(tdId);
+    row.appendChild(tdType);
+    row.appendChild(tdStatus);
+    row.appendChild(tdDate);
+    row.appendChild(tdAction);
     return row;
 }
 

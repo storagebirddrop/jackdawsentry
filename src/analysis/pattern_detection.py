@@ -801,6 +801,7 @@ class MLPatternDetector:
                     'detected_at': match.detected_at.isoformat() if isinstance(match.detected_at, datetime) else str(match.detected_at),
                     'severity': match.severity,
                     'description': match.description,
+                    'evidence': list(match.evidence) if match.evidence else [],
                 } for match in profile.pattern_matches])
             )
     
@@ -835,12 +836,13 @@ class MLPatternDetector:
                             pattern_type=MLPatternType(m['pattern_type']) if m.get('pattern_type') else MLPatternType.STRUCTURING,
                             confidence=m.get('confidence', 0.0),
                             risk_score=m.get('risk_score', 0.0),
+                            evidence=m.get('evidence', []),
                             detected_at=datetime.fromisoformat(m['detected_at']) if m.get('detected_at') else datetime.now(timezone.utc),
                             severity=m.get('severity', 'medium'),
                             description=m.get('description', ''),
                         ))
-                    except (KeyError, ValueError):
-                        pass
+                    except (KeyError, ValueError, TypeError) as exc:
+                        logger.warning("Failed to deserialize PatternMatch: %s — raw data: %r", exc, m)
                 return AddressPatternProfile(
                     address=profile_data['address'],
                     blockchain=profile_data['blockchain'],

@@ -676,7 +676,10 @@ class MLClusteringEngine:
         # Filter features_dict to only cluster members
         cluster_features = {addr: features_dict[addr] for addr in addresses if addr in features_dict}
         if not cluster_features:
-            cluster_features = features_dict
+            raise ValueError(
+                f"No features found for any cluster address in cluster {cluster_id}. "
+                f"addresses={addresses}, features_dict keys={list(features_dict.keys())}"
+            )
         
         # Calculate cluster metrics
         total_volume = sum(features.total_sent + features.total_received for features in cluster_features.values())
