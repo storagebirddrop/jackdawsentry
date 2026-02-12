@@ -4,7 +4,7 @@ This roadmap captures the remaining work required to reach a genuinely productio
 
 ## How to read this
 
-- **M0–M7**: eight milestones, executed in order.
+- **M0–M8**: nine milestones, executed in order.
 - Each milestone has a **gate** — a concrete test that proves it is complete.
 - Items reference specific files so work can be tracked at the PR level.
 
@@ -208,6 +208,41 @@ _The static frontend authenticates, fetches real data, and renders it._
 
 ---
 
+## ~~M7 — "It scales"~~ ✅ COMPLETE
+
+_Performance is measured, bottlenecks identified, and the prod deployment is validated under load._
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Add `locust` to `requirements-test.txt`; create `tests/load/locustfile.py` | ✅ Done |
+| 2 | Locustfile: auth flow — login → get token → use token for all subsequent requests | ✅ Done |
+| 3 | Locustfile: read-heavy mix — 60% `GET /compliance/statistics`, 20% `GET /blockchain/statistics`, 10% `GET /analysis/statistics`, 10% `GET /intelligence/alerts` | ✅ Done |
+| 4 | Locustfile: write mix — 5% `POST /compliance/audit/log`, 3% `POST /compliance/risk/assessments`, 2% `POST /compliance/cases` | ✅ Done |
+| 5 | Baseline benchmark — `run_benchmark.sh dev` (1 API replica, 100 users, 5 min) | ✅ Done |
+| 6 | Prod compose benchmark — `run_benchmark.sh prod` (2 replicas behind Nginx) | ✅ Done |
+| 7 | Bottleneck identification — py-spy, memory-profiler, instructions in `docs/performance.md` | ✅ Done |
+| 8 | Connection pool tuning — asyncpg/Neo4j/Redis guidance in `docs/performance.md` §6 | ✅ Done |
+| 9 | Nginx tuning — worker_connections, keepalive, rate-limit guidance in `docs/performance.md` §7 | ✅ Done |
+| 10 | Document results — `docs/performance.md` with methodology, thresholds, tuning, results template | ✅ Done |
+| 11 | CI performance gate — `run_benchmark.sh ci` + `check_thresholds.py` auto-checks p50/p95/p99/error/RPS | ✅ Done |
+
+### Notes
+- `py-spy` and `memory-profiler` already in `requirements.txt`
+- Prod compose already has `deploy.replicas: 2` with resource limits (1 CPU, 2GB per replica)
+- No horizontal DB scaling in scope — API layer and connection pools only
+- Real blockchain RPC calls out of scope (all Neo4j queries use local data)
+
+**Gate**: `locust --headless -u 100 -r 10 -t 5m` against prod compose meets industry-standard thresholds:
+- **p50 < 50ms**
+- **p95 < 100ms**
+- **p99 < 200ms**
+- **error rate < 0.1%**
+- **RPS > 500**
+
+Thresholds based on Google/AWS standards for internal tooling with in-memory/local-DB-backed API responses. ✅ **PASSED** (tooling ready; run against live stack to record numbers)
+
+---
+
 ## ~~M8 — "It looks right"~~ ✅ COMPLETE
 
 _The frontend is a fully professional, dark-mode-enabled dashboard with all navigation pages, unified design, and authenticated API calls._
@@ -254,41 +289,6 @@ _The frontend is a fully professional, dark-mode-enabled dashboard with all navi
 
 ---
 
-## ~~M7 — "It scales"~~ ✅ COMPLETE
-
-_Performance is measured, bottlenecks identified, and the prod deployment is validated under load._
-
-| # | Task | Status |
-|---|---|---|
-| 1 | Add `locust` to `requirements-test.txt`; create `tests/load/locustfile.py` | ✅ Done |
-| 2 | Locustfile: auth flow — login → get token → use token for all subsequent requests | ✅ Done |
-| 3 | Locustfile: read-heavy mix — 60% `GET /compliance/statistics`, 20% `GET /blockchain/statistics`, 10% `GET /analysis/statistics`, 10% `GET /intelligence/alerts` | ✅ Done |
-| 4 | Locustfile: write mix — 5% `POST /compliance/audit/log`, 3% `POST /compliance/risk/assessments`, 2% `POST /compliance/cases` | ✅ Done |
-| 5 | Baseline benchmark — `run_benchmark.sh dev` (1 API replica, 100 users, 5 min) | ✅ Done |
-| 6 | Prod compose benchmark — `run_benchmark.sh prod` (2 replicas behind Nginx) | ✅ Done |
-| 7 | Bottleneck identification — py-spy, memory-profiler, instructions in `docs/performance.md` | ✅ Done |
-| 8 | Connection pool tuning — asyncpg/Neo4j/Redis guidance in `docs/performance.md` §6 | ✅ Done |
-| 9 | Nginx tuning — worker_connections, keepalive, rate-limit guidance in `docs/performance.md` §7 | ✅ Done |
-| 10 | Document results — `docs/performance.md` with methodology, thresholds, tuning, results template | ✅ Done |
-| 11 | CI performance gate — `run_benchmark.sh ci` + `check_thresholds.py` auto-checks p50/p95/p99/error/RPS | ✅ Done |
-
-### Notes
-- `py-spy` and `memory-profiler` already in `requirements.txt`
-- Prod compose already has `deploy.replicas: 2` with resource limits (1 CPU, 2GB per replica)
-- No horizontal DB scaling in scope — API layer and connection pools only
-- Real blockchain RPC calls out of scope (all Neo4j queries use local data)
-
-**Gate**: `locust --headless -u 100 -r 10 -t 5m` against prod compose meets industry-standard thresholds:
-- **p50 < 50ms**
-- **p95 < 100ms**
-- **p99 < 200ms**
-- **error rate < 0.1%**
-- **RPS > 500**
-
-Thresholds based on Google/AWS standards for internal tooling with in-memory/local-DB-backed API responses. ✅ **PASSED** (tooling ready; run against live stack to record numbers)
-
----
-
 ## ~~Post-Milestone — Repo Cleanup & Code Review~~ ✅ COMPLETE
 
 _Full code review across M0–M8, documentation accuracy pass, and repo hygiene for a clean commit._
@@ -313,7 +313,7 @@ _Full code review across M0–M8, documentation accuracy pass, and repo hygiene 
 ## Ordering rationale
 
 ```
-M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → Post-milestone cleanup
+M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cleanup
 ```
 
 - **M0 → M1**: Can't build a Docker image if Python can't import the app.
@@ -323,6 +323,7 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → Post-milestone cleanup
 - **M4 → M5**: Tests should verify the documented contract, so docs must be accurate first.
 - **M5 → M6**: Frontend must consume the tested API before we can meaningfully load-test realistic user flows.
 - **M6 → M7**: Load testing requires a working frontend auth flow to generate realistic traffic patterns.
+- **M7 → M8**: UI polish and dark mode require a validated, performant API and frontend auth flow.
 
 ---
 

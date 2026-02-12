@@ -6,7 +6,7 @@ Tracks stablecoin movements across bridges, DEXs, and blockchains
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -234,8 +234,10 @@ class StablecoinFlowTracker:
             return 'transfer'
     
     async def _calculate_total_amount(self, flow_path: List[Dict[str, Any]]) -> float:
-        """Calculate total amount in flow"""
-        return sum(step['amount'] for step in flow_path)
+        """Calculate representative transfer amount (use max to avoid double-counting multi-hop)"""
+        if not flow_path:
+            return 0.0
+        return max(step['amount'] for step in flow_path)
     
     async def _calculate_flow_duration(self, flow_path: List[Dict[str, Any]]) -> timedelta:
         """Calculate flow duration"""
@@ -357,6 +359,7 @@ class StablecoinFlowTracker:
             f.hop_count = $hop_count,
             f.risk_score = $risk_score,
             f.confidence = $confidence,
+            f.path = $path,
             f.metadata = $metadata,
             f.created_at = timestamp()
         """
@@ -374,6 +377,7 @@ class StablecoinFlowTracker:
                 hop_count=flow.hop_count,
                 risk_score=flow.risk_score,
                 confidence=flow.confidence,
+                path=json.dumps(flow.path, default=str),
                 metadata=json.dumps(flow.metadata)
             )
     
@@ -427,7 +431,7 @@ class StablecoinFlowTracker:
         """Get stablecoin transactions for address"""
         query = """
         MATCH (a:Address {address: $address})-[r:SENT]->(t:Transaction)
-        WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+        WHERE t.timestamp > datetime() - duration({hours: $time_range})
         AND EXISTS {
             MATCH (t)-[:STABLECOIN_TRANSFER]->(s:Stablecoin)
         }
@@ -609,13 +613,11 @@ class StablecoinFlowTracker:
     
     async def _get_bridge_contracts(self, bridge_name: str) -> Dict[str, str]:
         """Get bridge contract addresses"""
-        # This would return bridge contracts for the specified bridge
-        # For now, return a placeholder
-        return {
-            'ethereum': '0x83e6dFcA28B1C7996839C0D7c9b68cAa67eBc40C',
-            'bsc': '0x83e6dFcA28B1C7996839C0D7c9b68cAa67eBc40C',
-            'polygon': '0x83e6dFcA28B1C7996839C0D7c9b68cAa67eBc40C'
-        }
+        # TODO: Wire to a real per-bridge contract registry or config source
+        raise NotImplementedError(
+            f"Bridge contract lookup not yet implemented for '{bridge_name}'. "
+            "Provide a bridge registry data source."
+        )
     
     async def cache_flow_analysis(self, key: str, result: Dict[str, Any]):
         """Cache flow analysis result in Redis"""

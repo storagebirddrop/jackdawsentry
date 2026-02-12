@@ -16,6 +16,17 @@ const JDS = (function () {
         };
     }
 
+    /** Escape HTML special characters to prevent XSS when building innerHTML */
+    function escapeHTML(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     /** Set an element's text by ID, optionally add fade-in */
     function updateStatCard(id, value, animate) {
         var el = document.getElementById(id);
@@ -76,6 +87,7 @@ const JDS = (function () {
     }
 
     return {
+        escapeHTML: escapeHTML,
         chartColors: chartColors,
         updateStatCard: updateStatCard,
         formatDate: formatDate,

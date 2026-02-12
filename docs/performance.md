@@ -38,10 +38,10 @@ in-memory/local-DB queries (Google/AWS benchmarks):
 
 ```
 READ  (90% of requests):
-  60%  GET /api/v1/compliance/statistics
-  20%  GET /api/v1/blockchain/statistics
-  10%  GET /api/v1/analysis/statistics
-  10%  GET /api/v1/intelligence/alerts
+  54%  GET /api/v1/compliance/statistics
+  18%  GET /api/v1/blockchain/statistics
+   9%  GET /api/v1/analysis/statistics
+   9%  GET /api/v1/intelligence/alerts
 
 WRITE (10% of requests):
    5%  POST /api/v1/compliance/audit/log
@@ -155,7 +155,7 @@ pool = await asyncpg.create_pool(
 driver = GraphDatabase.driver(
     uri,
     auth=(user, password),
-    max_connection_pool_size=50,
+    max_connection_pool_size=100,
     connection_acquisition_timeout=30,
 )
 ```
@@ -207,9 +207,9 @@ limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
 | `worker_connections` | 1024 | 2048–4096 | If hitting connection limits |
 | `keepalive` | 32 | 64–128 | Reduce TCP handshake overhead to upstream |
 | `rate=10r/s` | 10r/s | 50r/s | Current limit is aggressive for load tests |
-| `burst=20` | 20 | 50–100 | Allow short traffic spikes |
-| `proxy_connect_timeout` | 30s | 10s | Fail fast on unhealthy backends |
-| `gzip_comp_level` | 6 | 4 | Trade CPU for throughput at high RPS |
+| `burst` | Not configured | 50–100 | Allow short traffic spikes (add `burst=` to `limit_req`) |
+| `proxy_connect_timeout` | Not configured | 10s | Fail fast on unhealthy backends (add to `location /api/`) |
+| `gzip_comp_level` | Not configured | 4 | Trade CPU for throughput at high RPS (add to `http` block) |
 
 **Important**: For load testing, temporarily raise or disable rate limits:
 ```nginx

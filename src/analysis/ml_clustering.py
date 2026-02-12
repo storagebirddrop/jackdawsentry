@@ -6,13 +6,12 @@ Machine learning-based address clustering and risk assessment
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
 import math
 import statistics
-import hashlib
 
 from src.api.database import get_neo4j_session, get_redis_connection
 from src.api.config import settings
@@ -152,7 +151,7 @@ class MLClusteringEngine:
             cache_key = f"{address}_{blockchain}_{time_range}"
             if cache_key in self.feature_cache:
                 cached_time = self.feature_cache[cache_key].get('cached_at')
-                if cached_time and (datetime.now(timezone.utc) - cached_time).seconds < self.cache_ttl:
+                if cached_time and (datetime.now(timezone.utc) - cached_time).total_seconds() < self.cache_ttl:
                     return self.feature_cache[cache_key]['features']
             
             # Get transaction data
@@ -311,7 +310,7 @@ class MLClusteringEngine:
         """Get transactions for address within time range"""
         query = """
         MATCH (a:Address {address: $address, blockchain: $blockchain})-[r:SENT|RECEIVED]->(t:Transaction)
-        WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+        WHERE t.timestamp > datetime() - duration({hours: $time_range})
         RETURN t {
             .hash,
             .blockchain,
@@ -504,7 +503,7 @@ class MLClusteringEngine:
     
     def _determine_risk_level(self, risk_score: float) -> RiskLevel:
         """Determine risk level from score"""
-        for level, threshold in self.risk_thresholds.items():
+        for level, threshold in sorted(self.risk_thresholds.items(), key=lambda x: x[1], reverse=True):
             if risk_score >= threshold:
                 return level
         return RiskLevel.VERY_LOW
@@ -658,6 +657,8 @@ class MLClusteringEngine:
             # Find similar addresses
             similar_addresses = [address]
             for other_addr in addresses:
+                if other_addr == address:
+                    continue
                 if other_addr not in assigned and similarity_matrix[address][other_addr] > self.similarity_threshold:
                     similar_addresses.append(other_addr)
                     assigned.add(other_addr)
@@ -672,18 +673,23 @@ class MLClusteringEngine:
     
     async def _create_cluster(self, cluster_id: str, addresses: List[str], blockchain: str, features_dict: Dict[str, AddressFeatures]) -> AddressCluster:
         """Create cluster object"""
+        # Filter features_dict to only cluster members
+        cluster_features = {addr: features_dict[addr] for addr in addresses if addr in features_dict}
+        if not cluster_features:
+            cluster_features = features_dict
+        
         # Calculate cluster metrics
-        total_volume = sum(features.total_sent + features.total_received for features in features_dict.values())
-        avg_risk_score = sum(features.metadata.get('risk_score', 0) for features in features_dict.values()) / len(features_dict)
+        total_volume = sum(features.total_sent + features.total_received for features in cluster_features.values())
+        avg_risk_score = sum(features.metadata.get('risk_score', 0) for features in cluster_features.values()) / len(cluster_features)
         
         # Determine cluster type
-        cluster_type = await self._determine_cluster_type(features_dict)
+        cluster_type = await self._determine_cluster_type(cluster_features)
         
         # Calculate confidence
         confidence = min(len(addresses) / 10, 1.0)
         
         # Identify characteristics
-        characteristics = await self._identify_cluster_characteristics(features_dict)
+        characteristics = await self._identify_cluster_characteristics(cluster_features)
         
         return AddressCluster(
             cluster_id=cluster_id,
@@ -710,6 +716,8 @@ class MLClusteringEngine:
         bridge_count = sum(1 for f in features_dict.values() if f.bridge_usage)
         
         # Determine type based on dominant behavior
+        if not features_dict:
+            return ClusterType.UNKNOWN
         if mixer_count / len(features_dict) > 0.7:
             return ClusterType.MIXER
         elif privacy_count / len(features_dict) > 0.7:
@@ -801,9 +809,9 @@ class MLClusteringEngine:
         """Cache analysis results in Redis"""
         try:
             async with get_redis_connection() as redis:
-                await redis.setex(f"ml_analysis:{key}", self.cache_ttl, json.dumps(result))
+                await redis.setex(f"ml_analysis:{key}", self.cache_ttl, json.dumps(result, default=str))
         except Exception as e:
-            logger.error(f"Error caching analysis results: {e}")
+            logger.error(f"Error caching analysis results for key={key}: {e}")
     
     async def get_cached_analysis_results(self, key: str) -> Optional[Dict[str, Any]]:
         """Get cached analysis results from Redis"""

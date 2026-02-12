@@ -113,11 +113,12 @@ function createSARRow(report) {
     var stCls = { draft: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', under_review: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', approved: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', submitted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', rejected: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' };
     var cls = stCls[st] || stCls.draft;
     var id = report.report_id || report.id || '—';
-    row.innerHTML = '<td class="py-3 px-4 font-medium">' + id + '</td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (report.type || report.report_type || 'SAR') + '</td>'
-        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + st + '</span></td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + JDS.formatDate(report.due_date) + '</td>'
-        + '<td class="py-3 px-4"><button onclick="viewSARReport(\'' + id + '\')" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">View</button></td>';
+    var esc = JDS.escapeHTML;
+    row.innerHTML = '<td class="py-3 px-4 font-medium">' + esc(id) + '</td>'
+        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(report.type || report.report_type || 'SAR') + '</td>'
+        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(st) + '</span></td>'
+        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(JDS.formatDate(report.due_date)) + '</td>'
+        + '<td class="py-3 px-4"><button onclick="viewSARReport(\'' + esc(id) + '\')" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">View</button></td>';
     return row;
 }
 
@@ -145,9 +146,10 @@ function createDeadlineCard(d) {
     var pr = d.priority || 'normal';
     var prCls = { critical: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', high: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', normal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', low: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400' };
     var days = d.days_remaining != null ? d.days_remaining : '—';
-    card.innerHTML = '<div class="flex justify-between items-start mb-2"><div><h4 class="text-sm font-medium">' + (d.title || d.name || '—') + '</h4><p class="text-xs text-slate-500 dark:text-slate-400">' + (d.type || '—') + '</p></div><span class="px-2 py-1 text-xs font-semibold rounded-full ' + (prCls[pr] || prCls.normal) + '">' + pr + '</span></div>'
-        + '<div class="space-y-1 text-sm"><div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Due:</span><span class="font-medium">' + JDS.formatDate(d.due_date) + '</span></div>'
-        + '<div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Days left:</span><span class="font-medium">' + days + '</span></div></div>';
+    var esc = JDS.escapeHTML;
+    card.innerHTML = '<div class="flex justify-between items-start mb-2"><div><h4 class="text-sm font-medium">' + esc(d.title || d.name || '—') + '</h4><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(d.type || '—') + '</p></div><span class="px-2 py-1 text-xs font-semibold rounded-full ' + (prCls[pr] || prCls.normal) + '">' + esc(pr) + '</span></div>'
+        + '<div class="space-y-1 text-sm"><div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Due:</span><span class="font-medium">' + esc(JDS.formatDate(d.due_date)) + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Days left:</span><span class="font-medium">' + esc(days) + '</span></div></div>';
     return card;
 }
 

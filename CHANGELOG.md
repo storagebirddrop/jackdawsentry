@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### M7 "It scales" — Load Testing & Performance (complete)
 
-- **Locust load test** (`tests/load/locustfile.py`): Auth flow (login → JWT → bearer), read-heavy mix (60/20/10/10), write mix (5/3/2)
+- **Locust load test** (`tests/load/locustfile.py`): Auth flow (login → JWT → bearer), read-heavy mix (60% compliance/statistics, 20% blockchain/statistics, 10% analysis/statistics, 10% intelligence/alerts), write mix (5% audit/log, 3% risk/assessments, 2% cases)
 - **Benchmark runner** (`tests/load/run_benchmark.sh`): `dev` (1 replica), `prod` (2 replicas), `ci` (lightweight gate) modes
 - **CI threshold checker** (`tests/load/check_thresholds.py`): Auto-validates p50<50ms, p95<100ms, p99<200ms, error<0.1%, RPS>500
 - **Performance docs** (`docs/performance.md`): Methodology, thresholds, py-spy/memory-profiler instructions, connection pool tuning (asyncpg/Neo4j/Redis), Nginx tuning recommendations, results template

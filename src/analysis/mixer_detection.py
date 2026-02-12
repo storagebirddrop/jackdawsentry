@@ -6,11 +6,10 @@ Identifies and analyzes transactions involving mixers and privacy-enhancing tool
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-import hashlib
 
 from src.api.database import get_neo4j_session, get_redis_connection
 from src.api.config import settings
@@ -279,7 +278,7 @@ class MixerDetector:
         """Get transactions for address within time range"""
         query = """
         MATCH (a:Address {address: $address, blockchain: $blockchain})-[r:SENT]->(t:Transaction)
-        WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+        WHERE t.timestamp > datetime() - duration({hours: $time_range})
         RETURN t {
             .hash,
             .blockchain,
@@ -593,7 +592,7 @@ class MixerDetector:
         try:
             query = """
             MATCH (t:Transaction)-[:MIXER_TRANSACTION]->(m:Mixer)
-            WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+            WHERE t.timestamp > datetime() - duration({hours: $time_range})
             RETURN m.mixer_type as mixer_type,
                    count(t) as transaction_count,
                    sum(t.value) as total_amount,
@@ -635,7 +634,7 @@ class MixerDetector:
         try:
             query = """
             MATCH (t:Transaction)-[:PRIVACY_TOOL_TRANSACTION]->(p:PrivacyTool)
-            WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+            WHERE t.timestamp > datetime() - duration({hours: $time_range})
             RETURN p.privacy_tool_type as tool_type,
                    count(t) as transaction_count,
                    sum(t.value) as total_amount,

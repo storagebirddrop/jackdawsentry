@@ -6,7 +6,7 @@ Detects suspicious patterns in blockchain transactions for AML compliance
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -124,14 +124,14 @@ class MLPatternDetector:
             return pattern_matches
             
         except Exception as e:
-            logger.error(f"Error detecting patterns for address {address}: {e}")
-            return []
+            logger.exception(f"Error detecting patterns for address {address}: {e}")
+            raise
     
     async def _get_address_transactions(self, address: str, blockchain: str, time_range: int) -> List[Dict]:
         """Get transactions for address within time range"""
         query = """
         MATCH (a:Address {address: $address, blockchain: $blockchain})-[r:SENT]->(t:Transaction)
-        WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+        WHERE t.timestamp > datetime() - duration({hours: $time_range})
         RETURN t {
             .hash,
             .blockchain,
@@ -253,7 +253,8 @@ class MLPatternDetector:
                 
                 if len(previous_txs) >= 2:
                     # Calculate risk based on previous activity
-                    previous_risk = sum(await self._calculate_transaction_risk(t) for t in previous_txs) / len(previous_txs)
+                    risk_results = await asyncio.gather(*(self._calculate_transaction_risk(t) for t in previous_txs))
+                    previous_risk = sum(risk_results) / len(previous_txs)
                     
                     if previous_risk > 0.5:
                         confidence = min(previous_risk, 1.0)
@@ -323,7 +324,8 @@ class MLPatternDetector:
         pattern_matches = []
         
         # Check for transactions to known mixers
-        mixer_txs = [tx for tx in transactions if await self._is_mixer_transaction(tx)]
+        mixer_checks = await asyncio.gather(*(self._is_mixer_transaction(tx) for tx in transactions))
+        mixer_txs = [tx for tx, is_mixer in zip(transactions, mixer_checks) if is_mixer]
         
         if mixer_txs:
             total_amount = sum(tx['value'] for tx in mixer_txs)
@@ -517,7 +519,7 @@ class MLPatternDetector:
         off_peak_txs = []
         for tx in transactions:
             hour = tx['timestamp'].hour
-            if hour >= self.off_peak_start or hour <= self.off_peak_end:
+            if hour >= self.off_peak_start or hour < self.off_peak_end:
                 off_peak_txs.append(tx)
         
         if len(off_peak_txs) >= 5:
@@ -792,7 +794,14 @@ class MLPatternDetector:
                 total_amount=profile.total_amount,
                 risk_score=profile.risk_score,
                 last_activity=profile.last_activity,
-                pattern_matches=json.dumps([match.__dict__ for match in profile.pattern_matches])
+                pattern_matches=json.dumps([{
+                    'pattern_type': match.pattern_type.value if hasattr(match.pattern_type, 'value') else str(match.pattern_type),
+                    'confidence': match.confidence,
+                    'risk_score': match.risk_score,
+                    'detected_at': match.detected_at.isoformat() if isinstance(match.detected_at, datetime) else str(match.detected_at),
+                    'severity': match.severity,
+                    'description': match.description,
+                } for match in profile.pattern_matches])
             )
     
     async def get_address_risk_profile(self, address: str, blockchain: str) -> Optional[AddressPatternProfile]:
@@ -816,12 +825,28 @@ class MLPatternDetector:
             
             if record:
                 profile_data = record['profile_data']
+                raw_matches = profile_data.get('pattern_matches', '[]')
+                if isinstance(raw_matches, str):
+                    raw_matches = json.loads(raw_matches) if raw_matches else []
+                deserialized_matches = []
+                for m in (raw_matches or []):
+                    try:
+                        deserialized_matches.append(PatternMatch(
+                            pattern_type=MLPatternType(m['pattern_type']) if m.get('pattern_type') else MLPatternType.STRUCTURING,
+                            confidence=m.get('confidence', 0.0),
+                            risk_score=m.get('risk_score', 0.0),
+                            detected_at=datetime.fromisoformat(m['detected_at']) if m.get('detected_at') else datetime.now(timezone.utc),
+                            severity=m.get('severity', 'medium'),
+                            description=m.get('description', ''),
+                        ))
+                    except (KeyError, ValueError):
+                        pass
                 return AddressPatternProfile(
                     address=profile_data['address'],
                     blockchain=profile_data['blockchain'],
                     total_transactions=profile_data['total_transactions'],
                     total_amount=profile_data['total_amount'],
-                    pattern_matches=[],
+                    pattern_matches=deserialized_matches,
                     risk_score=profile_data['risk_score'],
                     last_activity=profile_data['last_activity']
                 )

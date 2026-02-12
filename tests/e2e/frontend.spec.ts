@@ -10,8 +10,8 @@ import { test, expect } from '@playwright/test';
  * Gate: all tests pass with zero JS console errors on each page.
  */
 
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'ChangeMe!Admin2024';
+const ADMIN_USERNAME = process.env.E2E_USERNAME ?? 'admin';
+const ADMIN_PASSWORD = process.env.E2E_PASSWORD ?? 'admin';
 
 /** Collect JS console errors during a test */
 function trackConsoleErrors(page: import('@playwright/test').Page) {
@@ -103,7 +103,7 @@ test.describe('Authenticated pages', () => {
     const errors = trackConsoleErrors(page);
 
     await page.goto('/compliance');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+    await page.waitForLoadState('load', { timeout: 15_000 });
 
     // Check that a key element exists
     const heading = page.locator('h1:has-text("Compliance")');
@@ -124,7 +124,7 @@ test.describe('Authenticated pages', () => {
     const errors = trackConsoleErrors(page);
 
     await page.goto('/compliance/analytics');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+    await page.waitForLoadState('load', { timeout: 15_000 });
 
     // Check that chart canvases exist
     const sarChart = page.locator('#sarTrendChart');
@@ -142,7 +142,7 @@ test.describe('Authenticated pages', () => {
     const errors = trackConsoleErrors(page);
 
     await page.goto('/analysis');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+    await page.waitForLoadState('load', { timeout: 15_000 });
 
     // Stats should load
     const statEl = page.locator('#stat-analyses');

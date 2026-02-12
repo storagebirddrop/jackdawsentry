@@ -10,6 +10,8 @@ var wsConnection = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    var yearEl = document.getElementById('jds-year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
     initializeCharts();
     loadInitialData();
     startWebSocketConnection();
@@ -155,12 +157,13 @@ function createAlertRow(alert) {
     var addr = alert.address || '—';
     var shortAddr = addr.length > 16 ? addr.substring(0, 10) + '...' + addr.substring(addr.length - 6) : addr;
 
-    row.innerHTML = '<td class="py-3 px-4 font-medium">' + (alert.type || alert.alert_type || '—') + '</td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">' + shortAddr + '</td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (alert.blockchain || '—') + '</td>'
+    var esc = JDS.escapeHTML;
+    row.innerHTML = '<td class="py-3 px-4 font-medium">' + esc(alert.type || alert.alert_type || '—') + '</td>'
+        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">' + esc(shortAddr) + '</td>'
+        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(alert.blockchain || '—') + '</td>'
         + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + riskCls + '">' + (risk * 100).toFixed(0) + '%</span></td>'
-        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + JDS.formatTime(alert.time || alert.created_at) + '</td>'
-        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + stCls + '">' + st + '</span></td>';
+        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(JDS.formatTime(alert.time || alert.created_at)) + '</td>'
+        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + stCls + '">' + esc(st) + '</span></td>';
     return row;
 }
 

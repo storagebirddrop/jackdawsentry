@@ -14,6 +14,7 @@
     </script>
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
+    <script src="js/utils.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
@@ -152,17 +153,19 @@
                 document.getElementById('stat-pending').textContent = reports.filter(function (r) { return r.status === 'pending' || r.status === 'generating'; }).length;
                 var tbody = document.getElementById('reports-tbody');
                 if (!reports.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No reports found</td></tr>'; return; }
+                var esc = JDS.escapeHTML;
                 tbody.innerHTML = reports.slice(0, 25).map(function (r) {
                     var st = r.status || 'pending';
                     var cls = statusCls[st] || statusCls.pending;
                     var id = r.report_id || r.id || '';
+                    var safeId = encodeURIComponent(id);
                     return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
-                        + '<td class="py-3 px-4 font-medium">' + (r.title || r.report_type || '—') + '</td>'
-                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 capitalize">' + (r.report_type || r.type || '—') + '</td>'
-                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 uppercase">' + (r.format || 'pdf') + '</td>'
+                        + '<td class="py-3 px-4 font-medium">' + esc(r.title || r.report_type || '—') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 capitalize">' + esc(r.report_type || r.type || '—') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 uppercase">' + esc(r.format || 'pdf') + '</td>'
                         + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') + '</td>'
-                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + st + '</span></td>'
-                        + '<td class="py-3 px-4">' + (st === 'completed' ? '<a href="/api/v1/reports/' + id + '/download" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">Download</a>' : '<span class="text-slate-400 text-sm">—</span>') + '</td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(st) + '</span></td>'
+                        + '<td class="py-3 px-4">' + (st === 'completed' ? '<a href="/api/v1/reports/' + safeId + '/download" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">Download</a>' : '<span class="text-slate-400 text-sm">—</span>') + '</td>'
                         + '</tr>';
                 }).join('');
             } catch (_) {

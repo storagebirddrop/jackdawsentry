@@ -85,7 +85,7 @@ This document provides comprehensive training materials for the Jackdaw Sentry c
 4. Practice supervisory reporting
 
 #### AMLR (Anti-Money Laundering Regulation)
-**Learning Objectives**
+**Learning Objectives:**
 - Understand AMLR requirements for financial institutions
 - Learn transaction monitoring and suspicious activity detection
 - Master SAR generation and submission procedures

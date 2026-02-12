@@ -40,7 +40,7 @@ This guide provides technical documentation for developers working with the Jack
 ```
 
 ### Technology Stack
-- **Backend**: Python 3.11, FastAPI, AsyncIO
+- **Backend**: Python 3.11+, FastAPI, AsyncIO
 - **Database**: Neo4j (Graph), PostgreSQL (Audit), Redis (Cache)
 - **Frontend**: HTML5, JavaScript, Tailwind CSS, Chart.js
 - **Containerization**: Docker, Docker Compose
@@ -52,7 +52,7 @@ This guide provides technical documentation for developers working with the Jack
 ### Prerequisites
 ```bash
 # Required software versions
-Python >= 3.14
+Python >= 3.11
 Docker >= 20.10
 Docker Compose >= 2.0
 Git >= 2.30
@@ -148,7 +148,7 @@ router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
 async def new_endpoint(
     request_data: NewEndpointRequest,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["write_compliance"])
+    _: None = Depends(check_permissions(["write_compliance"]))
 ):
     """New compliance endpoint"""
     try:
@@ -224,6 +224,8 @@ class DatabaseError(ComplianceException):
     pass
 
 # Exception handler
+from fastapi.responses import JSONResponse
+
 async def compliance_exception_handler(request, exc: ComplianceException):
     return JSONResponse(
         status_code=400,

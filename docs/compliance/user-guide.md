@@ -251,7 +251,7 @@ Based on assessment results:
    - **Auto-Escalation**: Enable automatic escalation
    - **Threshold Values**: Set risk score thresholds
    - **Notification Levels**: Configure alert levels
-3. Click **"Save Settings**
+3. Click **"Save Settings"**
 
 ## 📱 Mobile Access
 
@@ -376,7 +376,7 @@ Based on assessment results:
 - **Support Portal**: Submit support requests
 
 ### Contact Support
-- **Email**: compliance-support@jackdawsentry.com
+- **Email**: compliance@jackdawsentry.com
 - **Phone**: +1-555-COMPLY (during business hours)
 - **Chat**: In-app chat support
 - **Tickets**: Support ticket system

@@ -14,6 +14,7 @@
     </script>
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
+    <script src="js/utils.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
@@ -36,13 +37,13 @@
             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
                 <h2 class="text-base font-semibold mb-4">Address / Transaction Lookup</h2>
                 <form id="analysis-form" class="flex flex-col sm:flex-row gap-3">
-                    <select id="analysis-type" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="analysis-type" aria-label="Analysis type" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="address">Address</option>
                         <option value="transaction">Transaction</option>
                     </select>
-                    <input id="analysis-query" type="text" required placeholder="Enter address or transaction hash"
+                    <input id="analysis-query" type="text" required aria-label="Address or transaction hash" placeholder="Enter address or transaction hash"
                            class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <select id="analysis-blockchain" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="analysis-blockchain" aria-label="Blockchain" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="bitcoin">Bitcoin</option>
                         <option value="ethereum">Ethereum</option>
                         <option value="bsc">BSC</option>
@@ -230,9 +231,10 @@
                     var patternsEl = document.getElementById('result-patterns');
                     var patterns = data.patterns || data.detected_patterns || [];
                     if (patterns.length) {
+                        var esc = JDS.escapeHTML;
                         patternsEl.innerHTML = patterns.map(function (p) {
                             var name = typeof p === 'string' ? p : (p.pattern || p.name || 'Unknown');
-                            return '<div class="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i><span class="text-sm">' + name + '</span></div>';
+                            return '<div class="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i><span class="text-sm">' + esc(name) + '</span></div>';
                         }).join('');
                         lucide.createIcons();
                     } else {

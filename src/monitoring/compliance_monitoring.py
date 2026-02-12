@@ -52,7 +52,7 @@ class ComplianceMetric:
     name: str
     type: MetricType
     description: str
-    labels: List[str]
+    labels: Dict[str, str]
     value: Union[int, float]
     timestamp: datetime
     metadata: Optional[Dict[str, Any]] = None
@@ -92,6 +92,7 @@ class ComplianceMonitoringEngine:
     def __init__(self):
         self.metrics_registry = CollectorRegistry()
         self.metrics = {}
+        self.internal_metrics = {}
         self.alerts = {}
         self.health_checks = {}
         self.alert_webhook_url = None
@@ -113,6 +114,14 @@ class ComplianceMonitoringEngine:
                 return metric_cls(name, *args, **kwargs)
             except ValueError:
                 return prometheus.REGISTRY._names_to_collectors.get(name)
+
+        # Alert metrics
+        self.metrics['compliance_alerts_total'] = _get_or_create(
+            prometheus.Counter,
+            'compliance_alerts_total',
+            'Total number of compliance alerts',
+            ['severity', 'status']
+        )
 
         # Compliance operation metrics
         self.metrics['regulatory_reports_total'] = _get_or_create(
@@ -257,8 +266,8 @@ class ComplianceMonitoringEngine:
                 elif metric.type == MetricType.HISTOGRAM:
                     prometheus_metric.labels(**metric.labels).observe(metric.value)
             
-            # Store in internal metrics
-            self.metrics[metric.name] = metric
+            # Store in internal metrics (separate from Prometheus collectors)
+            self.internal_metrics[metric.name] = metric
             
             # Check alert rules
             await self._check_alert_rules(metric)
@@ -420,8 +429,12 @@ class ComplianceMonitoringEngine:
                 misses_metric = self.metrics.get('compliance_cache_misses_total')
                 
                 if hits_metric and misses_metric:
-                    hits = hits_metric._value._value.get()
-                    misses = misses_metric._value._value.get()
+                    hits = 0
+                    misses = 0
+                    for sample in prometheus.REGISTRY.get_sample_value('compliance_cache_hits_total') or [0]:
+                        hits = sample if isinstance(sample, (int, float)) else 0
+                    for sample in prometheus.REGISTRY.get_sample_value('compliance_cache_misses_total') or [0]:
+                        misses = sample if isinstance(sample, (int, float)) else 0
                     
                     if hits + misses > 0:
                         hit_rate = hits / (hits + misses)
@@ -540,7 +553,7 @@ class ComplianceMonitoringEngine:
     def set_alert_webhook(self, webhook_url: str):
         """Set alert webhook URL"""
         self.alert_webhook_url = webhook_url
-        logger.info(f"Alert webhook URL set: {webhook_url}")
+        logger.info("Alert webhook URL set (redacted)")
 
     def enable_metrics(self, enabled: bool = True):
         """Enable or disable metrics collection"""
@@ -588,35 +601,45 @@ class ComplianceMonitoringEngine:
     async def _check_database_connectivity(self) -> bool:
         """Check database connectivity"""
         try:
-            # This would check Neo4j and PostgreSQL connectivity
-            # Implementation depends on your database client setup
+            from src.api.database import get_neo4j_session
+            async with get_neo4j_session() as session:
+                result = await session.run("RETURN 1 AS ok")
+                await result.single()
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Database connectivity check failed: {e}")
             return False
 
     async def _check_cache_connectivity(self) -> bool:
         """Check cache connectivity"""
         try:
-            # This would check Redis connectivity
-            # Implementation depends on your Redis client setup
+            from src.api.database import get_redis_connection
+            async with get_redis_connection() as redis:
+                await redis.ping()
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Cache connectivity check failed: {e}")
             return False
 
     async def _check_api_responsiveness(self) -> bool:
         """Check API responsiveness"""
         try:
-            # This would check if API endpoints are responding
-            return True
-        except Exception:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://localhost:8000/health', timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    return resp.status == 200
+        except Exception as e:
+            logger.error(f"API responsiveness check failed: {e}")
             return False
 
     async def _check_compliance_engine_status(self) -> bool:
         """Check compliance engine status"""
         try:
-            # This would check if compliance engines are running
-            return True
-        except Exception:
+            from src.compliance.engine import get_compliance_engine
+            engine = get_compliance_engine()
+            return engine is not None
+        except Exception as e:
+            logger.error(f"Compliance engine status check failed: {e}")
             return False
 
     async def _check_all_alert_rules(self):

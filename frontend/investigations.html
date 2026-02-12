@@ -14,6 +14,7 @@
     </script>
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
+    <script src="js/utils.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
@@ -155,14 +156,15 @@
 
                 var tbody = document.getElementById('inv-tbody');
                 if (!items.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No investigations found</td></tr>'; return; }
+                var esc = JDS.escapeHTML;
                 tbody.innerHTML = items.slice(0, 25).map(function (inv) {
                     var st = inv.status || 'open';
                     var pr = inv.priority || 'medium';
                     return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
-                        + '<td class="py-3 px-4 font-medium">' + (inv.title || inv.name || '—') + '</td>'
-                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 capitalize">' + (inv.investigation_type || inv.type || '—').replace('_', ' ') + '</td>'
-                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (priorityCls[pr] || priorityCls.medium) + '">' + pr + '</span></td>'
-                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (statusCls[st] || statusCls.open) + '">' + st.replace('_', ' ') + '</span></td>'
+                        + '<td class="py-3 px-4 font-medium">' + esc(inv.title || inv.name || '—') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 capitalize">' + esc((inv.investigation_type || inv.type || '—').replace('_', ' ')) + '</td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (priorityCls[pr] || priorityCls.medium) + '">' + esc(pr) + '</span></td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (statusCls[st] || statusCls.open) + '">' + esc(st.replace('_', ' ')) + '</span></td>'
                         + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—') + '</td>'
                         + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (inv.evidence_count != null ? inv.evidence_count : '—') + '</td>'
                         + '</tr>';

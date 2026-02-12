@@ -3,9 +3,10 @@ Jackdaw Sentry — Locust Load Test (M7)
 
 Simulates realistic user traffic against the API:
   - Auth flow: login → get JWT → use for all subsequent requests
-  - Read-heavy mix: 60% compliance/statistics, 20% blockchain/statistics,
-    10% analysis/statistics, 10% intelligence/alerts
-  - Write mix: 5% audit/log, 3% risk/assessments, 2% compliance/cases
+  - Read-heavy mix (weights): 60 compliance/statistics, 20 blockchain/statistics,
+    10 analysis/statistics, 10 intelligence/alerts
+  - Write mix (weights): 5 audit/log, 3 risk/assessments, 2 cases
+  - Total weight = 110 → ~91% reads, ~9% writes
 
 Usage:
   # Headless baseline (dev compose — 1 replica)
@@ -52,6 +53,7 @@ class JackdawUser(HttpUser):
             self.token = data.get("access_token", "")
             self.headers = {"Authorization": f"Bearer {self.token}"}
         else:
+            resp.failure(f"Login failed: {resp.status_code}")
             self.token = ""
             self.headers = {}
 
@@ -71,25 +73,25 @@ class JackdawUser(HttpUser):
 
     @task(60)
     def get_compliance_statistics(self):
-        """GET /api/v1/compliance/statistics — 60% of reads."""
+        """GET /api/v1/compliance/statistics — weight 60."""
         self._get("/api/v1/compliance/statistics",
                   name="/api/v1/compliance/statistics")
 
     @task(20)
     def get_blockchain_statistics(self):
-        """GET /api/v1/blockchain/statistics — 20% of reads."""
+        """GET /api/v1/blockchain/statistics — weight 20."""
         self._get("/api/v1/blockchain/statistics",
                   name="/api/v1/blockchain/statistics")
 
     @task(10)
     def get_analysis_statistics(self):
-        """GET /api/v1/analysis/statistics — 10% of reads."""
+        """GET /api/v1/analysis/statistics — weight 10."""
         self._get("/api/v1/analysis/statistics",
                   name="/api/v1/analysis/statistics")
 
     @task(10)
     def get_intelligence_alerts(self):
-        """GET /api/v1/intelligence/alerts — 10% of reads."""
+        """GET /api/v1/intelligence/alerts — weight 10."""
         self._get("/api/v1/intelligence/alerts",
                   name="/api/v1/intelligence/alerts")
 
@@ -97,7 +99,7 @@ class JackdawUser(HttpUser):
 
     @task(5)
     def post_audit_log(self):
-        """POST /api/v1/compliance/audit/log — 5% of writes."""
+        """POST /api/v1/compliance/audit/log — weight 5."""
         self._post(
             "/api/v1/compliance/audit/log",
             json_body={
@@ -112,7 +114,7 @@ class JackdawUser(HttpUser):
 
     @task(3)
     def post_risk_assessment(self):
-        """POST /api/v1/compliance/risk/assessments — 3% of writes."""
+        """POST /api/v1/compliance/risk/assessments — weight 3."""
         self._post(
             "/api/v1/compliance/risk/assessments",
             json_body={
@@ -127,7 +129,7 @@ class JackdawUser(HttpUser):
 
     @task(2)
     def post_compliance_case(self):
-        """POST /api/v1/compliance/cases — 2% of writes."""
+        """POST /api/v1/compliance/cases — weight 2."""
         self._post(
             "/api/v1/compliance/cases",
             json_body={

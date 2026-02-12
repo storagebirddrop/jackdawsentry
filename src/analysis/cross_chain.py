@@ -6,7 +6,7 @@ Analyzes transactions across multiple blockchains to identify patterns and flows
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -40,7 +40,7 @@ class CrossChainTransaction:
     to_address: str
     amount: float
     token_symbol: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     block_number: Optional[int] = None
     gas_used: Optional[int] = None
     fee: Optional[float] = None
@@ -64,7 +64,7 @@ class TransactionFlow:
     patterns: List[TransactionPattern]
     risk_score: float
     confidence: float
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class CrossChainAnalyzer:
@@ -178,8 +178,8 @@ class CrossChainAnalyzer:
             cross_chain_tx = CrossChainTransaction(
                 tx_hash=tx_hash,
                 blockchain=blockchain,
-                from_address=tx_data.get('from_address'),
-                to_address=tx_data.get('to_address'),
+                from_address=tx_data.get('from_address', ''),
+                to_address=tx_data.get('to_address', ''),
                 amount=tx_data.get('value', 0),
                 token_symbol=tx_data.get('token_symbol'),
                 timestamp=datetime.fromisoformat(tx_data.get('timestamp', datetime.now(timezone.utc).isoformat())),
@@ -197,13 +197,13 @@ class CrossChainAnalyzer:
             risk_score = await self._calculate_risk_score(cross_chain_tx)
             cross_chain_tx.risk_score = risk_score
             
+            # Find related transactions (before confidence, which checks related_transactions)
+            related_txs = await self._find_related_transactions(cross_chain_tx)
+            cross_chain_tx.related_transactions = related_txs
+            
             # Calculate confidence
             confidence = await self._calculate_confidence(cross_chain_tx)
             cross_chain_tx.confidence = confidence
-            
-            # Find related transactions
-            related_txs = await self._find_related_transactions(cross_chain_tx)
-            cross_chain_tx.related_transactions = related_txs
             
             return cross_chain_tx
             
@@ -557,18 +557,37 @@ class CrossChainAnalyzer:
                 'pattern_distribution': pattern_counts,
                 'blockchain_distribution': blockchain_counts,
                 'high_risk_transactions': [tx.tx_hash for tx in analyzed_txs if tx.risk_score > 0.7],
-                'recent_transactions': [tx.__dict__ for tx in analyzed_txs[-10:]]  # Last 10 transactions
+                'recent_transactions': [self._serialize_transaction(tx) for tx in analyzed_txs[-10:]]  # Last 10 transactions
             }
             
         except Exception as e:
             logger.error(f"Error getting cross-chain analysis for address {address}: {e}")
             return {}
     
+    def _serialize_transaction(self, tx: CrossChainTransaction) -> Dict[str, Any]:
+        """Serialize a CrossChainTransaction to JSON-safe dict"""
+        return {
+            'tx_hash': tx.tx_hash,
+            'blockchain': tx.blockchain,
+            'from_address': tx.from_address,
+            'to_address': tx.to_address,
+            'amount': tx.amount,
+            'token_symbol': tx.token_symbol,
+            'timestamp': tx.timestamp.isoformat(),
+            'block_number': tx.block_number,
+            'gas_used': tx.gas_used,
+            'fee': tx.fee,
+            'related_transactions': tx.related_transactions,
+            'patterns': [p.value for p in tx.patterns],
+            'risk_score': tx.risk_score,
+            'confidence': tx.confidence,
+        }
+
     async def _get_address_transactions(self, address: str, time_range: int) -> List[Dict]:
         """Get transactions for address within time range"""
         query = """
         MATCH (a:Address {address: $address})-[r:SENT]->(t:Transaction)
-        WHERE t.timestamp > datetime() - duration('PT${time_range}H')
+        WHERE t.timestamp > datetime() - duration({hours: $time_range})
         RETURN t {
             .hash,
             .blockchain,
