@@ -6,7 +6,7 @@ Documentation for Jackdaw Sentry, a blockchain onchain analysis platform *(in ac
 
 ### Getting Started
 - [Installation Guide](installation.md) - Complete setup instructions
-- [Roadmap](roadmap.md) - Remaining work and priorities (P0/P1/P2)
+- [Roadmap](roadmap.md) - Milestone plan (M0–M8) and status
 
 ### Architecture & Design
 - [Database Schema](database/README.md) - Neo4j and PostgreSQL schemas
@@ -46,7 +46,7 @@ Documentation for Jackdaw Sentry, a blockchain onchain analysis platform *(in ac
 | **API** | REST API endpoints | [API Reference](api/README.md) |
 | **Database** | Schema and migrations | [Database Schema](database/README.md) |
 | **Compliance** | Regulatory frameworks | [Compliance Framework](compliance/README.md) |
-| **Roadmap** | Remaining work and priorities | [Roadmap](roadmap.md) |
+| **Roadmap** | Milestone plan and status | [Roadmap](roadmap.md) |
 
 ## 📖 Documentation Standards
 
@@ -61,7 +61,7 @@ This documentation follows these principles:
 
 We welcome contributions to improve the documentation:
 
-1. **Report Issues**: Found outdated or unclear documentation? [Open an issue](https://github.com/yourusername/jackdaw-sentry/issues)
+1. **Report Issues**: Found outdated or unclear documentation? [Open an issue](https://github.com/storagebirddrop/jackdaw-sentry/issues)
 2. **Submit Changes**: Fork the repository and submit a pull request
 3. **Suggest Improvements**: Share ideas for better documentation structure
 
@@ -72,4 +72,4 @@ This documentation is licensed under the same MIT License as the Jackdaw Sentry 
 ---
 
 **Need Help?**
-- [Open an issue](https://github.com/yourusername/jackdaw-sentry/issues) on GitHub
+- [Open an issue](https://github.com/storagebirddrop/jackdaw-sentry/issues) on GitHub

@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compliance Analytics Dashboard - Jackdaw Sentry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
     <style>
         .chart-container {
             position: relative;
@@ -45,44 +52,39 @@
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <i data-lucide="bar-chart-3" class="w-8 h-8 text-blue-600 mr-3"></i>
-                    <h1 class="text-xl font-semibold text-gray-900">Compliance Analytics</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <select id="reportPeriod" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="daily">Daily</option>
-                        <option value="weekly" selected>Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="annual">Annual</option>
-                    </select>
-                    <button onclick="generateReport()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>
-                        Generate Report
-                    </button>
-                </div>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Compliance analytics and reporting</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <select id="reportPeriod" class="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="daily">Daily</option>
+                    <option value="weekly" selected>Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annual">Annual</option>
+                </select>
+                <button onclick="generateReport()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    Generate Report
+                </button>
             </div>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Key Metrics -->
         <section class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Key Performance Metrics</h2>
+            <h2 class="text-lg font-semibold mb-4">Key Performance Metrics</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- SAR Reports -->
-                <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">SAR Reports</p>
-                            <p class="text-2xl font-bold text-gray-900" id="sarCount">156</p>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">SAR Reports</p>
+                            <p class="text-2xl font-bold" id="sarCount">156</p>
                             <p class="text-sm text-green-600">+12% from last period</p>
                         </div>
                         <div class="bg-blue-100 p-3 rounded-full">
@@ -92,11 +94,11 @@
                 </div>
 
                 <!-- Active Cases -->
-                <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Active Cases</p>
-                            <p class="text-2xl font-bold text-gray-900" id="activeCases">42</p>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active Cases</p>
+                            <p class="text-2xl font-bold" id="activeCases">42</p>
                             <p class="text-sm text-red-600">+8% from last period</p>
                         </div>
                         <div class="bg-orange-100 p-3 rounded-full">
@@ -106,11 +108,11 @@
                 </div>
 
                 <!-- Compliance Score -->
-                <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Compliance Score</p>
-                            <p class="text-2xl font-bold text-gray-900" id="complianceScore">87.5%</p>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Compliance Score</p>
+                            <p class="text-2xl font-bold" id="complianceScore">87.5%</p>
                             <p class="text-sm text-green-600">+2.3% from last period</p>
                         </div>
                         <div class="bg-green-100 p-3 rounded-full">
@@ -120,11 +122,11 @@
                 </div>
 
                 <!-- Risk Level -->
-                <div class="metric-card bg-white rounded-lg shadow p-6">
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Avg Risk Score</p>
-                            <p class="text-2xl font-bold text-gray-900" id="riskScore">0.45</p>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Avg Risk Score</p>
+                            <p class="text-2xl font-bold" id="riskScore">0.45</p>
                             <p class="text-sm text-green-600">-0.08 from last period</p>
                         </div>
                         <div class="bg-purple-100 p-3 rounded-full">
@@ -137,11 +139,11 @@
 
         <!-- Charts Section -->
         <section class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Analytics Overview</h2>
+            <h2 class="text-lg font-semibold mb-4">Analytics Overview</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- SAR Reports Trend -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">SAR Reports Trend</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">SAR Reports Trend</h3>
                     <div class="chart-container">
                         <canvas id="sarTrendChart" aria-label="SAR Reports Trend showing daily report counts" aria-describedby="sarTrendChartDesc"></canvas>
                         <div id="sarTrendChartDesc" class="visually-hidden">Line chart displaying the number of SAR reports filed per day over the selected period.</div>
@@ -149,8 +151,8 @@
                 </div>
 
                 <!-- Risk Distribution -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">Risk Level Distribution</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Risk Level Distribution</h3>
                     <div class="chart-container">
                         <canvas id="riskDistributionChart" aria-label="Risk Level Distribution showing proportion of risk categories" aria-describedby="riskDistChartDesc"></canvas>
                         <div id="riskDistChartDesc" class="visually-hidden">Doughnut chart showing the distribution of risk levels across all assessed entities.</div>
@@ -158,8 +160,8 @@
                 </div>
 
                 <!-- Compliance Score Trend -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">Compliance Score Trend</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Compliance Score Trend</h3>
                     <div class="chart-container">
                         <canvas id="complianceScoreChart" aria-label="Compliance Score Trend over time" aria-describedby="compScoreChartDesc"></canvas>
                         <div id="compScoreChartDesc" class="visually-hidden">Line chart tracking the overall compliance score percentage over the selected period.</div>
@@ -167,8 +169,8 @@
                 </div>
 
                 <!-- Case Management -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">Case Management Metrics</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Case Management Metrics</h3>
                     <div class="chart-container">
                         <canvas id="caseManagementChart" aria-label="Case Management Metrics showing case counts by status" aria-describedby="caseMgmtChartDesc"></canvas>
                         <div id="caseMgmtChartDesc" class="visually-hidden">Bar chart displaying the number of cases grouped by status: open, in progress, and closed.</div>
@@ -181,39 +183,39 @@
         <section class="mb-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Key Insights -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Key Insights</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-4">Key Insights</h3>
                     <div class="space-y-4" id="insightsContainer">
                         <div class="insight-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• High SAR report volume detected: 25 reports submitted</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• High SAR report volume detected: 25 reports submitted</p>
                         </div>
                         <div class="insight-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Excellent compliance performance maintained</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Excellent compliance performance maintained</p>
                         </div>
                         <div class="insight-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Risk levels within acceptable range</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Risk levels within acceptable range</p>
                         </div>
                         <div class="insight-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Weekly analysis shows steady compliance operations</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Weekly analysis shows steady compliance operations</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Recommendations -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Recommendations</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-4">Recommendations</h3>
                     <div class="space-y-4" id="recommendationsContainer">
                         <div class="recommendation-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Consider implementing automated monitoring for multiple compliance areas</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Consider implementing automated monitoring for multiple compliance areas</p>
                         </div>
                         <div class="recommendation-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Optimize workflows to reduce processing times</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Optimize workflows to reduce processing times</p>
                         </div>
                         <div class="recommendation-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Schedule quarterly compliance review with senior management</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Schedule quarterly compliance review with senior management</p>
                         </div>
                         <div class="recommendation-card p-4 rounded">
-                            <p class="text-sm text-gray-700">• Update compliance policies based on quarterly findings</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Update compliance policies based on quarterly findings</p>
                         </div>
                     </div>
                 </div>
@@ -222,14 +224,14 @@
 
         <!-- Alerts Section -->
         <section class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Active Alerts</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Active Alerts</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="alertsContainer">
                 <div class="alert-card p-4 rounded">
                     <div class="flex items-center">
                         <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mr-2"></i>
                         <div>
-                            <p class="text-sm font-medium text-gray-900">High Risk Cases</p>
-                            <p class="text-xs text-gray-600">12 cases require attention</p>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">High Risk Cases</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">12 cases require attention</p>
                         </div>
                     </div>
                 </div>
@@ -237,8 +239,8 @@
                     <div class="flex items-center">
                         <i data-lucide="clock" class="w-5 h-5 text-yellow-600 mr-2"></i>
                         <div>
-                            <p class="text-sm font-medium text-gray-900">Upcoming Deadlines</p>
-                            <p class="text-xs text-gray-600">8 deadlines in next 7 days</p>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">Upcoming Deadlines</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">8 deadlines in next 7 days</p>
                         </div>
                     </div>
                 </div>
@@ -246,8 +248,8 @@
                     <div class="flex items-center">
                         <i data-lucide="file-x" class="w-5 h-5 text-red-600 mr-2"></i>
                         <div>
-                            <p class="text-sm font-medium text-gray-900">Overdue Reports</p>
-                            <p class="text-xs text-gray-600">3 reports past deadline</p>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">Overdue Reports</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">3 reports past deadline</p>
                         </div>
                     </div>
                 </div>
@@ -256,37 +258,37 @@
 
         <!-- Performance Metrics -->
         <section class="mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Performance Metrics</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">Processing Time</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Processing Time</h3>
                     <div class="flex items-center justify-between">
-                        <span id="perfProcessingTime" class="text-2xl font-bold text-gray-900">2.3 min</span>
+                        <span id="perfProcessingTime" class="text-2xl font-bold text-slate-900 dark:text-white">2.3 min</span>
                         <span id="perfProcessingDelta" class="text-sm text-green-600">-15% improvement</span>
                     </div>
-                    <div class="mt-2 bg-gray-200 rounded-full h-2">
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                         <div id="perfProcessingBar" class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">System Health</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">System Health</h3>
                     <div class="flex items-center justify-between">
-                        <span id="perfSystemHealth" class="text-2xl font-bold text-gray-900">92.5%</span>
+                        <span id="perfSystemHealth" class="text-2xl font-bold text-slate-900 dark:text-white">92.5%</span>
                         <span id="perfSystemHealthLabel" class="text-sm text-green-600">Excellent</span>
                     </div>
-                    <div class="mt-2 bg-gray-200 rounded-full h-2">
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                         <div id="perfSystemHealthBar" class="bg-green-500 h-2 rounded-full" style="width: 92.5%"></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-md font-medium text-gray-900 mb-4">User Satisfaction</h3>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">User Satisfaction</h3>
                     <div class="flex items-center justify-between">
-                        <span id="perfUserSatisfaction" class="text-2xl font-bold text-gray-900">87.3%</span>
+                        <span id="perfUserSatisfaction" class="text-2xl font-bold text-slate-900 dark:text-white">87.3%</span>
                         <span id="perfUserSatisfactionDelta" class="text-sm text-yellow-600">+2.1% this month</span>
                     </div>
-                    <div class="mt-2 bg-gray-200 rounded-full h-2">
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                         <div id="perfUserSatisfactionBar" class="bg-yellow-500 h-2 rounded-full" style="width: 87.3%"></div>
                     </div>
                 </div>
@@ -295,475 +297,17 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="text-center text-sm text-gray-500">
-                <p>&copy; 2024 Jackdaw Sentry. Compliance Analytics Dashboard.</p>
+    <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+            <div class="flex gap-4">
+                <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
             </div>
         </div>
     </footer>
+    </div>
 
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Chart instances
-        let sarTrendChart, riskDistributionChart, complianceScoreChart, caseManagementChart;
-
-        // Initialize charts when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeCharts();
-            loadAnalyticsData();
-            setupEventListeners();
-        });
-
-        function initializeCharts() {
-            // SAR Reports Trend Chart
-            const sarCtx = document.getElementById('sarTrendChart').getContext('2d');
-            sarTrendChart = new Chart(sarCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'SAR Reports',
-                        data: [5, 8, 6, 9, 7, 4, 3],
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            // Risk Distribution Chart
-            const riskCtx = document.getElementById('riskDistributionChart').getContext('2d');
-            riskDistributionChart = new Chart(riskCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Low', 'Medium', 'High', 'Critical', 'Severe'],
-                    datasets: [{
-                        data: [120, 85, 45, 15, 5],
-                        backgroundColor: [
-                            'rgba(34, 197, 94, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(251, 146, 60, 0.8)',
-                            'rgba(220, 38, 38, 0.8)',
-                            'rgba(127, 29, 29, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-
-            // Compliance Score Trend Chart
-            const complianceCtx = document.getElementById('complianceScoreChart').getContext('2d');
-            complianceScoreChart = new Chart(complianceCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Compliance Score',
-                        data: [85, 87, 86, 89, 88, 90],
-                        borderColor: 'rgb(34, 197, 94)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: 80,
-                            max: 100
-                        }
-                    }
-                }
-            });
-
-            // Case Management Chart
-            const caseCtx = document.getElementById('caseManagementChart').getContext('2d');
-            caseManagementChart = new Chart(caseCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Open', 'In Progress', 'Under Review', 'Closed'],
-                    datasets: [{
-                        label: 'Cases',
-                        data: [12, 18, 8, 25],
-                        backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(251, 146, 60, 0.8)',
-                            'rgba(34, 197, 94, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-
-        async function loadAnalyticsData() {
-            try {
-                // Load dashboard data from analytics engine
-                const response = await fetch('/api/v1/compliance/analytics/dashboard');
-                if (response.ok) {
-                    const data = await response.json();
-                    updateDashboard(data);
-                }
-            } catch (error) {
-                console.error('Failed to load analytics data:', error);
-                // Use mock data if API fails
-                updateDashboardWithMockData();
-            }
-        }
-
-        function updateDashboard(data) {
-            // Update metrics
-            if (data.overview) {
-                document.getElementById('sarCount').textContent = data.overview.total_sar_reports;
-                document.getElementById('activeCases').textContent = data.overview.active_cases;
-                document.getElementById('complianceScore').textContent = data.overview.compliance_score + '%';
-                document.getElementById('riskScore').textContent = data.overview.average_risk_score.toFixed(2);
-            }
-
-            // Update charts with real data
-            if (data.trends) {
-                updateCharts(data.trends);
-            }
-
-            // Update alerts
-            if (data.alerts) {
-                updateAlerts(data.alerts);
-            }
-
-            // Update performance metrics
-            if (data.performance) {
-                updatePerformanceMetrics(data.performance);
-            }
-
-            // Update insights
-            if (data.insights) {
-                const container = document.getElementById('insightsContainer');
-                if (container) {
-                    container.innerHTML = '';
-                    data.insights.forEach(function(text) {
-                        const card = document.createElement('div');
-                        card.className = 'insight-card p-4 rounded';
-                        card.innerHTML = '<p class="text-sm text-gray-700">\u2022 ' + text + '</p>';
-                        container.appendChild(card);
-                    });
-                }
-            }
-
-            // Update recommendations
-            if (data.recommendations) {
-                const container = document.getElementById('recommendationsContainer');
-                if (container) {
-                    container.innerHTML = '';
-                    data.recommendations.forEach(function(text) {
-                        const card = document.createElement('div');
-                        card.className = 'recommendation-card p-4 rounded';
-                        card.innerHTML = '<p class="text-sm text-gray-700">\u2022 ' + text + '</p>';
-                        container.appendChild(card);
-                    });
-                }
-            }
-        }
-
-        function updateDashboardWithMockData() {
-            // Dashboard is already loaded with mock data
-            console.log('Using mock data for dashboard');
-        }
-
-        function updateCharts(trends) {
-            // Update SAR trend chart
-            if (trends.sar_reports_trend && sarTrendChart) {
-                sarTrendChart.data.datasets[0].data = trends.sar_reports_trend;
-                sarTrendChart.update();
-            }
-
-            // Update other charts as needed
-        }
-
-        function updateAlerts(alerts) {
-            const alertsContainer = document.getElementById('alertsContainer');
-            if (alertsContainer && alerts) {
-                // Update alert counts
-                const alertCards = alertsContainer.querySelectorAll('.alert-card');
-                if (alertCards[0]) {
-                    alertCards[0].querySelector('.text-xs').textContent = `${alerts.high_risk_cases} cases require attention`;
-                }
-                if (alertCards[1]) {
-                    alertCards[1].querySelector('.text-xs').textContent = `${alerts.upcoming_deadlines} deadlines in next 7 days`;
-                }
-                if (alertCards[2]) {
-                    alertCards[2].querySelector('.text-xs').textContent = `${alerts.overdue_reports} reports past deadline`;
-                }
-            }
-        }
-
-        function updatePerformanceMetrics(performance) {
-            if (performance.processing_time != null) {
-                const el = document.getElementById('perfProcessingTime');
-                if (el) el.textContent = performance.processing_time.toFixed(1) + ' min';
-            }
-            if (performance.processing_delta != null) {
-                const el = document.getElementById('perfProcessingDelta');
-                if (el) el.textContent = (performance.processing_delta > 0 ? '+' : '') + performance.processing_delta + '% improvement';
-            }
-            if (performance.processing_pct != null) {
-                const el = document.getElementById('perfProcessingBar');
-                if (el) el.style.width = Math.min(100, performance.processing_pct) + '%';
-            }
-            if (performance.system_health != null) {
-                const el = document.getElementById('perfSystemHealth');
-                if (el) el.textContent = performance.system_health.toFixed(1) + '%';
-                const bar = document.getElementById('perfSystemHealthBar');
-                if (bar) bar.style.width = Math.min(100, performance.system_health) + '%';
-                const label = document.getElementById('perfSystemHealthLabel');
-                if (label) label.textContent = performance.system_health >= 90 ? 'Excellent' : performance.system_health >= 70 ? 'Good' : 'Needs Attention';
-            }
-            if (performance.user_satisfaction != null) {
-                const el = document.getElementById('perfUserSatisfaction');
-                if (el) el.textContent = performance.user_satisfaction.toFixed(1) + '%';
-                const bar = document.getElementById('perfUserSatisfactionBar');
-                if (bar) bar.style.width = Math.min(100, performance.user_satisfaction) + '%';
-            }
-            if (performance.user_satisfaction_delta != null) {
-                const el = document.getElementById('perfUserSatisfactionDelta');
-                if (el) el.textContent = (performance.user_satisfaction_delta > 0 ? '+' : '') + performance.user_satisfaction_delta + '% this month';
-            }
-        }
-
-        function setupEventListeners() {
-            // Report period selector
-            document.getElementById('reportPeriod').addEventListener('change', function() {
-                loadAnalyticsData();
-            });
-
-            // Generate report button
-            window.generateReport = function() {
-                const period = document.getElementById('reportPeriod').value;
-                generateAnalyticsReport(period);
-            };
-        }
-
-        async function generateAnalyticsReport(period) {
-            try {
-                const response = await fetch(`/api/v1/compliance/analytics/report`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        report_type: period,
-                        period_start: getPeriodStart(period),
-                        period_end: new Date().toISOString()
-                    })
-                });
-
-                if (response.ok) {
-                    const report = await response.json();
-                    showReportModal(report);
-                } else {
-                    throw new Error('Failed to generate report');
-                }
-            } catch (error) {
-                console.error('Failed to generate report:', error);
-                alert('Failed to generate report. Please try again.');
-            }
-        }
-
-        function getPeriodStart(period) {
-            const now = new Date();
-            let start;
-
-            switch (period) {
-                case 'daily':
-                    start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                    break;
-                case 'weekly':
-                    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'monthly':
-                    start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'quarterly':
-                    start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'annual':
-                    start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-                    break;
-                default:
-                    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            }
-
-            return start.toISOString();
-        }
-
-        function showReportModal(report) {
-            // Create accessible modal dialog
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
-            modal.setAttribute('role', 'dialog');
-            modal.setAttribute('aria-modal', 'true');
-            modal.setAttribute('aria-label', report.title);
-            modal.setAttribute('tabindex', '-1');
-            modal.innerHTML = `
-                <div class="relative top-20 mx-auto p-4 border w-11/12 shadow-lg rounded-md bg-white">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">${report.title}</h3>
-                        <button data-modal-close class="text-gray-400 hover:text-gray-600" aria-label="Close dialog">
-                            <i data-lucide="x" class="w-6 h-6"></i>
-                        </button>
-                    </div>
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600">${report.description}</p>
-                        <p class="text-xs text-gray-500 mt-2">Generated: ${new Date(report.generated_at).toLocaleString()}</p>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="font-medium text-gray-900 mb-2">Key Metrics</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            ${report.metrics.map(metric => `
-                                <div class="bg-gray-50 p-3 rounded">
-                                    <p class="text-sm font-medium text-gray-900">${metric.name}</p>
-                                    <p class="text-lg font-bold text-gray-900">${metric.value} ${metric.unit}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="font-medium text-gray-900 mb-2">Insights</h4>
-                        <ul class="list-disc list-inside space-y-1">
-                            ${report.insights.map(insight => `<li class="text-sm text-gray-700">${insight}</li>`).join('')}
-                        </ul>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="font-medium text-gray-900 mb-2">Recommendations</h4>
-                        <ul class="list-disc list-inside space-y-1">
-                            ${report.recommendations.map(rec => `<li class="text-sm text-gray-700">${rec}</li>`).join('')}
-                        </ul>
-                    </div>
-                    <div class="flex justify-end">
-                        <button data-modal-download onclick="downloadReport('${report.report_id}')" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            Download Report
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-            lucide.createIcons();
-
-            // Close helper
-            function removeModal() {
-                document.removeEventListener('keydown', onKeyDown);
-                modal.remove();
-            }
-
-            // Close button
-            const closeBtn = modal.querySelector('[data-modal-close]');
-            closeBtn.addEventListener('click', removeModal);
-
-            // Close on backdrop click
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) removeModal();
-            });
-
-            // Escape key handler
-            function onKeyDown(e) {
-                if (e.key === 'Escape') {
-                    removeModal();
-                    return;
-                }
-                // Focus trap
-                if (e.key === 'Tab') {
-                    const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-                    if (focusable.length === 0) return;
-                    const first = focusable[0];
-                    const last = focusable[focusable.length - 1];
-                    if (e.shiftKey) {
-                        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-                    } else {
-                        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-                    }
-                }
-            }
-            document.addEventListener('keydown', onKeyDown);
-
-            // Move focus into the modal
-            closeBtn.focus();
-        }
-
-        function downloadReport(reportId) {
-            // Implement report download functionality
-            window.open(`/api/v1/compliance/analytics/download/${reportId}`, '_blank');
-        }
-
-        // Visibility-aware auto-refresh (every 5 minutes)
-        let refreshInterval = null;
-        function startAutoRefresh() {
-            if (!refreshInterval) {
-                refreshInterval = setInterval(loadAnalyticsData, 5 * 60 * 1000);
-            }
-        }
-        function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                refreshInterval = null;
-            }
-        }
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                stopAutoRefresh();
-            } else {
-                loadAnalyticsData();
-                startAutoRefresh();
-            }
-        });
-        startAutoRefresh();
-    </script>
+    <script src="js/utils.js"></script>
+    <script src="js/analytics.js"></script>
 </body>
 </html>

@@ -153,7 +153,7 @@ class TestRegulatoryReportingEngine:
         )
         with patch.object(engine, '_get_report', new_callable=AsyncMock, return_value=mock_report) as mock_get:
             with patch.object(engine, '_check_regulatory_status', new_callable=AsyncMock,
-                              return_value={"status": "acknowledged"}) as mock_check:
+                              return_value={"success": True, "status": "acknowledged"}) as mock_check:
                 with patch.object(engine, '_store_report', new_callable=AsyncMock) as mock_store:
                     result = await engine.check_report_status("report_123")
                     assert isinstance(result, dict)

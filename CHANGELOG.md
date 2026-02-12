@@ -7,11 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> **Disclaimer:** The features listed below have partial implementations (scaffolding,
-> models, mock endpoints) but are **not yet wired to the running application** as
-> production-ready functionality. They were previously listed under versioned releases
-> but have been moved here to accurately reflect their status. See
-> [docs/roadmap.md](docs/roadmap.md) for the plan to complete them.
+> Milestones M0–M8 are complete. Core API routers are wired to Neo4j and compliance
+> engines; frontend is connected via JWT auth; load testing infrastructure is in place.
+> Items below marked "scaffolded" have code structure but are not yet connected to
+> live external services (blockchain RPC, ML models, third-party APIs).
+> See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### M7 "It scales" — Load Testing & Performance (complete)
+
+- **Locust load test** (`tests/load/locustfile.py`): Auth flow (login → JWT → bearer), read-heavy mix (60/20/10/10), write mix (5/3/2)
+- **Benchmark runner** (`tests/load/run_benchmark.sh`): `dev` (1 replica), `prod` (2 replicas), `ci` (lightweight gate) modes
+- **CI threshold checker** (`tests/load/check_thresholds.py`): Auto-validates p50<50ms, p95<100ms, p99<200ms, error<0.1%, RPS>500
+- **Performance docs** (`docs/performance.md`): Methodology, thresholds, py-spy/memory-profiler instructions, connection pool tuning (asyncpg/Neo4j/Redis), Nginx tuning recommendations, results template
+- **locust 2.24.0** added to `requirements-test.txt`
+
+### M6 Completion — Playwright E2E Test + Auth Enhancements
+
+- **Playwright E2E test** (`tests/e2e/frontend.spec.ts`): Login with seeded admin → dashboard/compliance/analytics/analysis pages load real API data → logout clears session
+- **Playwright config** (`playwright.config.ts`, `package.json`): Chromium project, `npm run test:e2e`
+- **Auth enhancements** (`js/auth.js`): Added `showToast()`, 403 toast notification, 5xx retry-once logic
+- **Nginx CSP**: Added `unpkg.com` to allowed script sources, `connect-src 'self'` for API calls
+
+### Frontend Dashboard (M8 milestone — complete)
+
+#### 🎨 **Professional Dashboard with Dark Mode**
+- **Login page** (`login.html`): JWT auth form → `POST /api/v1/auth/login` → token stored in `localStorage`
+- **Shared auth module** (`js/auth.js`): `getToken()`, `isAuthenticated()`, `logout()`, `fetchWithAuth()`, `fetchJSON()`, auto-redirect on 401
+- **Shared navigation** (`js/nav.js`): Sidebar (desktop) + hamburger (mobile), dark mode toggle, active-page highlighting, user menu, logout
+- **Dark mode**: Tailwind `class` strategy, persisted in `localStorage`, system-preference default
+- **Unified design system**: slate-900/950 dark bg, blue-600 primary, emerald-500 success, amber-500 warning, rose-500 danger
+
+#### 📄 **New Pages**
+- **Analysis** (`analysis.html`): Address/transaction lookup, risk scoring, pattern detection, statistics charts
+- **Intelligence** (`intelligence.html`): Threat alerts CRUD, severity breakdown, intelligence sources list
+- **Reports** (`reports.html`): Report generation, list with download, templates, type/trend charts
+- **Investigations** (`investigations.html`): Investigation CRUD, evidence tracking, status/type charts
+
+#### 🔄 **Rewritten Pages**
+- **Dashboard** (`index.html`): Dark mode, shared nav/auth, Lucide icons, unified card design
+- **Compliance** (`compliance.html`): Dark mode, shared nav/auth, unified design
+- **Analytics** (`analytics.html`): Dark mode card styling, dark-aware text classes
+
+#### ⚙️ **Infrastructure**
+- **Nginx CSP**: Added `cdn.jsdelivr.net`, `cdn.tailwindcss.com`, `fonts.googleapis.com`, `fonts.gstatic.com` to CSP
+- **Nginx routes**: Added `/login`, `/analysis`, `/intelligence`, `/reports`, `/investigations`
+- **JS refactored**: `dashboard.js` and `compliance.js` use `Auth.fetchJSON()` with real API endpoints
+- **CDN standardized**: All pages use Tailwind CSS (cdn.tailwindcss.com), Chart.js 4.4.7, Lucide 0.344.0
 
 ### Testing (M5 milestone — complete)
 
@@ -677,13 +718,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Release Support
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/jackdaw-sentry/issues)
+- **Issues**: [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
 - **Security**: security@jackdawsentry.com
 - **Support**: support@jackdawsentry.com
 
 ### Community
 - **Discord**: [Jackdaw Sentry Discord](https://discord.gg/jackdawsentry)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/jackdaw-sentry/discussions)
+- **Discussions**: [GitHub Discussions](https://github.com/storagebirddrop/jackdaw-sentry/discussions)
 - **Twitter**: [@jackdawsentry](https://twitter.com/jackdawsentry)
 
 ---

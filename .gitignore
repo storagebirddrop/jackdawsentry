@@ -1,327 +1,98 @@
 # =============================================================================
-# Jackdaw Sentry - Git Ignore File
-# Production-Ready Configuration for Blockchain Analysis Platform
-# Protects sensitive data, GDPR compliance, and development artifacts
+# Jackdaw Sentry — .gitignore
 # =============================================================================
 
-# =============================================================================
-# Environment & Configuration (PRODUCTION SECRETS)
-# =============================================================================
+# ── Environment & Secrets ────────────────────────────────────────────────────
 .env
-.env.local
-.env.production
-.env.staging
-.env.dev
-.env.test
+.env.*
+!.env.example
 config/secrets/
 config/local/
 config/production/
 config/staging/
+api_keys.txt
+secrets.txt
+credentials.json
+service_accounts.json
+.auth_tokens
+.jwt_tokens
 
-# =============================================================================
-# Data & Logs (GDPR PROTECTED - NEVER COMMIT)
-# =============================================================================
-data/
-logs/
-*.log
-*.db
-*.sqlite
-*.sqlite3
-app_logs/
-audit_logs/
-error_logs/
-security_logs/
-
-# Blockchain data (can be large and contains sensitive information)
-blockchain_data/
-node_data/
-wallet_data/
-chain_data/
-rpc_data/
-
-# =============================================================================
-# Python Development & Build Artifacts
-# =============================================================================
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Virtual environments
+*.egg-info/
+build/
+dist/
+.Python
+.venv/
 venv/
 env/
-ENV/
-.venv/
-.env/
-.env.bak/
-.env.test/
 site-packages/
 
-# =============================================================================
-# IDE & Editor Configuration
-# =============================================================================
+# ── Testing ──────────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+test_results/
+test_reports/
+
+# ── IDE & Editors ────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 *.sublime-project
 *.sublime-workspace
-.vscode/settings.json
-.vscode/launch.json
-.vscode/extensions.json
 
-# =============================================================================
-# Docker & Container Configuration
-# =============================================================================
-.dockerignore
-docker-compose.override.yml
-docker-compose.prod.yml
-docker-compose.staging.yml
-docker-compose.dev.yml
-docker-compose.override.yml
-.docker/
-.dockerignore
+# ── OS files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+._*
 
-# =============================================================================
-# Frontend Assets (if applicable)
-# =============================================================================
+# ── Node / Frontend ──────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.npm
-.yarn-integrity
 package-lock.json
-yarn.lock
-static/
-public/
-build/
-dist/
 
-# =============================================================================
-# Jupyter Notebook & Research
-# =============================================================================
-.ipynb_checkpoints
-*.ipynb
-jupyter_notebook_config.py
+# ── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml
 
-# =============================================================================
-# Testing & Quality Assurance
-# =============================================================================
-.coverage
-.pytest_cache/
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-test_results/
-test_reports/
-pytest.ini
-.mypy_cache/
-.flake8
-black-cache/
-isort.cfg
+# ── Data, Logs & Runtime (GDPR — never commit) ──────────────────────────────
+data/
+logs/
+uploads/
+exports/
+*.log
+*.log.*
+*.db
+*.sqlite3
+*.pid
+*.sock
 
-# =============================================================================
-# Security & Cryptographic Materials (NEVER COMMIT)
-# =============================================================================
+# ── Security & Cryptographic Material ────────────────────────────────────────
 *.pem
 *.key
 *.crt
+*.csr
 *.p12
 *.pfx
+*.jks
+*.keytab
 ssl/
 certs/
-private_keys/
-wallets/
-mnemonics/
-seed_phrases/
-keystore/
-*.jks
-*.truststore
 
-# =============================================================================
-# Temporary Files & Cache
-# =============================================================================
-tmp/
-temp/
-*.tmp
-*.temp
-.cache/
-*.pid
-*.lock
-*.sock
-*.swp
-*.swo
-.cache/
-.pytest_cache/
-.mypy_cache/
-
-# =============================================================================
-# OS Specific Files
-# =============================================================================
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-desktop.ini
-*.lnk
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDouble
-.LSOverride
-
-# =============================================================================
-# Integration and Intelligence (exclude from version control)
-# =============================================================================
-integration_cache/
-blokbustr_cache/
-amrita_forensics_cache/
-academic_research_cache/
-mcp_cache/
-professional_tools_cache/
-osint_workflows_cache/
-
-# Academic Research
-blocksci_data/
-academic_papers/
-research_data/
-validation_results/
-benchmark_data/
-
-# Forensics Data
-forensics_investigations/
-forensics_evidence/
-forensics_reports/
-educational_modules/
-
-# =============================================================================
-# Compliance and Regulatory Data (GDPR PROTECTED - NEVER COMMIT)
-# =============================================================================
-compliance/
-regulatory_reports/
-case_evidence/
-audit_logs/
-risk_assessments/
-compliance_cache/
-regulatory_data/
-sanctions_lists/
-watchlists/
-training_records/
-certification_records/
-mobile_cache/
-visualization_cache/
-workflow_data/
-export_files/
-backup_files/
-
-# =============================================================================
-# Mobile Application Data (GDPR PROTECTED - NEVER COMMIT)
-# =============================================================================
-mobile_data/
-app_cache/
-offline_data/
-user_preferences/
-notification_settings/
-session_data/
-analytics_cache/
-
-# =============================================================================
-# Training and Education Materials (exclude from container)
-# =============================================================================
-training/
-course_materials/
-certification_records/
-workshop_materials/
-video_tutorials/
-assessment_results/
-training_logs/
-
-# =============================================================================
-# Analytics and Visualization Data (exclude from container)
-# =============================================================================
-analytics_data/
-visualization_cache/
-chart_data/
-report_data/
-dashboard_cache/
-performance_metrics/
-compliance_analytics/
-risk_analytics/
-audit_analytics/
-
-# Compliance Temporary Files
-compliance_temp/
-regulatory_temp/
-audit_temp/
-risk_temp/
-
-# =============================================================================
-# Frontend Development (exclude from version control)
-# =============================================================================
-frontend/dist/
-frontend/build/
-frontend/.next/
-frontend/.nuxt/
-frontend/.cache/
-frontend/.temp/
-frontend/node_modules/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/.DS_Store
-frontend/Thumbs.db
-
-# =============================================================================
-# Analysis & Machine Learning (exclude from version control)
-# =============================================================================
-analysis_cache/
-ml_models/
+# ── ML Models & Large Binaries ───────────────────────────────────────────────
 *.pkl
 *.joblib
 *.h5
@@ -329,311 +100,34 @@ ml_models/
 *.pt
 *.pth
 *.ckpt
-*.model
 *.onnx
 *.tflite
+*.model
+models/
 training_data/
-model_cache/
-ml_cache/
-analysis_results/
-*.analysis
-pattern_cache/
-cluster_cache/
-risk_cache/
 
-# =============================================================================
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# =============================================================================
-# Backup & Archive Files
-# =============================================================================
-*.bak
-*.backup
-*.old
-*.orig
-*.rej
-*.save
-*.tmp
-*.temp
-*.swp
-*.swo
-*~
-
-# =============================================================================
-# Documentation Build & Generated Files
-# =============================================================================
-docs/_build/
-docs/build/
-site/
-.sphinx/
-docs/_static/
-docs/_templates/
-*.mdx
-*.json.gz
-
-# =============================================================================
-# Performance & Profiling Data
-# =============================================================================
+# ── Profiling & Benchmarks ───────────────────────────────────────────────────
 *.prof
 *.profile
-.profiling/
-perf.data/
 flamegraph.svg
 trace.json
 benchmark_results/
+tests/load/results/
 
-# =============================================================================
-# Database Dumps & Backups (GDPR PROTECTED)
-# =============================================================================
-*.dump
-*.sql
-*.sql.gz
-*.sql.bz2
-backups/
-database_backups/
-pg_dump_*
-neo4j_backup_*
-redis_backup_*
-migration_backups/
-
-# =============================================================================
-# Machine Learning Models & Training Data
-# =============================================================================
-models/
-*.pkl
-*.joblib
-*.h5
-*.pb
-*.pt
-*.pth
-*.ckpt
-*.model
-training_data/
-model_cache/
-ml_models/
-*.onnx
-*.tflite
-
-# =============================================================================
-# Compliance & Audit Records (GDPR PROTECTED)
-# =============================================================================
-audit/
-compliance_reports/
-sar_reports/
-investigations/
-case_files/
-gdpr_requests/
-data_subject_requests/
-consent_records/
-deletion_requests/
-access_logs/
-security_incidents/
-
-# =============================================================================
-# API Keys, Tokens & Secrets (NEVER COMMIT)
-# =============================================================================
-api_keys.txt
-secrets.txt
-credentials.json
-.auth_tokens
-.jwt_tokens
-oauth_tokens
-service_accounts.json
-*.keytab
-*.pem
-*.crt
-*.p12
-*.pfx
-
-# =============================================================================
-# Monitoring & Observability Data
-# =============================================================================
-metrics/
-monitoring/
-prometheus_data/
-grafana_data/
-*.metrics
-*.prom
-*.json.monitoring
-alert_data/
-health_checks/
-
-# =============================================================================
-# Local Development & Testing
-# =============================================================================
-local_config/
-dev_data/
-test_data/
-sandbox/
-staging_data/
-integration_tests/
-load_tests/
-stress_tests/
-
-# =============================================================================
-# Legal & Regulatory Documents
-# =============================================================================
-legal_documents/
-regulatory_filings/
-licenses/
-compliance_certificates/
-audit_reports/
-
-# =============================================================================
-# Third-party Dependencies (avoid committing)
-# =============================================================================
-vendor/
-third_party/
-external_libs/
-*.jar
-*.war
-*.ear
-
-# =============================================================================
-# Build Artifacts & Distribution
-# =============================================================================
-target/
-out/
-build/
-dist/
+# ── Archives ─────────────────────────────────────────────────────────────────
 *.tar.gz
 *.zip
-*.deb
-*.rpm
-*.msi
-*.dmg
+*.bz2
+*.7z
 
-# =============================================================================
-# Configuration Files with Sensitive Data
-# =============================================================================
-nginx.conf.ssl
-apache2.conf.ssl
-supervisor.conf
-systemd/
-systemd/user/
-cron.d/
-crontab.*
+# ── Backups ──────────────────────────────────────────────────────────────────
+*.bak
+*.backup
+*.orig
+backups/
+database_backups/
 
-# =============================================================================
-# Log Rotation Archives
-# =============================================================================
-*.log.1
-*.log.2
-*.log.3
-*.log.gz
-*.log.bz2
-access.log*
-error.log*
-audit.log*
-
-# =============================================================================
-# Application Runtime Files
-# =============================================================================
-gunicorn.pid
-uwsgi.pid
-celerybeat.pid
-celeryworker.pid
-*.pid
-*.sock
-*.pid.lock
-
-# =============================================================================
-# Cloud Provider Files
-# =============================================================================
-.aws/
-.azure/
-.gcp/
-.kube/
-*.tfstate
-*.tfstate.*
-.terraform/
-*.tfplan
-cloudformation.yaml
-docker-compose.override.yml
-
-# =============================================================================
-# Database Connection Files
-# =============================================================================
-.pgpass
-.my.cnf
-odbc.ini
-sqlnet.log
-rethinkdb_data/
-
-# =============================================================================
-# SSL/TLS Certificates (Self-signed or Development)
-# =============================================================================
-*.crt
-*.key
-*.csr
-*.pem
-*.p12
-*.pfx
-ssl/
-certs/
-private/
-ca/
-letsencrypt/
-
-# =============================================================================
-# Development Tools Configuration
-# =============================================================================
-.pre-commit-config.yaml
-.pylintrc
-.flake8
-mypy.ini
-pytest.ini
-tox.ini
-setup.cfg
-setup.cfg.bak
-
-# =============================================================================
-# Research & Analysis Output
-# =============================================================================
-research/
-analysis/
-experiments/
-results/
-plots/
-*.pdf
-*.png
-*.jpg
-*.svg
-*.csv
-*.xlsx
-*.json.analysis
-
-# =============================================================================
-# CI/CD Pipeline Artifacts
-# =============================================================================
-.github/workflows/logs/
-.github/workflows/artifacts/
-.gitlab-ci.yml
-.travis.yml
-.circleci/
-bitrise.yml
-
-# =============================================================================
-# Package Manager Lock Files (avoid committing sensitive versions)
-# =============================================================================
-poetry.lock
-Pipfile.lock
-yarn.lock
-package-lock.json
-composer.lock
-Gemfile.lock
-
-# =============================================================================
-# Local Development Overrides
-# =============================================================================
-docker-compose.override.yml
-.env.local.override
-settings.local.py
-local_settings.py
-dev_settings.py
-test_settings.py
+# ── Cache directories ────────────────────────────────────────────────────────
+.cache/
+.mypy_cache/
+.ipynb_checkpoints/

@@ -1,6 +1,8 @@
 SHELL := /bin/bash
 
-.PHONY: dev dev-down compliance compliance-down prod prod-down logs logs-dev logs-prod logs-compliance
+.PHONY: dev dev-down compliance compliance-down prod prod-down \
+       logs logs-dev logs-prod logs-compliance \
+       test lint test-load
 
 dev:
 	docker compose up -d
@@ -38,3 +40,13 @@ logs-prod:
 
 logs-compliance:
 	docker compose -f docker/compliance-compose.yml logs -f --tail=200
+
+# Testing & Quality
+test:
+	pytest -m "not integration" --tb=short -q
+
+lint:
+	flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+test-load:
+	./tests/load/run_benchmark.sh ci

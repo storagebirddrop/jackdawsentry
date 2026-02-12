@@ -19,7 +19,7 @@ We welcome contributions from the crypto compliance and blockchain analysis comm
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Python 3.14+** - Development environment
+- **Python 3.11+** - Development environment
 - **Docker & Docker Compose** - For local development
 - **Git** - Version control
 - **GitHub Account** - For pull requests
@@ -32,7 +32,7 @@ git clone https://github.com/YOUR_USERNAME/jackdaw-sentry.git
 cd jackdaw-sentry
 
 # 2. Add upstream remote
-git remote add upstream https://github.com/yourusername/jackdaw-sentry.git
+git remote add upstream https://github.com/storagebirddrop/jackdaw-sentry.git
 
 # 3. Create a virtual environment
 python3 -m venv venv
@@ -40,14 +40,14 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # 4. Install dependencies
 pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install -r requirements-test.txt
 
 # 5. Set up environment
-cp .env.example .env.dev
-# Edit .env.dev with your configuration
+cp .env.example .env
+# Edit .env with your configuration
 
 # 6. Start development services
-docker-compose -f docker/docker-compose.dev.yml up -d
+docker compose up -d
 
 # 7. Run database migrations
 python -c "
@@ -85,7 +85,7 @@ pre-commit run --all-files
 ### Development Dependencies
 ```bash
 # Install development requirements
-pip install -r requirements-dev.txt
+pip install -r requirements-test.txt
 
 # Key development tools:
 # - pytest: Testing framework

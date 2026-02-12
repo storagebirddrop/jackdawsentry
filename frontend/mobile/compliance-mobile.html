@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Compliance Mobile - Jackdaw Sentry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script src="../js/auth.js"></script>
     <style>
         .mobile-container {
             max-width: 100%;
@@ -87,6 +88,8 @@
     </style>
 </head>
 <body class="bg-gray-50">
+    <script>Auth.requireAuth();</script>
+
     <!-- Mobile Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
         <div class="mobile-container px-4 py-3">
@@ -149,7 +152,7 @@
                     </a>
                     <a href="#analytics" class="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700">
                         <div class="flex items-center">
-                            <i data="lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
                             <span>Analytics</span>
                         </div>
                     </a>
@@ -233,7 +236,7 @@
                             <p class="text-xl font-bold text-gray-900" id="mobileRiskScore">0.45</p>
                         </div>
                         <div class="bg-purple-100 p-2 rounded-full">
-                            <i data="shield" class="w-4 h-4 text-purple-600"></i>
+                            <i data-lucide="shield" class="w-4 h-4 text-purple-600"></i>
                         </div>
                     </div>
                 </div>
@@ -353,7 +356,7 @@
                     <span class="text-xs">Risk</span>
                 </a>
                 <a href="#analytics" class="py-2 text-gray-600 hover:text-blue-600">
-                    <i data="lucide="bar-chart-3" class="w-5 h-5 mx-auto"></i>
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 mx-auto"></i>
                     <span class="text-xs">Analytics</span>
                 </a>
             </div>
@@ -485,12 +488,9 @@
             const timeoutId = setTimeout(() => controller.abort(), 8000);
             try {
                 // Load dashboard data from analytics engine
-                const response = await fetch('/api/v1/compliance/analytics/dashboard', {
-                    signal: controller.signal
-                });
+                var data = await Auth.fetchJSON('/api/v1/compliance/analytics/dashboard');
                 clearTimeout(timeoutId);
-                if (response.ok) {
-                    const data = await response.json();
+                if (data) {
                     updateMobileDashboard(data);
                 }
             } catch (error) {
@@ -500,8 +500,7 @@
                 } else {
                     console.error('Failed to load mobile data:', error);
                 }
-                // Use mock data if API fails or times out
-                updateMobileDashboardWithMockData();
+                console.warn('Mobile data load failed:', error.message);
             }
         }
 
@@ -633,12 +632,10 @@
                 });
 
             // Bottom navigation active state
-            const bottomNav = document.querySelector('.bottom-nav a');
-            bottomNav.forEach(link => {
+            var bottomNavLinks = document.querySelectorAll('.bottom-nav a');
+            bottomNavLinks.forEach(function (link) {
                 link.addEventListener('click', function() {
-                    // Remove active state from all links
-                    bottomNav.forEach(l => l.classList.remove('text-blue-600'));
-                    // Add active state to clicked link
+                    bottomNavLinks.forEach(function (l) { l.classList.remove('text-blue-600'); });
                     this.classList.add('text-blue-600');
                 });
             });

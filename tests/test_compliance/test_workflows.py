@@ -65,6 +65,7 @@ class TestComplianceWorkflows:
             stack.enter_context(patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
             stack.enter_context(patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock))
             stack.enter_context(patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock))
+            stack.enter_context(patch.object(risk_engine, '_trigger_escalation', new_callable=AsyncMock))
             assessment = await risk_engine.create_risk_assessment(
                 entity_id="0xsuspect",
                 entity_type="address",
@@ -181,6 +182,7 @@ class TestComplianceWorkflows:
             stack.enter_context(patch.object(risk_engine, '_check_thresholds', new_callable=AsyncMock, return_value=[]))
             stack.enter_context(patch.object(risk_engine, '_persist_assessment', new_callable=AsyncMock))
             stack.enter_context(patch.object(risk_engine, '_execute_workflow', new_callable=AsyncMock))
+            stack.enter_context(patch.object(risk_engine, '_trigger_escalation', new_callable=AsyncMock))
             assessment = await risk_engine.create_risk_assessment(
                 entity_id="0xtarget", entity_type="address",
                 trigger_type=TriggerType.AUTOMATIC,

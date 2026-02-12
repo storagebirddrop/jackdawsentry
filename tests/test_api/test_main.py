@@ -96,7 +96,7 @@ class TestRouteContract:
         "/api/v1/admin/users",
     ]
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def openapi_schema(self, client):
         """Fetch the OpenAPI schema once per test class."""
         return client.get("/openapi.json").json()

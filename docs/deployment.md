@@ -41,7 +41,7 @@ Complete guide for deploying Jackdaw Sentry in production environments with Dock
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/jackdaw-sentry.git
+git clone https://github.com/storagebirddrop/jackdaw-sentry.git
 cd jackdaw-sentry
 ```
 
@@ -532,7 +532,7 @@ echo "=== Health Check Complete ==="
 - [Roadmap](docs/roadmap.md)
 
 ### Support
-- [GitHub Issues](https://github.com/yourusername/jackdaw-sentry/issues)
+- [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
 - [Discord Community](https://discord.gg/jackdawsentry)
 - [Email Support](support@jackdawsentry.com)
 

@@ -12,8 +12,8 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 ✅ **Structured Logging** — GDPR-compliant JSON logging with audit trail  
 ✅ **Secrets Management** — Cryptographic secrets with generation tooling  
 ⚠️ **Business Logic** — Core routers wired to Neo4j/engines; collectors and ML engines are scaffolded  
-✅ **Testing** — 136 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows)  
-⚠️ **Frontend** — Static HTML placeholders; not connected to API  
+✅ **Testing** — 196 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows, load testing)  
+✅ **Frontend** — 8-page dashboard with dark mode, JWT auth, shared nav, Chart.js visualizations (M8)  
 
 See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 
@@ -29,7 +29,7 @@ See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/jackdaw-sentry.git
+   git clone https://github.com/storagebirddrop/jackdaw-sentry.git
    cd jackdaw-sentry
    ```
 
@@ -213,30 +213,16 @@ docker compose -f docker/compliance-compose.yml up -d
 - **Async Processing**: Scalable asynchronous compliance workflows
 - **Immutable Logging**: Cryptographically secure audit trail with hash chaining
 
-### ⚠️ **Frontend Dashboard — Static Placeholders**
+### ✅ **Frontend Dashboard (M6/M8)**
 
-> The frontend consists of static HTML pages with Chart.js. They are **not connected to the API** and display hardcoded sample data.
+8-page dashboard connected to the live API via JWT authentication:
 
-#### Modern Web Dashboard
-- **Responsive Design**: Mobile-first responsive layout with Tailwind CSS
-- **Real-Time Monitoring**: Live dashboard with WebSocket integration
-- **Interactive Charts**: Chart.js data visualization and analytics
-- **Professional UI**: Modern, intuitive user interface
-- **Multi-Page Navigation**: Seamless navigation between dashboard sections
-
-#### Dashboard Features
-- **Main Dashboard**: Real-time monitoring, transaction volume, risk distribution
-- **Compliance Dashboard**: SAR reporting, regulatory compliance, deadline tracking
-- **Analytics Dashboard**: Comprehensive analytics and reporting capabilities
-- **Intelligence Dashboard**: Threat intelligence and monitoring interface
-- **System Administration**: Configuration and management interface
-
-#### Technical Implementation
-- **Modern Stack**: HTML5, CSS3, JavaScript ES6+, Tailwind CSS
-- **Performance**: Optimized for speed and efficiency
-- **Accessibility**: WCAG compliant design
-- **Security**: XSS protection and secure coding practices
-- **Mobile Support**: Full responsive design for all devices
+- **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Login
+- **Auth**: `auth.js` handles login/logout, JWT storage, `fetchJSON()` with bearer token, 403 toast, 5xx retry
+- **Shared nav**: `nav.js` sidebar with dark mode toggle, active page highlight, logout
+- **Shared utils**: `utils.js` (`JDS` module) for chart colors, stat cards, date formatting, notifications
+- **Charts**: Chart.js with dark-mode-aware color schemes
+- **Stack**: HTML5, Tailwind CSS (CDN), JavaScript ES6+, Lucide icons
 
 ### ⚠️ **Intelligence Integration — Scaffolded**
 
@@ -491,7 +477,7 @@ See [docs/security.md](docs/security.md#-secrets-management) for details.
 
 ## 🧪 Testing
 
-**136 tests passing** (`pytest -m "not integration"` in ~3s):
+**196 tests passing** (`pytest -m "not integration"` in ~3.6s):
 
 | Suite | Tests | Description |
 |---|---|---|
@@ -541,7 +527,7 @@ pytest -m integration
 pip3 install -r requirements.txt
 
 # Set up development environment
-cp .env.example .env.dev
+cp .env.example .env
 
 # Run development server
 uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
@@ -550,8 +536,8 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 ### Code Quality
 - **Type Hints** - Used throughout
 - **Documentation** - Docstrings on public functions
-- **Linting** - Planned (M3/M5)
-- **Testing** - Planned (M5)
+- **Linting** - `flake8` in CI (`make lint`)
+- **Testing** - 196 tests (`make test`)
 
 ## 📚 Documentation
 
@@ -610,7 +596,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ## 🆘 Support
 
 - [Documentation](docs/)
-- [Issue Tracker](https://github.com/yourusername/jackdaw-sentry/issues)
+- [Issue Tracker](https://github.com/storagebirddrop/jackdaw-sentry/issues)
 - [Discord Community](https://discord.gg/jackdawsentry)
 - [Email Support](support@jackdawsentry.com)
 

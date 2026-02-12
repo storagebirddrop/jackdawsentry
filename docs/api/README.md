@@ -4,7 +4,7 @@
 
 RESTful API with ~130 mounted endpoints across 16 routers for blockchain analysis, compliance, investigations, intelligence, reports, admin, analytics, export, monitoring, mobile, visualization, workflows, scheduler, and rate limiting. Core routers are wired to Neo4j and compliance engines.
 
-> **Note:** Sections marked ⚠️ PLANNED are documented for future implementation but are **not currently mounted** in the running application. Their code exists in `src/_experimental/`.
+> **Note:** All 16 routers are mounted and wired to Neo4j or their respective engines. Sections marked ⚠️ SCAFFOLDED have code structure but depend on external services (blockchain RPC, third-party APIs) that are not yet configured.
 
 ## 🚀 Getting Started
 

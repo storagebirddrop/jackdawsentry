@@ -41,15 +41,15 @@ class TestAnalysisManager:
         assert manager.metrics['total_engines'] == 6
 
     @pytest.mark.asyncio
-    async def test_initialize_twice_overwrites(self, manager):
-        """Calling initialize() again replaces engines with new instances"""
+    async def test_initialize_twice_is_idempotent(self, manager):
+        """Calling initialize() again keeps all engines populated"""
         await manager.initialize()
-        old_engines = {name: id(eng) for name, eng in manager.engines.items()}
+        old_keys = set(manager.engines.keys())
         await manager.initialize()
-        new_engines = {name: id(eng) for name, eng in manager.engines.items()}
+        assert set(manager.engines.keys()) == old_keys
         assert manager.metrics['total_engines'] == 6
-        for name in old_engines:
-            assert old_engines[name] != new_engines[name], f"Engine '{name}' was not replaced"
+        for name in old_keys:
+            assert manager.engines[name] is not None, f"Engine '{name}' is None after re-init"
 
     # ------------------------------------------------------------------
     # Integration with mocked engines

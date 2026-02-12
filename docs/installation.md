@@ -20,7 +20,7 @@ Complete installation instructions for Jackdaw Sentry on your local development 
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/jackdaw-sentry.git
+git clone https://github.com/storagebirddrop/jackdaw-sentry.git
 cd jackdaw-sentry
 ```
 
@@ -332,7 +332,7 @@ If you encounter issues during installation:
 1. **Check Logs**: `docker compose logs [service_name]`
 2. **Review FAQ**: See the Troubleshooting section above
 3. **Community Support**: [Discord Server](https://discord.gg/jackdawsentry)
-4. **Report Issues**: [GitHub Issues](https://github.com/yourusername/jackdaw-sentry/issues)
+4. **Report Issues**: [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
 
 ---
 

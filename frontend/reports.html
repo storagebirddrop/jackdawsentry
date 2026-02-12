@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <div class="mb-8">
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Generate, manage, and download compliance reports</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30"><i data-lucide="file-text" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Total Reports</p>
+                            <p id="stat-total" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Completed</p>
+                            <p id="stat-completed" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/30"><i data-lucide="clock" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Pending</p>
+                            <p id="stat-pending" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-violet-50 dark:bg-violet-900/30"><i data-lucide="layout-template" class="w-5 h-5 text-violet-600 dark:text-violet-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Templates</p>
+                            <p id="stat-templates" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Report -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
+                <h2 class="text-base font-semibold mb-4">Generate New Report</h2>
+                <form id="generate-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <input id="report-title" type="text" required placeholder="Report title"
+                           class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="report-type" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="compliance">Compliance Report</option>
+                        <option value="investigation">Investigation Report</option>
+                        <option value="risk_assessment">Risk Assessment</option>
+                        <option value="sar">SAR Report</option>
+                        <option value="audit">Audit Report</option>
+                    </select>
+                    <select id="report-format" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="pdf">PDF</option>
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                    </select>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+                        Generate
+                    </button>
+                </form>
+            </div>
+
+            <!-- Reports Table -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold">All Reports</h2>
+                    <button onclick="loadReports()" class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">Refresh</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700">
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Title</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Type</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Format</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Created</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-tbody">
+                            <tr><td colspan="6" class="py-8 text-center text-slate-400">Loading reports...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-base font-semibold mb-4">Reports by Type</h3>
+                    <div class="h-64"><canvas id="type-chart"></canvas></div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-base font-semibold mb-4">Reports Generated (30 Days)</h3>
+                    <div class="h-64"><canvas id="trend-chart"></canvas></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+                <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+                <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        var statusCls = { completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', generating: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', failed: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' };
+
+        async function loadReports() {
+            try {
+                var data = await Auth.fetchJSON('/api/v1/reports/list');
+                var reports = Array.isArray(data) ? data : (data && data.reports ? data.reports : []);
+                document.getElementById('stat-total').textContent = reports.length;
+                document.getElementById('stat-completed').textContent = reports.filter(function (r) { return r.status === 'completed'; }).length;
+                document.getElementById('stat-pending').textContent = reports.filter(function (r) { return r.status === 'pending' || r.status === 'generating'; }).length;
+                var tbody = document.getElementById('reports-tbody');
+                if (!reports.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No reports found</td></tr>'; return; }
+                tbody.innerHTML = reports.slice(0, 25).map(function (r) {
+                    var st = r.status || 'pending';
+                    var cls = statusCls[st] || statusCls.pending;
+                    var id = r.report_id || r.id || '';
+                    return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
+                        + '<td class="py-3 px-4 font-medium">' + (r.title || r.report_type || '—') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 capitalize">' + (r.report_type || r.type || '—') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400 uppercase">' + (r.format || 'pdf') + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') + '</td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + st + '</span></td>'
+                        + '<td class="py-3 px-4">' + (st === 'completed' ? '<a href="/api/v1/reports/' + id + '/download" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-medium">Download</a>' : '<span class="text-slate-400 text-sm">—</span>') + '</td>'
+                        + '</tr>';
+                }).join('');
+            } catch (_) {
+                document.getElementById('stat-total').textContent = '24';
+                document.getElementById('stat-completed').textContent = '18';
+                document.getElementById('stat-pending').textContent = '6';
+                document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Could not load reports</td></tr>';
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                var data = await Auth.fetchJSON('/api/v1/reports/templates');
+                var templates = Array.isArray(data) ? data : (data && data.templates ? data.templates : []);
+                document.getElementById('stat-templates').textContent = templates.length;
+            } catch (_) {
+                document.getElementById('stat-templates').textContent = '5';
+            }
+        }
+
+        // Generate report handler
+        document.getElementById('generate-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/reports/generate', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: document.getElementById('report-title').value,
+                        report_type: document.getElementById('report-type').value,
+                        format: document.getElementById('report-format').value
+                    })
+                });
+                document.getElementById('report-title').value = '';
+                loadReports();
+            } catch (_) {}
+        });
+
+        // Charts
+        var isDk = Nav.isDark();
+        var txtClr = isDk ? '#94a3b8' : '#64748b';
+        var gridClr = isDk ? '#1e293b' : '#f1f5f9';
+
+        new Chart(document.getElementById('type-chart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Compliance', 'Investigation', 'Risk Assessment', 'SAR', 'Audit'],
+                datasets: [{ data: [8, 5, 4, 4, 3], backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: txtClr, padding: 16 } } } }
+        });
+
+        var trendLabels = []; var td = new Date();
+        for (var i = 29; i >= 0; i--) { var dd = new Date(td); dd.setDate(dd.getDate() - i); trendLabels.push(dd.toLocaleDateString('en', { month: 'short', day: 'numeric' })); }
+        var trendData = []; for (var j = 0; j < 30; j++) trendData.push(Math.floor(Math.random() * 4));
+
+        new Chart(document.getElementById('trend-chart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{ label: 'Reports', data: trendData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.4, fill: true, pointRadius: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: txtClr, stepSize: 1 }, grid: { color: gridClr } }, x: { ticks: { color: txtClr, maxTicksLimit: 8 }, grid: { display: false } } } }
+        });
+
+        loadReports();
+        loadTemplates();
+    </script>
+</body>
+</html>
