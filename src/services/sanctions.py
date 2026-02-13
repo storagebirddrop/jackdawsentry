@@ -7,7 +7,7 @@ crypto addresses in PostgreSQL, and provides screening functions.
 import asyncio
 import logging
 import re
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -138,47 +138,47 @@ async def ingest_ofac_sdn_xml() -> int:
             ns_uri = root.tag.split("}")[0].strip("{")
             ns = {"sdn": ns_uri}
 
-        # Find all DistinctParty entries
-        for party in root.iter():
-            if "DistinctParty" not in party.tag:
-                continue
+        async with pool.acquire() as conn:
+            # Find all DistinctParty entries
+            for party in root.iter():
+                if "DistinctParty" not in party.tag:
+                    continue
 
-            entity_name = ""
-            entity_id = party.attrib.get("FixedRef", "")
-            program = ""
+                entity_name = ""
+                entity_id = party.attrib.get("FixedRef", "")
+                program = ""
 
-            # Extract name
-            for alias in party.iter():
-                if "Alias" in alias.tag:
-                    for doc_val in alias.iter():
-                        if "DocumentedName" in doc_val.tag:
-                            for name_part in doc_val.iter():
-                                if name_part.text and name_part.text.strip():
-                                    entity_name = name_part.text.strip()
-                                    break
-                    if entity_name:
+                # Extract name
+                for alias in party.iter():
+                    if "Alias" in alias.tag:
+                        for doc_val in alias.iter():
+                            if "DocumentedName" in doc_val.tag:
+                                for name_part in doc_val.iter():
+                                    if name_part.text and name_part.text.strip():
+                                        entity_name = name_part.text.strip()
+                                        break
+                        if entity_name:
+                            break
+
+                # Extract sanctions program
+                for profile in party.iter():
+                    if "SanctionsProgram" in profile.tag:
+                        program = profile.text.strip() if profile.text else ""
                         break
 
-            # Extract sanctions program
-            for profile in party.iter():
-                if "SanctionsProgram" in profile.tag:
-                    program = profile.text.strip() if profile.text else ""
-                    break
-
-            # Extract digital currency addresses from Features
-            for feature in party.iter():
-                if "Feature" not in feature.tag:
-                    continue
-                feature_type = feature.attrib.get("FeatureTypeID", "")
-                # FeatureTypeID for "Digital Currency Address" varies;
-                # look for the version value containing the address
-                for version_detail in feature.iter():
-                    if version_detail.text and _looks_like_crypto_address(
-                        version_detail.text.strip()
-                    ):
-                        addr = version_detail.text.strip()
-                        chain = _detect_chain(addr)
-                        async with pool.acquire() as conn:
+                # Extract digital currency addresses from Features
+                for feature in party.iter():
+                    if "Feature" not in feature.tag:
+                        continue
+                    feature_type = feature.attrib.get("FeatureTypeID", "")
+                    # FeatureTypeID for "Digital Currency Address" varies;
+                    # look for the version value containing the address
+                    for version_detail in feature.iter():
+                        if version_detail.text and _looks_like_crypto_address(
+                            version_detail.text.strip()
+                        ):
+                            addr = version_detail.text.strip()
+                            chain = _detect_chain(addr)
                             try:
                                 await conn.execute(
                                     """
@@ -227,25 +227,25 @@ async def ingest_eu_sanctions() -> int:
     try:
         root = ET.fromstring(text)
 
-        for entity in root.iter():
-            tag = entity.tag.split("}")[-1] if "}" in entity.tag else entity.tag
-            if tag != "sanctionEntity":
-                continue
+        async with pool.acquire() as conn:
+            for entity in root.iter():
+                tag = entity.tag.split("}")[-1] if "}" in entity.tag else entity.tag
+                if tag != "sanctionEntity":
+                    continue
 
-            entity_name = ""
-            for name_el in entity.iter():
-                name_tag = name_el.tag.split("}")[-1] if "}" in name_el.tag else name_el.tag
-                if name_tag in ("wholeName", "lastName"):
-                    if name_el.text and name_el.text.strip():
-                        entity_name = name_el.text.strip()
-                        break
+                entity_name = ""
+                for name_el in entity.iter():
+                    name_tag = name_el.tag.split("}")[-1] if "}" in name_el.tag else name_el.tag
+                    if name_tag in ("wholeName", "lastName"):
+                        if name_el.text and name_el.text.strip():
+                            entity_name = name_el.text.strip()
+                            break
 
-            # Search remarks and identification for crypto addresses
-            for el in entity.iter():
-                if el.text and _looks_like_crypto_address(el.text.strip()):
-                    addr = el.text.strip()
-                    chain = _detect_chain(addr)
-                    async with pool.acquire() as conn:
+                # Search remarks and identification for crypto addresses
+                for el in entity.iter():
+                    if el.text and _looks_like_crypto_address(el.text.strip()):
+                        addr = el.text.strip()
+                        chain = _detect_chain(addr)
                         try:
                             await conn.execute(
                                 """
@@ -386,17 +386,18 @@ async def sync_all(requested_by: str = "system") -> Dict[str, Any]:
     pool = get_postgres_pool()
     results: Dict[str, Any] = {}
 
-    for source, coro in [
-        ("ofac_sdn", _sync_ofac(pool)),
-        ("eu_consolidated", _sync_eu(pool)),
-    ]:
+    sync_fns = [
+        ("ofac_sdn", _sync_ofac),
+        ("eu_consolidated", _sync_eu),
+    ]
+    for source, fn in sync_fns:
         try:
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE sanctions_sync_status SET status='running' WHERE source=$1",
                     source,
                 )
-            count = await coro
+            count = await fn()
             async with pool.acquire() as conn:
                 await conn.execute(
                     """
@@ -426,14 +427,14 @@ async def sync_all(requested_by: str = "system") -> Dict[str, Any]:
     return results
 
 
-async def _sync_ofac(pool: asyncpg.Pool) -> int:
+async def _sync_ofac() -> int:
     """OFAC sync: GitHub list + SDN XML."""
     count_gh = await ingest_ofac_github()
     count_xml = await ingest_ofac_sdn_xml()
     return count_gh + count_xml
 
 
-async def _sync_eu(pool: asyncpg.Pool) -> int:
+async def _sync_eu() -> int:
     """EU sanctions sync."""
     return await ingest_eu_sanctions()
 
