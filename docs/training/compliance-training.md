@@ -568,4 +568,4 @@ Each module includes a comprehensive quiz to assess understanding:
 
 **Last Updated**: 2026-02-13
 **Version**: 1.5.0
-**Training Coordinator**: jackdawsentry.support@dawgus.com
+**Training Coordinator**: jackdawsentry.support@dawgus.com — use subject prefix `[TRAINING]`
