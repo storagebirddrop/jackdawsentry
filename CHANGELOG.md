@@ -764,13 +764,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Release Support
 - **Documentation**: [docs/](docs/)
 - **Issues**: [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
-- **Security**: security@jackdawsentry.com
-- **Support**: support@jackdawsentry.com
+- **Security**: jackdawsentry.support@dawgus.com
+- **Support**: jackdawsentry.support@dawgus.com
 
 ### Community
-- **Discord**: [Jackdaw Sentry Discord](https://discord.gg/jackdawsentry)
 - **Discussions**: [GitHub Discussions](https://github.com/storagebirddrop/jackdaw-sentry/discussions)
-- **Twitter**: [@jackdawsentry](https://twitter.com/jackdawsentry)
 
 ---
 

@@ -545,9 +545,7 @@ echo "=== Health Check Complete ==="
 - [Roadmap](docs/roadmap.md)
 
 ### Support
-- [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
-- [Discord Community](https://discord.gg/jackdawsentry)
-- [Email Support](support@jackdawsentry.com)
+- **Email Support**: jackdawsentry.support@dawgus.com
 
 ### Monitoring Tools
 - [Prometheus](https://prometheus.io/) - Metrics collection
@@ -560,4 +558,4 @@ echo "=== Health Check Complete ==="
 **Deployment Version**: v1.0.0  
 **Last Updated**: January 2024  
 **Production Status**: ✅ Fully Production Ready  
-**Support**: deployment@jackdawsentry.com
+**Support**: jackdawsentry.support@dawgus.com

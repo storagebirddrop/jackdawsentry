@@ -876,12 +876,6 @@ class SecurityDashboard:
 - **SELinux** - Security-enhanced Linux
 - **AppArmor** - Application security framework
 
-### Training Resources
-- [OWASP Security Training](https://owasp.org/)
-- [SANS Security Training](https://www.sans.org/)
-- [Cybersecurity Awareness Training](https://www.cisa.gov/)
-- [GDPR Compliance Training](https://gdpr.eu/)
-
 ---
 
 **Last Updated**: February 2025  

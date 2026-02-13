@@ -11,7 +11,7 @@ RESTful API with ~140 routes (including sub-endpoints) across 16 routers for blo
 ### Base URL
 ```
 Development: http://localhost
-Production: https://api.jackdawsentry.com
+Production: https://jackdawsentry.dawgus.com/api
 ```
 
 ### Authentication
@@ -576,25 +576,13 @@ LOG_FILE_PATH=/app/logs
 
 ## 📞 Support & Documentation
 
-### Documentation
-- [API Reference](https://docs.jackdawsentry.com/api) - Complete API documentation
-- [SDK Documentation](https://docs.jackdawsentry.com/sdks) - Client libraries
-- [Deployment Guide](https://docs.jackdawsentry.com/deployment) - Production deployment
-- [Security Guide](https://docs.jackdawsentry.com/security) - Security best practices
-
-### Community Support
-- [Discord Server](https://discord.gg/jackdawsentry) - Real-time support
-- [GitHub Issues](https://github.com/jackdawsentry/api/issues) - Bug reports and feature requests
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/jackdawsentry) - Community Q&A
-
-### Enterprise Support
-- [Email Support](mailto:support@jackdawsentry.com) - Enterprise support
-- [Priority Support](https://jackdawsentry.com/enterprise) - SLA options
-- [Consulting Services](https://jackdawsentry.com/consulting) - Custom integration
+### Support
+- **Email**: [jackdawsentry.support@dawgus.com](mailto:jackdawsentry.support@dawgus.com) - Enterprise support
+- **Consulting Services**: [https://dawgus.com](https://dawgus.com) - Custom integration and consulting
 
 ---
 
 **API Version**: v1.0.0  
 **Last Updated**: January 2024  
 **Production Status**: ✅ Fully Production Ready  
-**Support**: api@jackdawsentry.com
+**Support**: jackdawsentry.support@dawgus.com

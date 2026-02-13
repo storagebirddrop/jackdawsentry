@@ -603,9 +603,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ## 🆘 Support
 
 - [Documentation](docs/)
-- [Issue Tracker](https://github.com/storagebirddrop/jackdaw-sentry/issues)
-- [Discord Community](https://discord.gg/jackdawsentry)
-- [Email Support](support@jackdawsentry.com)
+- **Issues**: [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
+- **Security**: jackdawsentry.support@dawgus.com
+- **Support**: jackdawsentry.support@dawgus.com
 
 ---
 

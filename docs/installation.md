@@ -331,8 +331,7 @@ If you encounter issues during installation:
 
 1. **Check Logs**: `docker compose logs [service_name]`
 2. **Review FAQ**: See the Troubleshooting section above
-3. **Community Support**: [Discord Server](https://discord.gg/jackdawsentry)
-4. **Report Issues**: [GitHub Issues](https://github.com/storagebirddrop/jackdaw-sentry/issues)
+3. **Email Support**: jackdawsentry.support@dawgus.com
 
 ---
 

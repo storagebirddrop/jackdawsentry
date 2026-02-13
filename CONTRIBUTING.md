@@ -23,7 +23,6 @@ We welcome contributions from the crypto compliance and blockchain analysis comm
 - **Docker & Docker Compose** - For local development
 - **Git** - Version control
 - **GitHub Account** - For pull requests
-- **Discord Account** - For community discussion
 
 ### Quick Start
 ```bash
@@ -127,8 +126,7 @@ We are committed to providing a welcoming and inclusive environment for all cont
 
 ### Reporting Issues
 If you experience or witness unacceptable behavior, please contact:
-- **Email**: conduct@jackdawsentry.com
-- **Discord**: Contact moderators directly
+- **Email**: jackdawsentry.support@dawgus.com
 - **GitHub**: Report issues to repository maintainers
 
 ## 📝 Contribution Guidelines
@@ -452,8 +450,9 @@ bump2version major
 ### Contributor Recognition
 - Contributors listed in README.md
 - Featured in release notes
-- Recognition in Discord community
-- Annual contributor awards
+- Recognition in project documentation
+- Contributor status in GitHub
+- Opportunity to shape the project directions
 
 ### Contribution Types
 - **Code Contributions**: Bug fixes, features, refactoring
@@ -466,18 +465,17 @@ bump2version major
 
 ### Resources
 - **Documentation**: [docs/](docs/)
-- **Discord Community**: [Jackdaw Sentry Discord](https://discord.gg/jackdawsentry)
-- **GitHub Issues**: [Issue Tracker](https://github.com/yourusername/jackdaw-sentry/issues)
-- **Email**: dev@jackdawsentry.com
+- **GitHub Issues**: [Issue Tracker](https://github.com/storagebirddrop/jackdaw-sentry/issues)
+- **Email**: jackdawsentry.support@dawgus.com
 
 ### Getting Started Help
-- **New Contributors**: Ask in Discord #new-contributors
-- **Technical Questions**: Ask in Discord #development
-- **Documentation**: Ask in Discord #documentation
-- **General**: Ask in Discord #general
+- **New Contributors**: Create GitHub Issue with "new contributor" label
+- **Technical Questions**: Use GitHub Discussions for technical questions
+- **Documentation**: Report documentation issues via GitHub Issues
+- **General**: Use GitHub Discussions for general questions
 
 ### Code Review Help
-- **First PR**: Request help in Discord #code-review
+- **First PR**: Request review via GitHub PR comment
 - **Complex Changes**: Ask for design review
 - **Security**: Tag @security-team in PR
 - **Performance**: Tag @performance-team in PR
@@ -499,4 +497,4 @@ Thank you for contributing to Jackdaw Sentry! Your contributions help make block
 **Contributing Guide Version**: v1.0.0  
 **Last Updated**: January 2024  
 **Maintainers**: Jackdaw Sentry Team  
-**Contact**: dev@jackdawsentry.com
+**Contact**: jackdawsentry.support@dawgus.com

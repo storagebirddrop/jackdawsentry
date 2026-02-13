@@ -378,8 +378,8 @@ docker compose -f docker/compliance-compose.yml --profile debug up
 ### Support Channels
 - **Issues**: GitHub Issues
 - **Discussions**: GitHub Discussions
-- **Email**: compliance@jackdawsentry.com
-- **Documentation**: https://docs.jackdawsentry.com/compliance
+- **Email**: jackdawsentry.support@dawgus.com
+- **Documentation**: https://jackdawsentry.dawgus.com/docs/compliance
 
 ### Training Resources
 - **Video Tutorials**: Compliance system overview
@@ -406,7 +406,6 @@ docker compose -f docker/compliance-compose.yml --profile debug up
 - [ ] Compliance workflows tested
 - [ ] Performance baseline established
 - [ ] Security audit completed
-- [ ] Training conducted
 - [ ] Support procedures documented
 
 ---
@@ -523,7 +522,6 @@ Risk Levels:
 - [ ] SAR procedures established
 - [ ] Sanctions screening implemented
 - [ ] Record keeping procedures in place
-- [ ] Staff training completed
 - [ ] Independent audit function
 - [ ] Regulatory reporting procedures
 
@@ -575,7 +573,7 @@ Risk Levels:
 - **Data Accuracy**: Accuracy of collected and stored data
 - **Report Quality**: Quality and completeness of generated reports
 - **Audit Compliance**: Adherence to internal and external audit requirements
-- **Training Effectiveness**: Staff competency and knowledge assessment
+- **Staff Competency**: Staff competency and knowledge assessment
 
 ## 🔄 Continuous Improvement
 
@@ -583,7 +581,7 @@ Risk Levels:
 - **Regular Audits**: Internal and external compliance audits
 - **Policy Updates**: Regular review and update of compliance policies
 - **System Enhancements**: Continuous improvement of detection capabilities
-- **Staff Training**: Ongoing training and competency development
+- **Staff Development**: Ongoing competency development
 
 ### Regulatory Updates
 - **Change Management**: Process for implementing regulatory changes
@@ -596,7 +594,6 @@ Risk Levels:
 ### Compliance Resources *(Planned)*
 - Regulatory Guidelines
 - Policy Templates
-- Training Materials — see [Compliance Training](../training/compliance-training.md)
 - Best Practices
 
 ### Technical Support
@@ -608,4 +605,4 @@ Risk Levels:
 ---
 
 **Last Updated**: February 2026
-**Compliance Officer**: compliance@jackdawsentry.com
+**Compliance Officer**: jackdawsentry.support@dawgus.com

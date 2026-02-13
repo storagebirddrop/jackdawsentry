@@ -925,4 +925,4 @@ echo "API Docs: http://localhost:8001/docs"
 
 **Last Updated**: 2024-01-15
 **Version**: 1.5.0
-**For Developers**: dev@jackdawsentry.com
+**For Developers**: jackdawsentry.support@dawgus.com

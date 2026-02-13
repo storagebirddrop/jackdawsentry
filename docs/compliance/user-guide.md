@@ -10,7 +10,7 @@ This guide provides step-by-step instructions for using the Jackdaw Sentry compl
 - Understanding of basic compliance concepts
 
 ### First Login
-1. Navigate to the compliance dashboard: `https://compliance.jackdawsentry.com`
+1. Navigate to the compliance dashboard: `https://jackdawsentry.dawgus.com`
 2. Enter your credentials
 3. Complete two-factor authentication (if enabled)
 4. Review the welcome message and system overview
@@ -365,7 +365,7 @@ Based on assessment results:
 - Follow data handling procedures
 - Maintain confidentiality
 - Report compliance violations
-- Attend security training
+- Follow security best practices
 
 ## 📞 Getting Help
 
@@ -376,16 +376,7 @@ Based on assessment results:
 - **Support Portal**: Submit support requests
 
 ### Contact Support
-- **Email**: compliance@jackdawsentry.com
-- **Phone**: +1-555-COMPLY (during business hours)
-- **Chat**: In-app chat support
-- **Tickets**: Support ticket system
-
-### Training Resources
-- **Online Training**: Self-paced training modules
-- **Workshops**: Live training sessions
-- **Webinars**: Regular educational webinars
-- **Documentation**: Comprehensive documentation library
+- **Email**: jackdawsentry.support@dawgus.com
 
 ## 📋 Quick Reference
 
@@ -415,4 +406,4 @@ Based on assessment results:
 
 **Last Updated**: 2024-01-15
 **Version**: 1.5.0
-**For Support**: compliance@jackdawsentry.com
+**For Support**: jackdawsentry.support@dawgus.com

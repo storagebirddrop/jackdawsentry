@@ -1,5 +1,7 @@
 # Compliance Training Materials
 
+> **📌 Note**: This comprehensive training program is currently under development and coming soon. The structure and curriculum below represent our planned training materials. For current training needs, please contact us directly at jackdawsentry.support@dawgus.com.
+
 This document provides comprehensive training materials for the Jackdaw Sentry compliance system, designed to help users understand and effectively utilize all compliance features.
 
 ## 📚 Training Overview
@@ -543,10 +545,10 @@ Each module includes a comprehensive quiz to assess understanding:
 ## 📞 Training Support
 
 ### Contact Information
-- **Training Coordinator**: training@jackdawsentry.com
-- **Technical Support**: support@jackdawsentry.com
-- **Documentation**: docs@jackdawsentry.com
-- **Community**: community@jackdawsentry.com
+- **Training Coordinator**: jackdawsentry.support@dawgus.com
+- **Technical Support**: jackdawsentry.support@dawgus.com
+- **Documentation**: jackdawsentry.support@dawgus.com
+- **Community**: jackdawsentry.support@dawgus.com
 
 ### Support Hours
 - **Business Hours**: Monday-Friday, 9:00 AM - 5:00 PM CET
@@ -564,4 +566,4 @@ Each module includes a comprehensive quiz to assess understanding:
 
 **Last Updated**: 2024-01-15
 **Version**: 1.5.0
-**Training Coordinator**: compliance-training@jackdawsentry.com
+**Training Coordinator**: jackdawsentry.support@dawgus.com
