@@ -545,10 +545,12 @@ Each module includes a comprehensive quiz to assess understanding:
 ## 📞 Training Support
 
 ### Contact Information
-- **Training Coordinator**: jackdawsentry.support@dawgus.com
-- **Technical Support**: jackdawsentry.support@dawgus.com
-- **Documentation**: jackdawsentry.support@dawgus.com
-- **Community**: jackdawsentry.support@dawgus.com
+- **Training Coordinator**: jackdawsentry.support@dawgus.com — use subject prefix `[TRAINING]`
+- **Technical Support**: jackdawsentry.support@dawgus.com — use subject prefix `[TECHNICAL]`
+- **Documentation**: jackdawsentry.support@dawgus.com — use subject prefix `[DOC]`
+- **Community**: jackdawsentry.support@dawgus.com — use subject prefix `[COMMUNITY]`
+
+> **Note:** All roles share a single mailbox. Please include the appropriate subject-line prefix so your message is routed to the correct team (e.g., `[TRAINING] Request for advanced course schedule`).
 
 ### Support Hours
 - **Business Hours**: Monday-Friday, 9:00 AM - 5:00 PM CET
@@ -564,6 +566,6 @@ Each module includes a comprehensive quiz to assess understanding:
 
 ---
 
-**Last Updated**: 2024-01-15
+**Last Updated**: 2026-02-13
 **Version**: 1.5.0
 **Training Coordinator**: jackdawsentry.support@dawgus.com

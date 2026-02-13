@@ -14,6 +14,28 @@ Development: http://localhost
 Production: https://jackdawsentry.dawgus.com/api
 ```
 
+### ⚠️ Base URL Migration (Breaking Change)
+
+The production base URL has changed from the legacy domain to the new canonical endpoint:
+
+| | URL |
+|---|---|
+| **Old (deprecated)** | `https://api.jackdawsentry.com` |
+| **New (canonical)** | `https://jackdawsentry.dawgus.com/api` |
+
+**Migration steps for API clients:**
+
+1. Replace `https://api.jackdawsentry.com` with `https://jackdawsentry.dawgus.com/api` in all client configurations.
+2. Verify connectivity: `curl -s https://jackdawsentry.dawgus.com/api/v1/health` should return HTTP 200.
+3. Confirm authentication still works with your existing JWT tokens (tokens are valid across both domains during the transition).
+
+**Deprecation timeline:**
+
+- **Now → 2026-04-30**: The old URL `https://api.jackdawsentry.com` will redirect (HTTP 301) to the new endpoint. Clients should update during this window.
+- **2026-05-01**: The old domain will stop responding. All clients **must** use the new URL by this date.
+
+> **Recommended update window:** Update client configurations before **2026-03-31** to allow a full month of testing against the new endpoint before the old domain is retired.
+
 ### Authentication
 All API endpoints require JWT-based authentication with role-based access control.
 

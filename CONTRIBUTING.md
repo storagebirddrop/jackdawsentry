@@ -452,7 +452,7 @@ bump2version major
 - Featured in release notes
 - Recognition in project documentation
 - Contributor status in GitHub
-- Opportunity to shape the project directions
+- Opportunity to shape the project's direction
 
 ### Contribution Types
 - **Code Contributions**: Bug fixes, features, refactoring
