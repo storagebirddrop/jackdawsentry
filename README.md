@@ -224,7 +224,7 @@ docker compose -f docker/compliance-compose.yml up -d
 
 9-page dashboard connected to the live API via JWT authentication:
 
-- **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Login
+- **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Graph Explorer, Login
 - **Auth**: `auth.js` handles login/logout, JWT storage, `fetchJSON()` with bearer token, 403 toast, 5xx retry
 - **Shared nav**: `nav.js` sidebar with dark mode toggle, active page highlight, logout
 - **Shared utils**: `utils.js` (`JDS` module) for chart colors, stat cards, date formatting, notifications

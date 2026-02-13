@@ -353,11 +353,9 @@ _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Cha
 
 - **Harden M9 — unit tests**: Write dedicated unit tests for the new RPC clients (`evm_rpc`, `bitcoin_rpc`), graph router (`expand`, `trace`, `search`, `cluster`), and sanctions service (`screen_address`, `ingest_ofac_github`, `log_screening`). Currently only covered by import/smoke tests. Target: bring test count well above 200.
 - **Docker integration test**: Spin up the full stack (`docker compose up`) and verify the new `/graph` page loads, Cytoscape.js renders an interactive graph, and the sanctions sync background task actually runs against the live OFAC list. Confirm `/api/v1/sanctions/status` reports a successful sync.
-- **Pydantic V2 migration**: The test suite currently shows 233 deprecation warnings from `@validator` → `@field_validator` and `class Config` → `ConfigDict`. This is a cleanup pass that prevents future breakage when Pydantic drops V1 compatibility.
-
 ---
 
-## M10 — "It analyzes" ⏳ IN PROGRESS
+## M10 — "It analyzes" 📋 PLANNED
 
 _Wire the six scaffolded analysis engines to real data, add Solana/Tron/XRPL RPC clients, cross-chain graph visualization, investigation export workflow, and Pydantic V2 migration._
 

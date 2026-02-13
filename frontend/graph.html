@@ -200,17 +200,20 @@
         document.getElementById('btn-expand-node').addEventListener('click', function () {
             if (!selectedNode) return;
             GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'both' })
-                .then(function () { updateStats(); });
+                .then(function () { updateStats(); })
+                .catch(function (err) { console.error('Expand (both) failed:', err); alert('Expand failed — see console for details.'); });
         });
         document.getElementById('btn-expand-in').addEventListener('click', function () {
             if (!selectedNode) return;
             GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'in' })
-                .then(function () { updateStats(); });
+                .then(function () { updateStats(); })
+                .catch(function (err) { console.error('Expand (in) failed:', err); alert('Expand failed — see console for details.'); });
         });
         document.getElementById('btn-expand-out').addEventListener('click', function () {
             if (!selectedNode) return;
             GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'out' })
-                .then(function () { updateStats(); });
+                .then(function () { updateStats(); })
+                .catch(function (err) { console.error('Expand (out) failed:', err); alert('Expand failed — see console for details.'); });
         });
     </script>
 </body>

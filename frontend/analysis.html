@@ -229,13 +229,17 @@
 
         // Init embedded graph
         var _analysisGraphReady = false;
+        var _graphRequestToken = 0;
         function ensureGraph() {
-            if (_analysisGraphReady) return;
+            if (_analysisGraphReady) return true;
             var c = document.getElementById('analysis-graph-canvas');
             if (c && typeof GraphExplorer !== 'undefined') {
-                GraphExplorer.init(c, {});
+                var ok = GraphExplorer.init(c, {});
+                if (ok === false) return false;
                 _analysisGraphReady = true;
+                return true;
             }
+            return false;
         }
 
         // Search handler
@@ -288,21 +292,30 @@
 
             // Expand graph for the searched query
             try {
-                ensureGraph();
-                var graphSection = document.getElementById('graph-section');
-                graphSection.classList.remove('hidden');
-                GraphExplorer.clear();
-                var updateGraphStats = function () {
-                    document.getElementById('analysis-graph-stats').textContent =
-                        GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
-                };
-                var graphPromise = (type === 'address')
-                    ? GraphExplorer.expand(query, blockchain, { direction: 'both' })
-                    : GraphExplorer.trace(query, blockchain, { hops: 2 });
-                graphPromise.then(updateGraphStats).catch(function (err) {
-                    console.error('Graph expansion failed:', err);
-                });
-                lucide.createIcons();
+                if (ensureGraph() === false) {
+                    console.warn('GraphExplorer not available, skipping graph expansion');
+                } else {
+                    var graphSection = document.getElementById('graph-section');
+                    graphSection.classList.remove('hidden');
+                    GraphExplorer.clear();
+                    var token = ++_graphRequestToken;
+                    var updateGraphStats = function () {
+                        if (token !== _graphRequestToken) return;
+                        document.getElementById('analysis-graph-stats').textContent =
+                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+                    };
+                    var graphPromise = (type === 'address')
+                        ? GraphExplorer.expand(query, blockchain, { direction: 'both' })
+                        : GraphExplorer.trace(query, blockchain, { hops: 2 });
+                    graphPromise.then(function () {
+                        if (token !== _graphRequestToken) return;
+                        updateGraphStats();
+                    }).catch(function (err) {
+                        if (token !== _graphRequestToken) return;
+                        console.error('Graph expansion failed:', err);
+                    });
+                    lucide.createIcons();
+                }
             } catch (gErr) {
                 console.error('Graph expansion failed:', gErr);
             }

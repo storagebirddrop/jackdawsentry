@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Investigation save/share/export workflow (PDF, CSV, Excel)
 - Pydantic V2 migration + datetime.utcnow() fixes — implementation pending
 
-### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions
+### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions (complete)
 
 #### M9.1 — RPC Client Layer
 - **Base RPC client** (`src/collectors/rpc/base_rpc.py`): Abstract async client with rate limiting, retries, timeout, and metrics

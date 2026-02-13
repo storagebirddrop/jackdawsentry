@@ -100,7 +100,7 @@ const GraphExplorer = (function () {
 
         if (typeof cytoscape === 'undefined') {
             console.error('GraphExplorer: cytoscape.js not loaded');
-            return;
+            return false;
         }
 
         // Register dagre layout if available
@@ -127,6 +127,8 @@ const GraphExplorer = (function () {
             var data = evt.target.data();
             _showEdgeTooltip(data);
         });
+
+        return true;
     }
 
     /* ------------------------------------------------------------------ */
@@ -220,7 +222,7 @@ const GraphExplorer = (function () {
         });
 
         (edges || []).forEach(function (e, i) {
-            var edgeId = e.id || (e.source + '-' + e.target + '-' + (e.tx_hash || i));
+            var edgeId = e.id || e.tx_hash || (e.source + '-' + e.target + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
             if (_cy.getElementById(edgeId).length === 0 && e.source && e.target) {
                 var val = parseFloat(e.value) || 0;
                 eles.push({

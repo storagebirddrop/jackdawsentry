@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_sanctioned_active ON sanctioned_addresses (remove
 
 -- Screening log: records every screen request for audit trail
 CREATE TABLE IF NOT EXISTS sanctions_screening_log (
-    id              SERIAL PRIMARY KEY,
+    id              BIGSERIAL PRIMARY KEY,
     screened_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     address         TEXT NOT NULL,
     blockchain      TEXT NOT NULL,
@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS sanctions_screening_log (
 
 CREATE INDEX IF NOT EXISTS idx_screening_log_addr ON sanctions_screening_log (address);
 CREATE INDEX IF NOT EXISTS idx_screening_log_time ON sanctions_screening_log (screened_at);
+CREATE INDEX IF NOT EXISTS idx_screening_log_addr_time ON sanctions_screening_log (address, screened_at);
 
 -- Sync metadata: tracks last successful sync per source
 CREATE TABLE IF NOT EXISTS sanctions_sync_status (

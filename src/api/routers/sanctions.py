@@ -149,9 +149,12 @@ async def lookup_address(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Look up a specific address in the sanctions database (no audit log)."""
+    addr = address.strip()
+    if not addr:
+        raise HTTPException(status_code=400, detail="Address parameter must not be empty")
     try:
         blockchain = blockchain.lower() if blockchain else None
-        result = await screen_address(address.strip(), blockchain)
+        result = await screen_address(addr, blockchain)
         return {
             "success": True,
             "result": result,
@@ -178,8 +181,8 @@ async def trigger_sync(
             "timestamp": datetime.now(timezone.utc),
         }
     except Exception as exc:
-        logger.error(f"Sanctions sync failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Sync failed: {str(exc)}")
+        logger.error(f"Sanctions sync failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Sanctions sync failed")
 
 
 @router.get("/status")
@@ -200,8 +203,8 @@ async def sanctions_status(
             "timestamp": datetime.now(timezone.utc),
         }
     except Exception as exc:
-        logger.error(f"Sanctions status failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Status check failed: {str(exc)}")
+        logger.error(f"Sanctions status failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Status check failed")
 
 
 @router.get("/statistics")
@@ -219,16 +222,17 @@ async def sanctions_statistics(
                 "total_sanctioned": sum(counts.values()),
                 "by_source": counts,
                 "last_sync": {
-                    s["source"]: {
+                    s.get("source", "unknown"): {
                         "at": s.get("last_sync_at"),
                         "records": s.get("records_synced", 0),
                         "status": s.get("status", "unknown"),
                     }
                     for s in sync_status
+                    if s.get("source")
                 },
             },
             "timestamp": datetime.now(timezone.utc),
         }
     except Exception as exc:
-        logger.error(f"Sanctions statistics failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Statistics failed: {str(exc)}")
+        logger.error(f"Sanctions statistics failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Statistics failed")

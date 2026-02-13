@@ -80,9 +80,21 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Jackdaw Sentry API...")
     await stop_background_tasks()
     from src.collectors.rpc.factory import close_all_clients
-    await close_all_clients()
-    await close_databases()
-    logger.info("Application shutdown complete")
+    errors = []
+    try:
+        await close_all_clients()
+    except Exception as exc:
+        logger.error(f"Error closing RPC clients: {exc}", exc_info=True)
+        errors.append(exc)
+    try:
+        await close_databases()
+    except Exception as exc:
+        logger.error(f"Error closing databases: {exc}", exc_info=True)
+        errors.append(exc)
+    if errors:
+        logger.warning(f"Shutdown completed with {len(errors)} error(s)")
+    else:
+        logger.info("Application shutdown complete")
 
 
 async def start_background_tasks():

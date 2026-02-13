@@ -144,65 +144,55 @@ async def ingest_ofac_sdn_xml() -> int:
                 if "DistinctParty" not in party.tag:
                     continue
 
-                entity_name = ""
                 entity_id = party.attrib.get("FixedRef", "")
+
+                # Single pass over descendants to collect name, program, and addresses
+                entity_name = ""
                 program = ""
+                addresses: List[Tuple[str, str]] = []  # (addr, chain)
 
-                # Extract name
-                for alias in party.iter():
-                    if "Alias" in alias.tag:
-                        for doc_val in alias.iter():
-                            if "DocumentedName" in doc_val.tag:
-                                for name_part in doc_val.iter():
-                                    if name_part.text and name_part.text.strip():
-                                        entity_name = name_part.text.strip()
-                                        break
-                        if entity_name:
-                            break
+                for child in party.iter():
+                    tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
 
-                # Extract sanctions program
-                for profile in party.iter():
-                    if "SanctionsProgram" in profile.tag:
-                        program = profile.text.strip() if profile.text else ""
-                        break
+                    if not entity_name and tag == "DocumentedName":
+                        for name_part in child.iter():
+                            if name_part.text and name_part.text.strip():
+                                entity_name = name_part.text.strip()
+                                break
 
-                # Extract digital currency addresses from Features
-                for feature in party.iter():
-                    if "Feature" not in feature.tag:
-                        continue
-                    feature_type = feature.attrib.get("FeatureTypeID", "")
-                    # FeatureTypeID for "Digital Currency Address" varies;
-                    # look for the version value containing the address
-                    for version_detail in feature.iter():
-                        if version_detail.text and _looks_like_crypto_address(
-                            version_detail.text.strip()
-                        ):
-                            addr = version_detail.text.strip()
-                            chain = _detect_chain(addr)
-                            try:
-                                await conn.execute(
-                                    """
-                                    INSERT INTO sanctioned_addresses
-                                        (address, blockchain, source, list_name,
-                                         entity_name, entity_id, program, last_seen_at)
-                                    VALUES ($1, $2, 'ofac_sdn', 'SDN Advanced XML',
-                                            $3, $4, $5, NOW())
-                                    ON CONFLICT (address, blockchain, source) DO UPDATE
-                                        SET last_seen_at = NOW(),
-                                            removed_at = NULL,
-                                            entity_name = EXCLUDED.entity_name,
-                                            entity_id = EXCLUDED.entity_id,
-                                            program = EXCLUDED.program
-                                    """,
-                                    addr,
-                                    chain,
-                                    entity_name,
-                                    entity_id,
-                                    program,
-                                )
-                                count += 1
-                            except Exception as exc:
-                                logger.warning(f"OFAC XML upsert failed for {addr}: {exc}")
+                    if not program and tag == "SanctionsProgram":
+                        program = child.text.strip() if child.text else ""
+
+                    if child.text and _looks_like_crypto_address(child.text.strip()):
+                        addr = child.text.strip()
+                        addresses.append((addr, _detect_chain(addr)))
+
+                # Upsert collected addresses
+                for addr, chain in addresses:
+                    try:
+                        await conn.execute(
+                            """
+                            INSERT INTO sanctioned_addresses
+                                (address, blockchain, source, list_name,
+                                 entity_name, entity_id, program, last_seen_at)
+                            VALUES ($1, $2, 'ofac_sdn', 'SDN Advanced XML',
+                                    $3, $4, $5, NOW())
+                            ON CONFLICT (address, blockchain, source) DO UPDATE
+                                SET last_seen_at = NOW(),
+                                    removed_at = NULL,
+                                    entity_name = EXCLUDED.entity_name,
+                                    entity_id = EXCLUDED.entity_id,
+                                    program = EXCLUDED.program
+                            """,
+                            addr,
+                            chain,
+                            entity_name,
+                            entity_id,
+                            program,
+                        )
+                        count += 1
+                    except Exception as exc:
+                        logger.warning(f"OFAC XML upsert failed for {addr}: {exc}")
 
     except ET.ParseError as exc:
         logger.error(f"OFAC SDN XML parse error: {exc}")
@@ -339,11 +329,55 @@ async def screen_address(
 async def screen_addresses_bulk(
     addresses: List[str], blockchain: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    """Screen multiple addresses. Returns a list of screen results."""
+    """Screen multiple addresses with a single DB query.
+
+    Returns a list of screen results in the same order as the input addresses.
+    """
+    cleaned = [a.strip() for a in addresses]
+    pool = get_postgres_pool()
+    now = datetime.now(timezone.utc).isoformat()
+
+    async with pool.acquire() as conn:
+        if blockchain:
+            rows = await conn.fetch(
+                """
+                SELECT address, blockchain, source, list_name,
+                       entity_name, entity_id, program, added_at
+                FROM sanctioned_addresses
+                WHERE address = ANY($1) AND blockchain = $2 AND removed_at IS NULL
+                """,
+                cleaned,
+                blockchain.lower(),
+            )
+        else:
+            rows = await conn.fetch(
+                """
+                SELECT address, blockchain, source, list_name,
+                       entity_name, entity_id, program, added_at
+                FROM sanctioned_addresses
+                WHERE address = ANY($1) AND removed_at IS NULL
+                """,
+                cleaned,
+            )
+
+    # Group matches by address
+    matches_by_addr: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        addr = r["address"]
+        matches_by_addr.setdefault(addr, []).append(dict(r))
+
+    # Build results in input order
     results = []
-    for addr in addresses:
-        result = await screen_address(addr, blockchain)
-        results.append(result)
+    for addr in cleaned:
+        matches = matches_by_addr.get(addr, [])
+        results.append({
+            "address": addr,
+            "blockchain": blockchain,
+            "matched": len(matches) > 0,
+            "match_count": len(matches),
+            "matches": matches,
+            "screened_at": now,
+        })
     return results
 
 

@@ -166,7 +166,7 @@ async def query_blockchain(
         metadata = {
             "query_type": request.query_type,
             "include_details": request.include_details,
-            "data_source": "neo4j",
+            "data_source": data.get("data_source", "neo4j"),
             "processing_time_ms": elapsed_ms,
         }
 
@@ -491,7 +491,8 @@ async def get_address_transactions(
     if blockchain not in get_supported_blockchains():
         raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
 
-    limit = min(limit, 50)
+    limit = min(max(limit, 1), 50)
+    offset = min(max(offset, 0), 10_000)
     start = time.monotonic()
     transactions: List[Dict[str, Any]] = []
     data_source = "neo4j"
