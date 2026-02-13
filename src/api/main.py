@@ -31,6 +31,8 @@ from src.api.routers import (
     visualization,
     scheduler,
     mobile,
+    graph,
+    sanctions,
 )
 from src.api.routers import auth as auth_router
 from src.api.routers import setup as setup_router
@@ -77,6 +79,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Jackdaw Sentry API...")
     await stop_background_tasks()
+    from src.collectors.rpc.factory import close_all_clients
+    await close_all_clients()
     await close_databases()
     logger.info("Application shutdown complete")
 
@@ -112,6 +116,15 @@ async def start_background_tasks():
         logger.error(f"❌ Failed to start analysis engine: {e}")
         # Continue with other tasks even if analysis fails
     
+    # Start sanctions sync background loop
+    try:
+        from src.services.sanctions import sync_all as _sanctions_sync
+        _sanctions_task = asyncio.create_task(_sanctions_sync_loop(_sanctions_sync))
+        tasks.append(_sanctions_task)
+        logger.info("✅ Sanctions sync scheduler started (OFAC 6h / EU 12h)")
+    except Exception as e:
+        logger.error(f"❌ Failed to start sanctions sync scheduler: {e}")
+
     # Store task references for monitoring and cleanup
     if hasattr(start_background_tasks, '_tasks'):
         start_background_tasks._tasks.extend(tasks)
@@ -119,6 +132,22 @@ async def start_background_tasks():
         start_background_tasks._tasks = tasks
     
     logger.info(f"✅ Background tasks started: {len(tasks)} managers running")
+
+
+async def _sanctions_sync_loop(sync_fn, interval_seconds: int = 21600):
+    """Run sanctions sync every *interval_seconds* (default 6 hours).
+
+    First sync fires 60 s after startup to let DB connections settle.
+    """
+    await asyncio.sleep(60)
+    while True:
+        try:
+            logger.info("Sanctions sync: starting scheduled run")
+            result = await sync_fn(requested_by="scheduler")
+            logger.info(f"Sanctions sync complete: {result}")
+        except Exception as exc:
+            logger.error(f"Sanctions sync failed: {exc}")
+        await asyncio.sleep(interval_seconds)
 
 
 async def stop_background_tasks():
@@ -328,6 +357,20 @@ app.include_router(
     blockchain.router,
     prefix="/api/v1/blockchain",
     tags=["Blockchain"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    graph.router,
+    prefix="/api/v1/graph",
+    tags=["Graph"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    sanctions.router,
+    prefix="/api/v1/sanctions",
+    tags=["Sanctions"],
     dependencies=[Depends(get_current_user)]
 )
 

@@ -7,16 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M8 are complete. Core API routers are wired to Neo4j and compliance
+> Milestones M0–M9 are complete. Core API routers are wired to Neo4j and compliance
 > engines; frontend is connected via JWT auth; load testing infrastructure is in place.
+> Live blockchain RPC clients (EVM + Bitcoin) connect to public endpoints.
 > Items below marked "scaffolded" have code structure but are not yet connected to
-> live external services (blockchain RPC, ML models, third-party APIs).
+> live external services (ML models, third-party APIs beyond blockchain RPCs).
 > See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
-### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions (in progress)
+### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions
 
-- **Roadmap**: Added M9 milestone to `docs/roadmap.md` with 14 tasks, design decisions, and gate criteria
-- Live blockchain RPC lookup, Cytoscape.js transaction graph explorer, OFAC/EU sanctions screening — implementation pending
+#### M9.1 — RPC Client Layer
+- **Base RPC client** (`src/collectors/rpc/base_rpc.py`): Abstract async client with rate limiting, retries, timeout, and metrics
+- **EVM RPC client** (`src/collectors/rpc/evm_rpc.py`): `eth_getTransactionByHash`, `eth_getTransactionReceipt`, `eth_getBlockByHash`, `eth_getCode`, `eth_blockNumber`, ERC-20 transfer parsing
+- **Bitcoin RPC client** (`src/collectors/rpc/bitcoin_rpc.py`): Bitcoin Core JSON-RPC with Blockstream API fallback
+- **RPC factory** (`src/collectors/rpc/factory.py`): Cached client instances for all 14 supported chains
+- **Config**: Added `RPC_RATE_LIMIT_PER_MINUTE`, `RPC_REQUEST_TIMEOUT_SECONDS`, `ETHERSCAN_API_KEY`, `BLOCKSTREAM_API_URL`, and `get_blockchain_config()` for all chains
+- **Blockchain router**: Neo4j → live RPC fallback on `/query`; new `GET /{chain}/tx/{hash}`, `GET /{chain}/address/{addr}`, `GET /{chain}/address/{addr}/transactions`
+
+#### M9.2 — Graph Query API
+- **Graph router** (`src/api/routers/graph.py`): `POST /expand`, `POST /trace`, `POST /search`, `GET /address/{addr}/summary`, `POST /cluster`
+- Neo4j variable-length path queries bounded to 500 nodes / depth 5
+- Live RPC fallback when data is not in Neo4j
+- Sanctions enrichment: nodes auto-tagged with `sanctioned: true` via PostgreSQL lookup
+
+#### M9.3 — Frontend Graph Explorer
+- **Shared module** (`frontend/js/graph.js`): Cytoscape.js wrapper — expand, trace, search, export PNG, dagre layout
+- **Standalone page** (`frontend/graph.html`): Full-page graph explorer at `/graph` with search, toolbar, node detail panel
+- **Analysis integration** (`frontend/analysis.html`): Embedded graph tab below search results; auto-expands on address/tx lookup
+- **Navigation**: Added "Graph Explorer" to sidebar (`nav.js`)
+- **Nginx**: Added `/graph` route; CSP updated for `blob:` (PNG export)
+
+#### M9.4 — Sanctions Screening
+- **Sanctions service** (`src/services/sanctions.py`): OFAC SDN (GitHub + XML) and EU Consolidated list ingestion; address screening; audit logging
+- **Migration** (`003_sanctioned_addresses.sql`): `sanctioned_addresses`, `sanctions_screening_log`, `sanctions_sync_status` tables
+- **Sanctions router** (`src/api/routers/sanctions.py`): `POST /screen`, `POST /screen/bulk`, `GET /lookup/{addr}`, `POST /sync` (admin), `GET /status`, `GET /statistics`
+- **Scheduled sync**: Background loop in app lifespan — syncs every 6 hours (60s delay after startup)
+- **Graph integration**: `_enrich_sanctions()` tags graph nodes; Cytoscape.js renders sanctioned nodes with red borders
 
 ### Initial Admin Setup Flow
 

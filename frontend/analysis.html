@@ -6,6 +6,9 @@
     <title>Analysis - Jackdaw Sentry</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
@@ -14,6 +17,7 @@
     </script>
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
+    <script src="js/graph.js"></script>
     <script src="js/utils.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
@@ -88,6 +92,32 @@
                         <p class="text-sm text-slate-400">No patterns detected</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Graph Visualization (expanded after search) -->
+            <div id="graph-section" class="hidden mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                        <h3 class="text-sm font-semibold flex items-center gap-2">
+                            <i data-lucide="git-branch" class="w-4 h-4 text-blue-500"></i> Transaction Graph
+                        </h3>
+                        <div class="flex items-center gap-1">
+                            <span id="graph-loading" class="hidden text-xs text-blue-500 animate-pulse mr-2">Loading…</span>
+                            <span id="analysis-graph-stats" class="text-xs text-slate-500 dark:text-slate-400 mr-3">0 nodes</span>
+                            <button onclick="GraphExplorer.fit()" title="Fit" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="GraphExplorer.exportPNG()" title="Export" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <a href="/graph" title="Open full graph" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div id="analysis-graph-canvas" class="bg-slate-950" style="height:360px;"></div>
+                </div>
+                <div id="graph-edge-info" class="hidden fixed bottom-6 right-6 bg-slate-900 text-slate-200 text-xs rounded-lg px-4 py-3 shadow-lg border border-slate-700 max-w-xs z-50"></div>
             </div>
 
             <!-- Statistics Section -->
@@ -197,6 +227,17 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { color: Nav.isDark() ? '#1e293b' : '#f1f5f9' } }, x: { ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { display: false } } } }
         });
 
+        // Init embedded graph
+        var _analysisGraphReady = false;
+        function ensureGraph() {
+            if (_analysisGraphReady) return;
+            var c = document.getElementById('analysis-graph-canvas');
+            if (c && typeof GraphExplorer !== 'undefined') {
+                GraphExplorer.init(c, {});
+                _analysisGraphReady = true;
+            }
+        }
+
         // Search handler
         document.getElementById('analysis-form').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -243,6 +284,28 @@
                 }
             } catch (err) {
                 console.error('Analysis failed:', err);
+            }
+
+            // Expand graph for the searched query
+            try {
+                ensureGraph();
+                var graphSection = document.getElementById('graph-section');
+                graphSection.classList.remove('hidden');
+                GraphExplorer.clear();
+                if (type === 'address') {
+                    GraphExplorer.expand(query, blockchain, { direction: 'both' }).then(function () {
+                        document.getElementById('analysis-graph-stats').textContent =
+                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+                    });
+                } else {
+                    GraphExplorer.trace(query, blockchain, { hops: 2 }).then(function () {
+                        document.getElementById('analysis-graph-stats').textContent =
+                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+                    });
+                }
+                lucide.createIcons();
+            } catch (gErr) {
+                console.error('Graph expansion failed:', gErr);
             }
         });
     </script>

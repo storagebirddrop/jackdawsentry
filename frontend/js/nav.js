@@ -9,6 +9,7 @@ const Nav = (function () {
     const pages = [
         { href: '/',               icon: 'layout-dashboard', label: 'Dashboard' },
         { href: '/analysis',       icon: 'search',           label: 'Analysis' },
+        { href: '/graph',          icon: 'git-branch',       label: 'Graph Explorer' },
         { href: '/compliance',     icon: 'shield-check',     label: 'Compliance' },
         { href: '/compliance/analytics', icon: 'bar-chart-3', label: 'Analytics' },
         { href: '/intelligence',   icon: 'radar',            label: 'Intelligence' },

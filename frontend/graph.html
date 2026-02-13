@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Explorer - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/graph.js"></script>
+    <style>
+        #graph-canvas { width: 100%; height: 100%; }
+        .graph-toolbar button { transition: all 0.15s ease; }
+        .graph-toolbar button:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
+            <!-- Page Header -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                <div>
+                    <h1 class="text-xl font-bold">Transaction Graph Explorer</h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">Visualise on-chain fund flows — expand, trace, and cluster addresses</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span id="graph-stats">0 nodes · 0 edges</span>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 mb-4">
+                <form id="graph-search-form" class="flex flex-col sm:flex-row gap-3">
+                    <input id="graph-query" type="text" required aria-label="Address or transaction hash"
+                           placeholder="Enter address or tx hash…"
+                           class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    <select id="graph-blockchain" aria-label="Blockchain"
+                            class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="ethereum">Ethereum</option>
+                        <option value="bitcoin">Bitcoin</option>
+                        <option value="bsc">BSC</option>
+                        <option value="polygon">Polygon</option>
+                        <option value="arbitrum">Arbitrum</option>
+                        <option value="base">Base</option>
+                        <option value="avalanche">Avalanche</option>
+                        <option value="solana">Solana</option>
+                        <option value="tron">Tron</option>
+                    </select>
+                    <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors flex items-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4"></i> Search
+                    </button>
+                </form>
+            </div>
+
+            <!-- Toolbar + Canvas -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden" style="height: calc(100vh - 280px); min-height: 480px;">
+                <!-- Toolbar -->
+                <div class="graph-toolbar flex items-center gap-1 px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <button onclick="GraphExplorer.fit()" title="Fit to screen" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="GraphExplorer.clear(); updateStats();" title="Clear graph" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="GraphExplorer.exportPNG()" title="Export PNG" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <div class="flex-1"></div>
+                    <span id="graph-loading" class="hidden text-xs text-blue-500 animate-pulse">Loading…</span>
+                </div>
+
+                <!-- Cytoscape container -->
+                <div id="graph-canvas" class="relative bg-slate-950"></div>
+            </div>
+
+            <!-- Node Detail Panel (shown on click) -->
+            <div id="node-detail" class="hidden mt-4 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <h3 class="text-base font-semibold">Node Detail</h3>
+                    <button onclick="document.getElementById('node-detail').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="node-detail-body" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"></div>
+                <div class="mt-4 flex gap-2">
+                    <button id="btn-expand-node" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors flex items-center gap-2">
+                        <i data-lucide="git-branch" class="w-4 h-4"></i> Expand
+                    </button>
+                    <button id="btn-expand-in" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+                        ← Inbound
+                    </button>
+                    <button id="btn-expand-out" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+                        Outbound →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Edge Tooltip -->
+            <div id="graph-edge-info" class="hidden fixed bottom-6 right-6 bg-slate-900 text-slate-200 text-xs rounded-lg px-4 py-3 shadow-lg border border-slate-700 max-w-xs z-50"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="lg:ml-0 border-t border-slate-200 dark:border-slate-800 mt-auto">
+            <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+                <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+                <div class="flex gap-4">
+                    <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        /* --- Init graph --- */
+        var canvas = document.getElementById('graph-canvas');
+        var selectedNode = null;
+        var selectedChain = 'ethereum';
+
+        GraphExplorer.init(canvas, {
+            onNodeClick: function (data) {
+                selectedNode = data;
+                selectedChain = data.chain || document.getElementById('graph-blockchain').value;
+                showNodeDetail(data);
+            }
+        });
+
+        function updateStats() {
+            document.getElementById('graph-stats').textContent =
+                GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+        }
+
+        /* --- Search --- */
+        document.getElementById('graph-search-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var q = document.getElementById('graph-query').value.trim();
+            var bc = document.getElementById('graph-blockchain').value;
+            if (!q) return;
+            GraphExplorer.search(q, bc).then(function () { updateStats(); });
+        });
+
+        /* --- Node detail panel --- */
+        function showNodeDetail(data) {
+            var panel = document.getElementById('node-detail');
+            var body = document.getElementById('node-detail-body');
+            panel.classList.remove('hidden');
+
+            var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+            var items = [
+                { label: 'Address', value: data.id || '—' },
+                { label: 'Chain', value: data.chain || '—' },
+                { label: 'Type', value: data.type || '—' },
+                { label: 'Balance', value: data.balance != null ? parseFloat(data.balance).toFixed(6) : '—' },
+                { label: 'Transactions', value: data.tx_count != null ? data.tx_count : '—' },
+                { label: 'Risk', value: data.risk != null ? (data.risk * 100).toFixed(0) + '%' : '—' },
+                { label: 'Sanctioned', value: data.sanctioned ? '<span class="text-rose-500 font-bold">YES</span>' : 'No' },
+                { label: 'Label', value: data.label || '—' },
+            ];
+            body.innerHTML = items.map(function (it) {
+                return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
+                     + '<p class="font-medium text-sm break-all">' + it.value + '</p></div>';
+            }).join('');
+            lucide.createIcons();
+
+            // Fetch live summary
+            GraphExplorer.summary(data.id, selectedChain).then(function (res) {
+                if (res && res.summary) {
+                    var s = res.summary;
+                    if (s.balance != null) items[3].value = parseFloat(s.balance).toFixed(6);
+                    if (s.tx_count != null) items[4].value = s.tx_count;
+                    if (s.risk_score != null) items[5].value = (s.risk_score * 100).toFixed(0) + '%';
+                    if (s.sanctioned) items[6].value = '<span class="text-rose-500 font-bold">YES</span>';
+                    body.innerHTML = items.map(function (it) {
+                        return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
+                             + '<p class="font-medium text-sm break-all">' + it.value + '</p></div>';
+                    }).join('');
+                }
+            }).catch(function () { /* silent */ });
+        }
+
+        /* --- Expand buttons --- */
+        document.getElementById('btn-expand-node').addEventListener('click', function () {
+            if (!selectedNode) return;
+            GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'both' })
+                .then(function () { updateStats(); });
+        });
+        document.getElementById('btn-expand-in').addEventListener('click', function () {
+            if (!selectedNode) return;
+            GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'in' })
+                .then(function () { updateStats(); });
+        });
+        document.getElementById('btn-expand-out').addEventListener('click', function () {
+            if (!selectedNode) return;
+            GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'out' })
+                .then(function () { updateStats(); });
+        });
+    </script>
+</body>
+</html>

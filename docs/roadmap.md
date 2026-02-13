@@ -316,20 +316,20 @@ _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Cha
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Lightweight RPC client layer (`src/collectors/rpc/`) — EVM + Bitcoin first, then Solana/Tron/XRPL | ⬚ |
-| 2 | Update blockchain router with Neo4j → live RPC fallback + caching | ⬚ |
-| 3 | New `GET /{chain}/tx/{hash}`, `GET /{chain}/address/{address}` endpoints | ⬚ |
-| 4 | Graph query API (`src/api/routers/graph.py`) — expand, trace, search, cluster endpoints | ⬚ |
-| 5 | Neo4j variable-length path queries for graph traversal (max 500 nodes) | ⬚ |
-| 6 | Frontend graph explorer — Cytoscape.js, standalone `/graph` page | ⬚ |
-| 7 | Graph tab embedded in `/analysis` page (shared `graph.js` module) | ⬚ |
-| 8 | Sanctions service (`src/services/sanctions.py`) — OFAC SDN + EU list ingestion | ⬚ |
-| 9 | PostgreSQL `sanctioned_addresses` table + migration | ⬚ |
-| 10 | Sanctions API (`src/api/routers/sanctions.py`) — screen, lookup, sync endpoints | ⬚ |
-| 11 | Scheduled sanctions sync (OFAC every 6h, EU every 12h) | ⬚ |
-| 12 | Graph + analysis integration — sanctioned address badges, red borders in graph | ⬚ |
-| 13 | Update Nginx routes, nav.js sidebar, CSP for Cytoscape CDN | ⬚ |
-| 14 | Update docs (README, CHANGELOG, deployment guide) | ⬚ |
+| 1 | Lightweight RPC client layer (`src/collectors/rpc/`) — EVM + Bitcoin first, then Solana/Tron/XRPL | ✅ Done |
+| 2 | Update blockchain router with Neo4j → live RPC fallback + caching | ✅ Done |
+| 3 | New `GET /{chain}/tx/{hash}`, `GET /{chain}/address/{address}`, `GET /{chain}/address/{address}/transactions` endpoints | ✅ Done |
+| 4 | Graph query API (`src/api/routers/graph.py`) — expand, trace, search, cluster endpoints | ✅ Done |
+| 5 | Neo4j variable-length path queries for graph traversal (max 500 nodes) | ✅ Done |
+| 6 | Frontend graph explorer — Cytoscape.js, standalone `/graph` page | ✅ Done |
+| 7 | Graph tab embedded in `/analysis` page (shared `graph.js` module) | ✅ Done |
+| 8 | Sanctions service (`src/services/sanctions.py`) — OFAC SDN + EU list ingestion | ✅ Done |
+| 9 | PostgreSQL `sanctioned_addresses` table + migration | ✅ Done |
+| 10 | Sanctions API (`src/api/routers/sanctions.py`) — screen, lookup, sync endpoints | ✅ Done |
+| 11 | Scheduled sanctions sync (OFAC every 6h, EU every 12h) | ✅ Done |
+| 12 | Graph + analysis integration — sanctioned address badges, red borders in graph | ✅ Done |
+| 13 | Update Nginx routes, nav.js sidebar, CSP for Cytoscape CDN | ✅ Done |
+| 14 | Update docs (README, CHANGELOG, deployment guide) | ✅ Done |
 
 ### Privacy & Compliance
 

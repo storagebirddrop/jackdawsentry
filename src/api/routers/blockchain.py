@@ -13,7 +13,9 @@ import time
 from src.api.auth import User, check_permissions, PERMISSIONS
 from src.api.database import get_neo4j_session, get_redis_connection
 from src.api.exceptions import BlockchainException
-from src.api.config import get_supported_blockchains
+from src.api.config import get_supported_blockchains, get_blockchain_config
+from src.collectors.rpc.factory import get_rpc_client
+from src.collectors.base import Transaction, Block, Address
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +94,16 @@ async def query_blockchain(
                     data["from_address"] = rec["from_addr"]
                     data["to_address"] = rec["to_addr"]
                 else:
-                    data["transaction_hash"] = request.identifier
-                    data["note"] = "Transaction not found in database"
+                    # Live RPC fallback
+                    rpc_tx = await _rpc_lookup_transaction(
+                        request.blockchain, request.identifier
+                    )
+                    if rpc_tx:
+                        data.update(_transaction_to_dict(rpc_tx))
+                        data["data_source"] = "live_rpc"
+                    else:
+                        data["transaction_hash"] = request.identifier
+                        data["note"] = "Transaction not found in database or via live RPC"
 
             elif request.query_type == "address":
                 result = await session.run(
@@ -110,9 +120,17 @@ async def query_blockchain(
                     data.update(props)
                     data["transaction_count"] = rec["tx_count"]
                 else:
-                    data["address"] = request.identifier
-                    data["transaction_count"] = 0
-                    data["note"] = "Address not found in database"
+                    # Live RPC fallback
+                    rpc_addr = await _rpc_lookup_address(
+                        request.blockchain, request.identifier
+                    )
+                    if rpc_addr:
+                        data.update(_address_to_dict(rpc_addr))
+                        data["data_source"] = "live_rpc"
+                    else:
+                        data["address"] = request.identifier
+                        data["transaction_count"] = 0
+                        data["note"] = "Address not found in database or via live RPC"
 
             elif request.query_type == "block":
                 result = await session.run(
@@ -347,6 +365,288 @@ async def get_latest_blocks(
             blockchain=blockchain,
             error_code="LATEST_BLOCKS_FAILED",
         )
+
+
+# =============================================================================
+# New direct-lookup endpoints (M9.1)
+# =============================================================================
+
+
+@router.get("/{blockchain}/tx/{tx_hash}")
+async def get_transaction_by_hash(
+    blockchain: str,
+    tx_hash: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
+):
+    """Look up a single transaction by hash.
+
+    Checks Neo4j first; falls back to live RPC if not found.
+    """
+    blockchain = blockchain.lower()
+    if blockchain not in get_supported_blockchains():
+        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+
+    start = time.monotonic()
+
+    # 1. Neo4j lookup
+    async with get_neo4j_session() as session:
+        result = await session.run(
+            """
+            OPTIONAL MATCH (t:Transaction {hash: $id, blockchain: $bc})
+            OPTIONAL MATCH (from_a:Address)-[:SENT]->(t)
+            OPTIONAL MATCH (t)-[:RECEIVED]->(to_a:Address)
+            RETURN t, from_a.address AS from_addr, to_a.address AS to_addr
+            """,
+            id=tx_hash, bc=blockchain,
+        )
+        rec = await result.single()
+
+    if rec and rec["t"]:
+        data = dict(rec["t"])
+        data["from_address"] = rec["from_addr"]
+        data["to_address"] = rec["to_addr"]
+        data["data_source"] = "neo4j"
+    else:
+        # 2. Live RPC fallback
+        tx = await _rpc_lookup_transaction(blockchain, tx_hash)
+        if tx is None:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        data = _transaction_to_dict(tx)
+        data["data_source"] = "live_rpc"
+
+    elapsed_ms = int((time.monotonic() - start) * 1000)
+    return {
+        "success": True,
+        "blockchain": blockchain,
+        "transaction": data,
+        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data.get("data_source", "neo4j")},
+        "timestamp": datetime.now(timezone.utc),
+    }
+
+
+@router.get("/{blockchain}/address/{address}")
+async def get_address(
+    blockchain: str,
+    address: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
+):
+    """Look up address info (balance, tx count, type).
+
+    Checks Neo4j first; falls back to live RPC if not found.
+    """
+    blockchain = blockchain.lower()
+    if blockchain not in get_supported_blockchains():
+        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+
+    start = time.monotonic()
+
+    # 1. Neo4j lookup
+    async with get_neo4j_session() as session:
+        result = await session.run(
+            """
+            OPTIONAL MATCH (a:Address {address: $id, blockchain: $bc})
+            OPTIONAL MATCH (a)-[r:SENT|RECEIVED]-()
+            RETURN a, count(r) AS tx_count
+            """,
+            id=address.lower(), bc=blockchain,
+        )
+        rec = await result.single()
+
+    if rec and rec["a"]:
+        data = dict(rec["a"])
+        data["transaction_count"] = rec["tx_count"]
+        data["data_source"] = "neo4j"
+    else:
+        # 2. Live RPC fallback
+        addr_info = await _rpc_lookup_address(blockchain, address)
+        if addr_info is None:
+            raise HTTPException(status_code=404, detail="Address not found")
+        data = _address_to_dict(addr_info)
+        data["data_source"] = "live_rpc"
+
+    elapsed_ms = int((time.monotonic() - start) * 1000)
+    return {
+        "success": True,
+        "blockchain": blockchain,
+        "address": data,
+        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data.get("data_source", "neo4j")},
+        "timestamp": datetime.now(timezone.utc),
+    }
+
+
+@router.get("/{blockchain}/address/{address}/transactions")
+async def get_address_transactions(
+    blockchain: str,
+    address: str,
+    limit: int = 25,
+    offset: int = 0,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
+):
+    """Paginated transaction history for an address.
+
+    Checks Neo4j first; falls back to live RPC if available.
+    """
+    blockchain = blockchain.lower()
+    if blockchain not in get_supported_blockchains():
+        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+
+    limit = min(limit, 50)
+    start = time.monotonic()
+    transactions: List[Dict[str, Any]] = []
+    data_source = "neo4j"
+
+    # 1. Neo4j lookup
+    async with get_neo4j_session() as session:
+        result = await session.run(
+            """
+            MATCH (a:Address {address: $addr, blockchain: $bc})-[:SENT|RECEIVED]-(t:Transaction)
+            RETURN t ORDER BY t.timestamp DESC SKIP $skip LIMIT $limit
+            """,
+            addr=address.lower(), bc=blockchain, skip=offset, limit=limit,
+        )
+        records = await result.data()
+        transactions = [dict(r["t"]) for r in records]
+
+    # 2. Live RPC fallback if Neo4j returned nothing
+    if not transactions:
+        client = get_rpc_client(blockchain)
+        if client:
+            try:
+                rpc_txs = await client.get_address_transactions(
+                    address, limit=limit, offset=offset
+                )
+                transactions = [_transaction_to_dict(tx) for tx in rpc_txs]
+                data_source = "live_rpc"
+            except Exception as exc:
+                logger.warning(f"RPC address tx lookup failed for {blockchain}: {exc}")
+
+    elapsed_ms = int((time.monotonic() - start) * 1000)
+    return {
+        "success": True,
+        "blockchain": blockchain,
+        "address": address,
+        "transactions": transactions,
+        "count": len(transactions),
+        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data_source, "offset": offset, "limit": limit},
+        "timestamp": datetime.now(timezone.utc),
+    }
+
+
+# =============================================================================
+# RPC fallback helpers
+# =============================================================================
+
+
+async def _rpc_lookup_transaction(
+    blockchain: str, tx_hash: str
+) -> Optional[Transaction]:
+    """Attempt a live RPC lookup for a transaction. Returns None on failure."""
+    client = get_rpc_client(blockchain)
+    if client is None:
+        return None
+    try:
+        tx = await client.get_transaction(tx_hash)
+        if tx:
+            # Cache in Neo4j asynchronously (best-effort)
+            try:
+                await _store_transaction_neo4j(tx)
+            except Exception as exc:
+                logger.debug(f"Neo4j cache-store failed: {exc}")
+        return tx
+    except Exception as exc:
+        logger.warning(f"Live RPC tx lookup failed for {blockchain}/{tx_hash}: {exc}")
+        return None
+
+
+async def _rpc_lookup_address(
+    blockchain: str, address: str
+) -> Optional[Address]:
+    """Attempt a live RPC lookup for address info. Returns None on failure."""
+    client = get_rpc_client(blockchain)
+    if client is None:
+        return None
+    try:
+        return await client.get_address_info(address)
+    except Exception as exc:
+        logger.warning(f"Live RPC address lookup failed for {blockchain}/{address}: {exc}")
+        return None
+
+
+async def _store_transaction_neo4j(tx: Transaction) -> None:
+    """Best-effort cache of a live-fetched transaction into Neo4j."""
+    async with get_neo4j_session() as session:
+        await session.run(
+            """
+            MERGE (t:Transaction {hash: $hash, blockchain: $bc})
+            ON CREATE SET
+                t.value = $value,
+                t.timestamp = $ts,
+                t.block_number = $block_num,
+                t.block_hash = $block_hash,
+                t.gas_used = $gas_used,
+                t.fee = $fee,
+                t.status = $status,
+                t.confirmations = $confirmations,
+                t.fetched_at = datetime()
+            WITH t
+            FOREACH (_ IN CASE WHEN $from_addr <> '' THEN [1] ELSE [] END |
+                MERGE (from_a:Address {address: $from_addr, blockchain: $bc})
+                MERGE (from_a)-[:SENT]->(t)
+            )
+            FOREACH (_ IN CASE WHEN $to_addr IS NOT NULL AND $to_addr <> '' THEN [1] ELSE [] END |
+                MERGE (to_a:Address {address: $to_addr, blockchain: $bc})
+                MERGE (t)-[:RECEIVED]->(to_a)
+            )
+            """,
+            hash=tx.hash,
+            bc=tx.blockchain,
+            value=float(tx.value) if tx.value else 0.0,
+            ts=tx.timestamp.isoformat(),
+            block_num=tx.block_number,
+            block_hash=tx.block_hash,
+            gas_used=tx.gas_used,
+            fee=tx.fee,
+            status=tx.status,
+            confirmations=tx.confirmations,
+            from_addr=tx.from_address or "",
+            to_addr=tx.to_address or "",
+        )
+
+
+def _transaction_to_dict(tx: Transaction) -> Dict[str, Any]:
+    """Convert a Transaction dataclass to a JSON-serializable dict."""
+    return {
+        "hash": tx.hash,
+        "blockchain": tx.blockchain,
+        "from_address": tx.from_address,
+        "to_address": tx.to_address,
+        "value": float(tx.value) if tx.value else 0.0,
+        "timestamp": tx.timestamp.isoformat() if tx.timestamp else None,
+        "block_number": tx.block_number,
+        "block_hash": tx.block_hash,
+        "gas_used": tx.gas_used,
+        "gas_price": tx.gas_price,
+        "fee": tx.fee,
+        "status": tx.status,
+        "confirmations": tx.confirmations,
+        "contract_address": tx.contract_address,
+        "token_transfers": tx.token_transfers,
+    }
+
+
+def _address_to_dict(addr: Address) -> Dict[str, Any]:
+    """Convert an Address dataclass to a JSON-serializable dict."""
+    return {
+        "address": addr.address,
+        "blockchain": addr.blockchain,
+        "balance": float(addr.balance) if addr.balance else 0.0,
+        "transaction_count": addr.transaction_count,
+        "type": addr.type,
+        "risk_score": addr.risk_score,
+        "labels": addr.labels or [],
+        "first_seen": addr.first_seen.isoformat() if addr.first_seen else None,
+        "last_seen": addr.last_seen.isoformat() if addr.last_seen else None,
+    }
 
 
 def blockchain_block_time(blockchain: str) -> int:
