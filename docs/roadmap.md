@@ -349,6 +349,12 @@ _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Cha
 
 **Gate**: (1) `GET /api/v1/blockchain/ethereum/tx/{hash}` returns live RPC data for a tx not in Neo4j; (2) `/graph` page renders interactive Cytoscape.js graph with expand-on-click; (3) Graph tab in `/analysis` shows visual expansion; (4) `POST /api/v1/sanctions/screen` returns match results against synced OFAC list; (5) sanctioned nodes show red border + warning in graph view.
 
+### Pre-M10 TODO (M9 follow-up)
+
+- **Harden M9 — unit tests**: Write dedicated unit tests for the new RPC clients (`evm_rpc`, `bitcoin_rpc`), graph router (`expand`, `trace`, `search`, `cluster`), and sanctions service (`screen_address`, `ingest_ofac_github`, `log_screening`). Currently only covered by import/smoke tests. Target: bring test count well above 200.
+- **Docker integration test**: Spin up the full stack (`docker compose up`) and verify the new `/graph` page loads, Cytoscape.js renders an interactive graph, and the sanctions sync background task actually runs against the live OFAC list. Confirm `/api/v1/sanctions/status` reports a successful sync.
+- **Pydantic V2 migration**: The test suite currently shows 233 deprecation warnings from `@validator` → `@field_validator` and `class Config` → `ConfigDict`. This is a cleanup pass that prevents future breakage when Pydantic drops V1 compatibility.
+
 ---
 
 ## M10 — "It analyzes" ⏳ IN PROGRESS
