@@ -222,7 +222,7 @@ const GraphExplorer = (function () {
         });
 
         (edges || []).forEach(function (e, i) {
-            var edgeId = e.id || e.tx_hash || (e.source + '-' + e.target + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+            var edgeId = e.id || e.tx_hash || (e.source + '|' + e.target + '|' + (e.type || '') + '|' + (e.value || '') + '|' + i);
             if (_cy.getElementById(edgeId).length === 0 && e.source && e.target) {
                 var val = parseFloat(e.value) || 0;
                 eles.push({
