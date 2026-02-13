@@ -353,7 +353,7 @@ async def log_screening(
     matched: bool,
     match_source: Optional[str],
     match_entity: Optional[str],
-    requested_by: str = "system",
+    user_id: Optional[int] = None,
 ) -> None:
     """Record a screening event in the audit log."""
     pool = get_postgres_pool()
@@ -361,15 +361,15 @@ async def log_screening(
         await conn.execute(
             """
             INSERT INTO sanctions_screening_log
-                (address, blockchain, matched, match_source, match_entity, requested_by)
+                (address, blockchain, matched, match_source, match_entity, user_id)
             VALUES ($1, $2, $3, $4, $5, $6)
             """,
             address,
-            blockchain,
+            blockchain or "unknown",
             matched,
             match_source,
             match_entity,
-            requested_by,
+            user_id,
         )
 
 

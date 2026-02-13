@@ -148,7 +148,11 @@
             var q = document.getElementById('graph-query').value.trim();
             var bc = document.getElementById('graph-blockchain').value;
             if (!q) return;
-            GraphExplorer.search(q, bc).then(function () { updateStats(); });
+            GraphExplorer.search(q, bc).then(function () { updateStats(); }).catch(function (err) {
+                console.error('Graph search failed:', err);
+                var statsEl = document.getElementById('graph-stats');
+                if (statsEl) statsEl.textContent = 'Search failed';
+            });
         });
 
         /* --- Node detail panel --- */
@@ -163,14 +167,15 @@
                 { label: 'Chain', value: data.chain || '—' },
                 { label: 'Type', value: data.type || '—' },
                 { label: 'Balance', value: data.balance != null ? parseFloat(data.balance).toFixed(6) : '—' },
-                { label: 'Transactions', value: data.tx_count != null ? data.tx_count : '—' },
+                { label: 'Transactions', value: data.tx_count != null ? String(data.tx_count) : '—' },
                 { label: 'Risk', value: data.risk != null ? (data.risk * 100).toFixed(0) + '%' : '—' },
-                { label: 'Sanctioned', value: data.sanctioned ? '<span class="text-rose-500 font-bold">YES</span>' : 'No' },
+                { label: 'Sanctioned', value: data.sanctioned ? 'YES' : 'No', sanctioned: !!data.sanctioned },
                 { label: 'Label', value: data.label || '—' },
             ];
             body.innerHTML = items.map(function (it) {
+                var valHtml = it.sanctioned ? '<span class="text-rose-500 font-bold">' + esc(it.value) + '</span>' : esc(String(it.value));
                 return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
-                     + '<p class="font-medium text-sm break-all">' + it.value + '</p></div>';
+                     + '<p class="font-medium text-sm break-all">' + valHtml + '</p></div>';
             }).join('');
             lucide.createIcons();
 
@@ -181,13 +186,14 @@
                     if (s.balance != null) items[3].value = parseFloat(s.balance).toFixed(6);
                     if (s.tx_count != null) items[4].value = s.tx_count;
                     if (s.risk_score != null) items[5].value = (s.risk_score * 100).toFixed(0) + '%';
-                    if (s.sanctioned) items[6].value = '<span class="text-rose-500 font-bold">YES</span>';
+                    if (s.sanctioned) { items[6].value = 'YES'; items[6].sanctioned = true; }
                     body.innerHTML = items.map(function (it) {
+                        var valHtml = it.sanctioned ? '<span class="text-rose-500 font-bold">' + esc(it.value) + '</span>' : esc(String(it.value));
                         return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
-                             + '<p class="font-medium text-sm break-all">' + it.value + '</p></div>';
+                             + '<p class="font-medium text-sm break-all">' + valHtml + '</p></div>';
                     }).join('');
                 }
-            }).catch(function () { /* silent */ });
+            }).catch(function (err) { console.error('Live summary fetch failed:', err); });
         }
 
         /* --- Expand buttons --- */

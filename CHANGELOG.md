@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > live external services (ML models, third-party APIs beyond blockchain RPCs).
 > See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
+### 🔄 In Development
+- GraphQL API implementation
+- Advanced ML models
+- Real-time streaming
+- Mobile application support
+
+### M10 "It analyzes" — Analysis Engines, More Chains, Exports & Tech Debt (in progress)
+
+- **Roadmap**: Added M10 milestone to `docs/roadmap.md` with 25 tasks across 6 phases
+- Wire 6 scaffolded analysis engines (pattern detection, cross-chain, mixer, clustering, stablecoin flows, bridge tracker) to real data
+- Add Solana, Tron, XRPL RPC clients
+- Cross-chain graph visualization (bridge hop coloring, entity clustering, time-lapse)
+- Investigation save/share/export workflow (PDF, CSV, Excel)
+- Pydantic V2 migration + datetime.utcnow() fixes — implementation pending
+
 ### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions
 
 #### M9.1 — RPC Client Layer
@@ -710,22 +725,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic security implementation
 - No GDPR compliance
 - Limited scalability
-
----
-
-## [Unreleased]
-
-### 🔄 **In Development**
-- GraphQL API implementation
-- Advanced ML models
-- Real-time streaming
-- Mobile application support
-
-### 🐛 **Bug Fixes**
-- Performance optimizations
-- Security patches
-- UI improvements
-- Documentation updates
 
 ---
 

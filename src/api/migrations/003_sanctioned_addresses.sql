@@ -27,11 +27,11 @@ CREATE TABLE IF NOT EXISTS sanctions_screening_log (
     id              SERIAL PRIMARY KEY,
     screened_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     address         TEXT NOT NULL,
-    blockchain      TEXT,
+    blockchain      TEXT NOT NULL,
     matched         BOOLEAN NOT NULL DEFAULT FALSE,
     match_source    TEXT,                    -- which list matched
     match_entity    TEXT,                    -- entity name if matched
-    requested_by    TEXT,                    -- username or 'system'
+    user_id         BIGINT REFERENCES users(id) ON DELETE SET NULL,  -- FK; NULL = system/automated
     metadata        JSONB DEFAULT '{}'
 );
 

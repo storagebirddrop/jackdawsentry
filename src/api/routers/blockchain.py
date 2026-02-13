@@ -438,6 +438,7 @@ async def get_address(
     if blockchain not in get_supported_blockchains():
         raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
 
+    normalized_address = address.lower()
     start = time.monotonic()
 
     # 1. Neo4j lookup
@@ -448,7 +449,7 @@ async def get_address(
             OPTIONAL MATCH (a)-[r:SENT|RECEIVED]-()
             RETURN a, count(r) AS tx_count
             """,
-            id=address.lower(), bc=blockchain,
+            id=normalized_address, bc=blockchain,
         )
         rec = await result.single()
 
@@ -458,7 +459,7 @@ async def get_address(
         data["data_source"] = "neo4j"
     else:
         # 2. Live RPC fallback
-        addr_info = await _rpc_lookup_address(blockchain, address)
+        addr_info = await _rpc_lookup_address(blockchain, normalized_address)
         if addr_info is None:
             raise HTTPException(status_code=404, detail="Address not found")
         data = _address_to_dict(addr_info)

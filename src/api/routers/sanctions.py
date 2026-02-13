@@ -50,11 +50,12 @@ class BulkScreenRequest(BaseModel):
 
     @validator("addresses")
     def validate_addresses(cls, v):
-        if not v or len(v) == 0:
+        cleaned = [a.strip() for a in (v or []) if a.strip()]
+        if not cleaned:
             raise ValueError("At least one address required")
-        if len(v) > 100:
+        if len(cleaned) > 100:
             raise ValueError("Maximum 100 addresses per bulk screen")
-        return [a.strip() for a in v if a.strip()]
+        return cleaned
 
     @validator("blockchain", pre=True, always=True)
     def validate_blockchain(cls, v):
@@ -88,7 +89,7 @@ async def screen_single(
             matched=result["matched"],
             match_source=match_source,
             match_entity=match_entity,
-            requested_by=current_user.username,
+            user_id=getattr(current_user, 'id', None),
         )
 
         return {
@@ -98,7 +99,7 @@ async def screen_single(
         }
     except Exception as exc:
         logger.error(f"Sanctions screening failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Screening failed: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Screening failed")
 
 
 @router.post("/screen/bulk")
@@ -125,7 +126,7 @@ async def screen_bulk(
                 matched=r["matched"],
                 match_source=match_source,
                 match_entity=match_entity,
-                requested_by=current_user.username,
+                user_id=getattr(current_user, 'id', None),
             )
 
         matched_count = sum(1 for r in results if r["matched"])
@@ -138,7 +139,7 @@ async def screen_bulk(
         }
     except Exception as exc:
         logger.error(f"Bulk sanctions screening failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Bulk screening failed: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Bulk screening failed")
 
 
 @router.get("/lookup/{address}")
@@ -149,6 +150,7 @@ async def lookup_address(
 ):
     """Look up a specific address in the sanctions database (no audit log)."""
     try:
+        blockchain = blockchain.lower() if blockchain else None
         result = await screen_address(address.strip(), blockchain)
         return {
             "success": True,
@@ -157,7 +159,7 @@ async def lookup_address(
         }
     except Exception as exc:
         logger.error(f"Sanctions lookup failed: {exc}")
-        raise HTTPException(status_code=500, detail=f"Lookup failed: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Lookup failed")
 
 
 @router.post("/sync")

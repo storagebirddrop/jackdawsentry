@@ -15,6 +15,7 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 ✅ **Testing** — 196 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows, load testing)  
 ✅ **Frontend** — 9-page dashboard with dark mode, JWT auth, shared nav, Chart.js + Cytoscape.js visualizations  
 ✅ **M9 "It traces"** — Live blockchain RPC (EVM + Bitcoin), Cytoscape.js transaction graph explorer, OFAC/EU sanctions screening  
+⏳ **M10 "It analyzes"** — Wire analysis engines, Solana/Tron/XRPL RPC, cross-chain graph viz, investigation exports, Pydantic V2  
 
 See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 
@@ -74,7 +75,7 @@ docker compose -f docker/compliance-compose.yml up -d
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Nginx Proxy   │    │   FastAPI App    │    │   Background    │
-│  (Load Balancer) │───▶│  (122 Endpoints) │───▶│   Tasks         │
+│  (Load Balancer) │───▶│  (152 Endpoints) │───▶│   Tasks         │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
@@ -84,7 +85,7 @@ docker compose -f docker/compliance-compose.yml up -d
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 API Endpoints (122 Mounted)
+## 📊 API Endpoints (152 Mounted)
 
 ### Core Endpoints
 - `GET /health` - System health check
@@ -221,7 +222,7 @@ docker compose -f docker/compliance-compose.yml up -d
 
 ### ✅ **Frontend Dashboard (M6/M8)**
 
-8-page dashboard connected to the live API via JWT authentication:
+9-page dashboard connected to the live API via JWT authentication:
 
 - **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Login
 - **Auth**: `auth.js` handles login/logout, JWT storage, `fetchJSON()` with bearer token, 403 toast, 5xx retry

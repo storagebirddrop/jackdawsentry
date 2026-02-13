@@ -121,7 +121,7 @@ async def start_background_tasks():
         from src.services.sanctions import sync_all as _sanctions_sync
         _sanctions_task = asyncio.create_task(_sanctions_sync_loop(_sanctions_sync))
         tasks.append(_sanctions_task)
-        logger.info("✅ Sanctions sync scheduler started (OFAC 6h / EU 12h)")
+        logger.info("✅ Sanctions sync scheduler started (every 6h)")
     except Exception as e:
         logger.error(f"❌ Failed to start sanctions sync scheduler: {e}")
 
@@ -156,16 +156,28 @@ async def stop_background_tasks():
         return
     
     logger.info("Stopping background tasks...")
-    
+
+    async_tasks = []
     for task in start_background_tasks._tasks:
         try:
-            if hasattr(task, 'stop_all'):
+            if isinstance(task, asyncio.Task):
+                task.cancel()
+                async_tasks.append(task)
+            elif hasattr(task, 'stop_all'):
                 await task.stop_all()
             elif hasattr(task, 'stop'):
                 await task.stop()
             logger.info(f"✅ Stopped task: {type(task).__name__}")
         except Exception as e:
             logger.error(f"❌ Failed to stop task {type(task).__name__}: {e}")
+
+    if async_tasks:
+        results = await asyncio.gather(*async_tasks, return_exceptions=True)
+        for task, result in zip(async_tasks, results):
+            if isinstance(result, asyncio.CancelledError):
+                logger.info(f"✅ Cancelled async task: {task.get_name()}")
+            elif isinstance(result, Exception):
+                logger.error(f"❌ Async task {task.get_name()} error on cancel: {result}")
     
     start_background_tasks._tasks.clear()
     logger.info("✅ All background tasks stopped")

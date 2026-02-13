@@ -4,7 +4,7 @@ This roadmap captures the remaining work required to reach a genuinely productio
 
 ## How to read this
 
-- **M0–M9**: ten milestones, executed in order.
+- **M0–M10**: eleven milestones, executed in order.
 - Each milestone has a **gate** — a concrete test that proves it is complete.
 - Items reference specific files so work can be tracked at the PR level.
 
@@ -351,10 +351,84 @@ _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Cha
 
 ---
 
+## M10 — "It analyzes" ⏳ IN PROGRESS
+
+_Wire the six scaffolded analysis engines to real data, add Solana/Tron/XRPL RPC clients, cross-chain graph visualization, investigation export workflow, and Pydantic V2 migration._
+
+### Phase 1 — Tech Debt (C)
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Pydantic V2 migration — `@validator` → `@field_validator`, `class Config` → `ConfigDict`, kill all 233 deprecation warnings | ⬚ |
+| 2 | Fix `datetime.utcnow()` deprecations → `datetime.now(timezone.utc)` across entire codebase | ⬚ |
+| 3 | Fix `sanctions.py` `log_screening()` to use `user_id` FK (match migrated `003` schema) | ⬚ |
+
+### Phase 2 — More Chains (C+D)
+
+| # | Task | Status |
+|---|---|---|
+| 4 | Solana RPC client (`src/collectors/rpc/solana_rpc.py`) — `getTransaction`, `getBalance`, `getBlock`, `getSignaturesForAddress` | ⬚ |
+| 5 | Tron RPC client (`src/collectors/rpc/tron_rpc.py`) — `/wallet/gettransactionbyid`, `/wallet/getaccount`, `/v1/accounts/{addr}/transactions` | ⬚ |
+| 6 | XRPL RPC client (`src/collectors/rpc/xrpl_rpc.py`) — `tx`, `account_info`, `account_tx`, `ledger` | ⬚ |
+
+### Phase 3 — Analysis Engines (A)
+
+| # | Task | Status |
+|---|---|---|
+| 7 | Wire `MLPatternDetector.detect_patterns()` into `POST /analysis/address` — return structuring, layering, mixer, bridge-hop, round-amount, off-peak, high-frequency flags | ⬚ |
+| 8 | Wire `CrossChainAnalyzer.analyze_transaction()` into `POST /analysis/transaction` — enrich with bridge/DEX/mixer flags and cross-chain risk | ⬚ |
+| 9 | Computed risk scoring function — replace static `a.risk_score` Neo4j lookups with heuristic combining: sanctions hits, pattern matches, mixer usage, counterparty risk, volume anomalies | ⬚ |
+| 10 | Wire `MixerDetector.analyze_address()` into address analysis — add mixer usage summary (types, amounts, frequencies) | ⬚ |
+| 11 | Wire `MLClusteringEngine` into `POST /graph/cluster` — return typed clusters (exchange, mixer, whale, DeFi, etc.) | ⬚ |
+| 12 | Live RPC enrichment fallback for analysis endpoints — fetch via RPC when address/tx not in Neo4j, then run engines | ⬚ |
+| 13 | New `POST /analysis/address/full` — combined deep analysis: patterns + risk + mixer + clustering + sanctions in one response | ⬚ |
+| 14 | Fix `stablecoin_flows.py` `_get_bridge_contracts` — remove `NotImplementedError`, wire to `CrossChainAnalyzer.bridge_contracts` registry | ⬚ |
+
+### Phase 4 — Cross-Chain & Graph Enhancements (D)
+
+| # | Task | Status |
+|---|---|---|
+| 15 | Cross-chain flow tracing in graph — highlight bridge transfers with colored edges (orange for bridge, purple for DEX, red for mixer) | ⬚ |
+| 16 | Address entity clustering in graph — group addresses by entity type (exchange, whale, etc.) using compound nodes | ⬚ |
+| 17 | Time-lapse animation — timeline slider to replay transaction flow over time | ⬚ |
+| 18 | Frontend `/analysis` page — display pattern badges (structuring, layering, etc.), risk score breakdown chart, mixer warnings | ⬚ |
+
+### Phase 5 — Investigation Workflow (B)
+
+| # | Task | Status |
+|---|---|---|
+| 19 | Save graph investigation to PostgreSQL — `004_investigations_graph.sql` migration: `graph_state JSONB` column on `investigations` | ⬚ |
+| 20 | Share investigation via link — `GET /investigations/{id}/graph` returns saved graph state | ⬚ |
+| 21 | PDF report generation from graph state — wire `ComplianceExportEngine` to produce real PDF with graph snapshot + findings | ⬚ |
+| 22 | CSV/Excel export of screening logs and analysis results — real `openpyxl` export replacing placeholder bytes | ⬚ |
+
+### Phase 6 — Verification
+
+| # | Task | Status |
+|---|---|---|
+| 23 | Unit tests for analysis engine integration, new RPC clients, exports (~60+ new tests) | ⬚ |
+| 24 | M9 unit tests — RPC clients, graph router, sanctions service (~50+ new tests) | ⬚ |
+| 25 | Update docs: roadmap, README, CHANGELOG | ⬚ |
+
+### Design decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| **Risk scoring** | Heuristic-first, ML-ready | Weighted formula combining 6 signals; structured so an ML model can replace the heuristic later |
+| **Pattern detection** | Run on-demand per request | Not background — triggered by analysis API calls; results cached in Redis for 1h |
+| **Export library** | `openpyxl` (Excel) + `reportlab` (PDF) | Both are pure Python, no system deps; already fit Docker build |
+| **Entity clustering** | Heuristic (common-input, exchange detection) | True ML clustering needs labeled training data; heuristic covers 80% of investigator needs |
+| **Time-lapse** | Cytoscape.js animation API | No new library needed; nodes/edges animated by timestamp ordering |
+| **Pydantic migration** | V2 compat mode first | Use `from_attributes=True` and `@field_validator` but keep V1 models working via compat layer |
+
+**Gate**: (1) `POST /analysis/address` returns computed risk score + ≥1 detected pattern for a known address; (2) `POST /analysis/transaction` returns cross-chain flags; (3) Solana, Tron, XRPL RPC clients return live data; (4) Graph explorer shows bridge hops with colored edges; (5) Investigation can be saved and loaded; (6) PDF/CSV export produces real documents; (7) Zero Pydantic V1 deprecation warnings; (8) 250+ tests passing.
+
+---
+
 ## Ordering rationale
 
 ```
-M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cleanup → M9
+M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cleanup → M9 → M10
 ```
 
 - **M0 → M1**: Can't build a Docker image if Python can't import the app.
@@ -366,6 +440,7 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - **M6 → M7**: Load testing requires a working frontend auth flow to generate realistic traffic patterns.
 - **M7 → M8**: UI polish and dark mode require a validated, performant API and frontend auth flow.
 - **M8 → M9**: Live blockchain lookups, graph visualization, and sanctions screening require a polished, authenticated frontend and a proven data layer.
+- **M9 → M10**: Analysis engines need live RPC data and the graph explorer to visualize results; exports need analysis results to export.
 
 ---
 

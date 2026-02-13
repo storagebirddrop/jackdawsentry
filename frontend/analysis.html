@@ -104,10 +104,10 @@
                         <div class="flex items-center gap-1">
                             <span id="graph-loading" class="hidden text-xs text-blue-500 animate-pulse mr-2">Loading…</span>
                             <span id="analysis-graph-stats" class="text-xs text-slate-500 dark:text-slate-400 mr-3">0 nodes</span>
-                            <button onclick="GraphExplorer.fit()" title="Fit" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                            <button onclick="if(window.GraphExplorer&&typeof GraphExplorer.fit==='function')GraphExplorer.fit()" title="Fit" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
                                 <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="GraphExplorer.exportPNG()" title="Export" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                            <button onclick="if(window.GraphExplorer&&typeof GraphExplorer.exportPNG==='function')GraphExplorer.exportPNG()" title="Export" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             </button>
                             <a href="/graph" title="Open full graph" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
@@ -292,17 +292,16 @@
                 var graphSection = document.getElementById('graph-section');
                 graphSection.classList.remove('hidden');
                 GraphExplorer.clear();
-                if (type === 'address') {
-                    GraphExplorer.expand(query, blockchain, { direction: 'both' }).then(function () {
-                        document.getElementById('analysis-graph-stats').textContent =
-                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
-                    });
-                } else {
-                    GraphExplorer.trace(query, blockchain, { hops: 2 }).then(function () {
-                        document.getElementById('analysis-graph-stats').textContent =
-                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
-                    });
-                }
+                var updateGraphStats = function () {
+                    document.getElementById('analysis-graph-stats').textContent =
+                        GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+                };
+                var graphPromise = (type === 'address')
+                    ? GraphExplorer.expand(query, blockchain, { direction: 'both' })
+                    : GraphExplorer.trace(query, blockchain, { hops: 2 });
+                graphPromise.then(updateGraphStats).catch(function (err) {
+                    console.error('Graph expansion failed:', err);
+                });
                 lucide.createIcons();
             } catch (gErr) {
                 console.error('Graph expansion failed:', gErr);

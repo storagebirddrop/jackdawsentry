@@ -219,8 +219,8 @@ const GraphExplorer = (function () {
             }
         });
 
-        (edges || []).forEach(function (e) {
-            var edgeId = e.id || (e.source + '-' + e.target);
+        (edges || []).forEach(function (e, i) {
+            var edgeId = e.id || (e.source + '-' + e.target + '-' + (e.tx_hash || i));
             if (_cy.getElementById(edgeId).length === 0 && e.source && e.target) {
                 var val = parseFloat(e.value) || 0;
                 eles.push({
@@ -303,13 +303,20 @@ const GraphExplorer = (function () {
     function _showEdgeTooltip(data) {
         var el = document.getElementById('graph-edge-info');
         if (!el) return;
-        var lines = [];
-        if (data.tx_hash) lines.push('<b>TX:</b> ' + _shorten(data.tx_hash));
-        if (data.value) lines.push('<b>Value:</b> ' + _formatValue(data.value));
-        if (data.chain) lines.push('<b>Chain:</b> ' + data.chain);
-        if (data.timestamp) lines.push('<b>Time:</b> ' + data.timestamp);
-        if (data.block_number) lines.push('<b>Block:</b> ' + data.block_number);
-        el.innerHTML = lines.join('<br>');
+        el.textContent = '';
+        var rows = [];
+        if (data.tx_hash) rows.push(['TX', _shorten(data.tx_hash)]);
+        if (data.value) rows.push(['Value', _formatValue(data.value)]);
+        if (data.chain) rows.push(['Chain', String(data.chain)]);
+        if (data.timestamp) rows.push(['Time', String(data.timestamp)]);
+        if (data.block_number) rows.push(['Block', String(data.block_number)]);
+        rows.forEach(function (r, idx) {
+            if (idx > 0) el.appendChild(document.createElement('br'));
+            var b = document.createElement('b');
+            b.textContent = r[0] + ': ';
+            el.appendChild(b);
+            el.appendChild(document.createTextNode(r[1]));
+        });
         el.classList.remove('hidden');
         setTimeout(function () { el.classList.add('hidden'); }, 5000);
     }
