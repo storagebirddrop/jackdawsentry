@@ -19,6 +19,13 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 
 See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
 
+## 💝 Support My Work
+
+If you find my projects helpful, consider sending a Lightning tip:
+
+⚡ **stupiddrone987@minibits.cash**
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
