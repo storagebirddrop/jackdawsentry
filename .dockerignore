@@ -1,0 +1,87 @@
+# =============================================================================
+# Jackdaw Sentry — .dockerignore
+# Keep only what the production image needs: src/, frontend/, requirements.txt,
+# docker/, scripts/, config templates, and essential docs.
+# =============================================================================
+
+# ── Version control ──────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+.editorconfig
+
+# ── Development & Testing ────────────────────────────────────────────────────
+tests/
+pytest.ini
+.coverage
+.pytest_cache/
+htmlcov/
+.venv/
+venv/
+node_modules/
+package.json
+package-lock.json
+playwright.config.ts
+
+# ── IDE & OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Documentation (except README) ───────────────────────────────────────────
+docs/
+CONTRIBUTING.md
+CHANGELOG.md
+LICENSE
+*.md
+!README.md
+
+# ── CI/CD ────────────────────────────────────────────────────────────────────
+.github/
+
+# ── Environment secrets (injected at runtime) ───────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Data & Logs (mounted as volumes) ────────────────────────────────────────
+data/
+logs/
+uploads/
+exports/
+*.log
+
+# ── Python build artifacts ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# ── Profiling & Benchmarks ──────────────────────────────────────────────────
+*.prof
+*.profile
+flamegraph.svg
+benchmark_results/
+
+# ── Security material ───────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+ssl/
+certs/
+
+# ── Large / binary files ────────────────────────────────────────────────────
+*.pkl
+*.h5
+*.pt
+*.onnx
+models/
+training_data/
+*.tar.gz
+*.zip

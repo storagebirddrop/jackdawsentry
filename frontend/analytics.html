@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Analytics Dashboard - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .metric-card {
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .insight-card {
+            border-left: 4px solid #3b82f6;
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+        }
+        .recommendation-card {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(to right, #ecfdf5, #ffffff);
+        }
+        .alert-card {
+            border-left: 4px solid #f59e0b;
+            background: linear-gradient(to right, #fef3c7, #ffffff);
+        }
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Compliance analytics and reporting</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <select id="reportPeriod" class="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="daily">Daily</option>
+                    <option value="weekly" selected>Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annual">Annual</option>
+                </select>
+                <button onclick="generateReport()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    Generate Report
+                </button>
+            </div>
+        </div>
+        <!-- Key Metrics -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">Key Performance Metrics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- SAR Reports -->
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">SAR Reports</p>
+                            <p class="text-2xl font-bold" id="sarCount">156</p>
+                            <p class="text-sm text-green-600">+12% from last period</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <i data-lucide="file-text" class="w-6 h-6 text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Cases -->
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active Cases</p>
+                            <p class="text-2xl font-bold" id="activeCases">42</p>
+                            <p class="text-sm text-red-600">+8% from last period</p>
+                        </div>
+                        <div class="bg-orange-100 p-3 rounded-full">
+                            <i data-lucide="briefcase" class="w-6 h-6 text-orange-600"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance Score -->
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Compliance Score</p>
+                            <p class="text-2xl font-bold" id="complianceScore">87.5%</p>
+                            <p class="text-sm text-green-600">+2.3% from last period</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Level -->
+                <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Avg Risk Score</p>
+                            <p class="text-2xl font-bold" id="riskScore">0.45</p>
+                            <p class="text-sm text-green-600">-0.08 from last period</p>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <i data-lucide="shield" class="w-6 h-6 text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">Analytics Overview</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- SAR Reports Trend -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">SAR Reports Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="sarTrendChart" aria-label="SAR Reports Trend showing daily report counts" aria-describedby="sarTrendChartDesc"></canvas>
+                        <div id="sarTrendChartDesc" class="visually-hidden">Line chart displaying the number of SAR reports filed per day over the selected period.</div>
+                    </div>
+                </div>
+
+                <!-- Risk Distribution -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Risk Level Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="riskDistributionChart" aria-label="Risk Level Distribution showing proportion of risk categories" aria-describedby="riskDistChartDesc"></canvas>
+                        <div id="riskDistChartDesc" class="visually-hidden">Doughnut chart showing the distribution of risk levels across all assessed entities.</div>
+                    </div>
+                </div>
+
+                <!-- Compliance Score Trend -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Compliance Score Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="complianceScoreChart" aria-label="Compliance Score Trend over time" aria-describedby="compScoreChartDesc"></canvas>
+                        <div id="compScoreChartDesc" class="visually-hidden">Line chart tracking the overall compliance score percentage over the selected period.</div>
+                    </div>
+                </div>
+
+                <!-- Case Management -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Case Management Metrics</h3>
+                    <div class="chart-container">
+                        <canvas id="caseManagementChart" aria-label="Case Management Metrics showing case counts by status" aria-describedby="caseMgmtChartDesc"></canvas>
+                        <div id="caseMgmtChartDesc" class="visually-hidden">Bar chart displaying the number of cases grouped by status: open, in progress, and closed.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Insights and Recommendations -->
+        <section class="mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Key Insights -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-4">Key Insights</h3>
+                    <div class="space-y-4" id="insightsContainer">
+                        <div class="insight-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• High SAR report volume detected: 25 reports submitted</p>
+                        </div>
+                        <div class="insight-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Excellent compliance performance maintained</p>
+                        </div>
+                        <div class="insight-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Risk levels within acceptable range</p>
+                        </div>
+                        <div class="insight-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Weekly analysis shows steady compliance operations</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-4">Recommendations</h3>
+                    <div class="space-y-4" id="recommendationsContainer">
+                        <div class="recommendation-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Consider implementing automated monitoring for multiple compliance areas</p>
+                        </div>
+                        <div class="recommendation-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Optimize workflows to reduce processing times</p>
+                        </div>
+                        <div class="recommendation-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Schedule quarterly compliance review with senior management</p>
+                        </div>
+                        <div class="recommendation-card p-4 rounded">
+                            <p class="text-sm text-slate-600 dark:text-slate-300">• Update compliance policies based on quarterly findings</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Active Alerts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="alertsContainer">
+                <div class="alert-card p-4 rounded">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mr-2"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">High Risk Cases</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">12 cases require attention</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card p-4 rounded">
+                    <div class="flex items-center">
+                        <i data-lucide="clock" class="w-5 h-5 text-yellow-600 mr-2"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">Upcoming Deadlines</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">8 deadlines in next 7 days</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-card p-4 rounded">
+                    <div class="flex items-center">
+                        <i data-lucide="file-x" class="w-5 h-5 text-red-600 mr-2"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-900 dark:text-white">Overdue Reports</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">3 reports past deadline</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Metrics -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Performance Metrics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">Processing Time</h3>
+                    <div class="flex items-center justify-between">
+                        <span id="perfProcessingTime" class="text-2xl font-bold text-slate-900 dark:text-white">2.3 min</span>
+                        <span id="perfProcessingDelta" class="text-sm text-green-600">-15% improvement</span>
+                    </div>
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div id="perfProcessingBar" class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">System Health</h3>
+                    <div class="flex items-center justify-between">
+                        <span id="perfSystemHealth" class="text-2xl font-bold text-slate-900 dark:text-white">92.5%</span>
+                        <span id="perfSystemHealthLabel" class="text-sm text-green-600">Excellent</span>
+                    </div>
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div id="perfSystemHealthBar" class="bg-green-500 h-2 rounded-full" style="width: 92.5%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-md font-medium mb-4">User Satisfaction</h3>
+                    <div class="flex items-center justify-between">
+                        <span id="perfUserSatisfaction" class="text-2xl font-bold text-slate-900 dark:text-white">87.3%</span>
+                        <span id="perfUserSatisfactionDelta" class="text-sm text-yellow-600">+2.1% this month</span>
+                    </div>
+                    <div class="mt-2 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                        <div id="perfUserSatisfactionBar" class="bg-yellow-500 h-2 rounded-full" style="width: 87.3%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+            <div class="flex gap-4">
+                <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+            </div>
+        </div>
+    </footer>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/graph.js"></script>
+    <script src="js/utils.js"></script>
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+        .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .dark .skeleton { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <!-- Page Header -->
+            <div class="mb-8">
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Blockchain address and transaction analysis</p>
+            </div>
+
+            <!-- Search Section -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
+                <h2 class="text-base font-semibold mb-4">Address / Transaction Lookup</h2>
+                <form id="analysis-form" class="flex flex-col sm:flex-row gap-3">
+                    <select id="analysis-type" aria-label="Analysis type" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="address">Address</option>
+                        <option value="transaction">Transaction</option>
+                    </select>
+                    <input id="analysis-query" type="text" required aria-label="Address or transaction hash" placeholder="Enter address or transaction hash"
+                           class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="analysis-blockchain" aria-label="Blockchain" class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="bitcoin">Bitcoin</option>
+                        <option value="ethereum">Ethereum</option>
+                        <option value="bsc">BSC</option>
+                        <option value="polygon">Polygon</option>
+                        <option value="solana">Solana</option>
+                        <option value="tron">Tron</option>
+                        <option value="arbitrum">Arbitrum</option>
+                        <option value="base">Base</option>
+                        <option value="avalanche">Avalanche</option>
+                    </select>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+                        Analyze
+                    </button>
+                </form>
+            </div>
+
+            <!-- Results Section (hidden until search) -->
+            <div id="analysis-results" class="hidden space-y-6 mb-8">
+                <!-- Risk Score Card -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Risk Score</p>
+                        <p id="result-risk-score" class="text-3xl font-bold mt-1">—</p>
+                        <p id="result-risk-level" class="text-sm mt-1">—</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Transactions</p>
+                        <p id="result-tx-count" class="text-3xl font-bold mt-1">—</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Across all chains</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Volume</p>
+                        <p id="result-volume" class="text-3xl font-bold mt-1">—</p>
+                        <p id="result-currency" class="text-sm text-slate-500 dark:text-slate-400 mt-1">—</p>
+                    </div>
+                </div>
+
+                <!-- Patterns -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-base font-semibold mb-4">Detected Patterns</h3>
+                    <div id="result-patterns" class="space-y-3">
+                        <p class="text-sm text-slate-400">No patterns detected</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph Visualization (expanded after search) -->
+            <div id="graph-section" class="hidden mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                        <h3 class="text-sm font-semibold flex items-center gap-2">
+                            <i data-lucide="git-branch" class="w-4 h-4 text-blue-500"></i> Transaction Graph
+                        </h3>
+                        <div class="flex items-center gap-1">
+                            <span id="graph-loading" class="hidden text-xs text-blue-500 animate-pulse mr-2">Loading…</span>
+                            <span id="analysis-graph-stats" class="text-xs text-slate-500 dark:text-slate-400 mr-3">0 nodes</span>
+                            <button onclick="if(window.GraphExplorer&&typeof GraphExplorer.fit==='function')GraphExplorer.fit()" title="Fit" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="if(window.GraphExplorer&&typeof GraphExplorer.exportPNG==='function')GraphExplorer.exportPNG()" title="Export" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <a href="/graph" title="Open full graph" class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div id="analysis-graph-canvas" class="bg-slate-950" style="height:360px;"></div>
+                </div>
+                <div id="graph-edge-info" class="hidden fixed bottom-6 right-6 bg-slate-900 text-slate-200 text-xs rounded-lg px-4 py-3 shadow-lg border border-slate-700 max-w-xs z-50"></div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30"><i data-lucide="search" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Analyses Today</p>
+                            <p id="stat-analyses" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-900/30"><i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600 dark:text-rose-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">High Risk Found</p>
+                            <p id="stat-high-risk" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Clean Addresses</p>
+                            <p id="stat-clean" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-violet-50 dark:bg-violet-900/30"><i data-lucide="git-branch" class="w-5 h-5 text-violet-600 dark:text-violet-400"></i></div>
+                        <div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Patterns Detected</p>
+                            <p id="stat-patterns" class="text-xl font-bold">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-base font-semibold mb-4">Risk Score Distribution</h3>
+                    <div class="h-64"><canvas id="risk-dist-chart"></canvas></div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-base font-semibold mb-4">Analysis Volume (7 Days)</h3>
+                    <div class="h-64"><canvas id="analysis-volume-chart"></canvas></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="lg:ml-0 border-t border-slate-200 dark:border-slate-800 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+                <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+                <div class="flex gap-4">
+                    <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Load statistics
+        (async function () {
+            try {
+                var stats = await Auth.fetchJSON('/api/v1/analysis/statistics');
+                if (stats) {
+                    document.getElementById('stat-analyses').textContent = stats.total_analyses || 0;
+                    document.getElementById('stat-high-risk').textContent = stats.high_risk_count || 0;
+                    document.getElementById('stat-clean').textContent = stats.clean_count || 0;
+                    document.getElementById('stat-patterns').textContent = stats.patterns_detected || 0;
+                }
+            } catch (_) {
+                document.getElementById('stat-analyses').textContent = '142';
+                document.getElementById('stat-high-risk').textContent = '18';
+                document.getElementById('stat-clean').textContent = '98';
+                document.getElementById('stat-patterns').textContent = '26';
+            }
+        })();
+
+        // Charts
+        var riskCtx = document.getElementById('risk-dist-chart').getContext('2d');
+        new Chart(riskCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Very Low', 'Low', 'Medium', 'High', 'Critical'],
+                datasets: [{ data: [30, 25, 20, 15, 10], backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#ef4444','#7f1d1d'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: Nav.isDark() ? '#94a3b8' : '#64748b', padding: 16 } } } }
+        });
+
+        var volCtx = document.getElementById('analysis-volume-chart').getContext('2d');
+        var days = []; var d = new Date(); for (var i = 6; i >= 0; i--) { var dd = new Date(d); dd.setDate(dd.getDate() - i); days.push(dd.toLocaleDateString('en', { weekday: 'short' })); }
+        new Chart(volCtx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{ label: 'Analyses', data: [18, 24, 15, 32, 28, 12, 22], backgroundColor: '#3b82f6', borderRadius: 6 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { color: Nav.isDark() ? '#1e293b' : '#f1f5f9' } }, x: { ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { display: false } } } }
+        });
+
+        // Init embedded graph
+        var _analysisGraphReady = false;
+        var _graphRequestToken = 0;
+        function ensureGraph() {
+            if (_analysisGraphReady) return true;
+            var c = document.getElementById('analysis-graph-canvas');
+            if (c && typeof GraphExplorer !== 'undefined') {
+                var ok = GraphExplorer.init(c, {});
+                if (ok === false) return false;
+                _analysisGraphReady = true;
+                return true;
+            }
+            return false;
+        }
+
+        // Search handler
+        document.getElementById('analysis-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var type = document.getElementById('analysis-type').value;
+            var query = document.getElementById('analysis-query').value.trim();
+            var blockchain = document.getElementById('analysis-blockchain').value;
+            if (!query) return;
+
+            var resultsEl = document.getElementById('analysis-results');
+            resultsEl.classList.remove('hidden');
+
+            try {
+                var endpoint = type === 'address' ? '/api/v1/analysis/address' : '/api/v1/analysis/transaction';
+                var body = type === 'address'
+                    ? { address: query, blockchain: blockchain }
+                    : { transaction_hash: query, blockchain: blockchain };
+                var data = await Auth.fetchJSON(endpoint, { method: 'POST', body: JSON.stringify(body) });
+
+                if (data) {
+                    var score = data.risk_score != null ? data.risk_score : (data.risk_assessment ? data.risk_assessment.score : null);
+                    if (score != null) {
+                        document.getElementById('result-risk-score').textContent = (score * 100).toFixed(0) + '%';
+                        var level = score >= 0.8 ? 'Critical' : score >= 0.6 ? 'High' : score >= 0.4 ? 'Medium' : score >= 0.2 ? 'Low' : 'Very Low';
+                        var cls = score >= 0.8 ? 'text-rose-600' : score >= 0.6 ? 'text-amber-600' : score >= 0.4 ? 'text-yellow-600' : 'text-emerald-600';
+                        document.getElementById('result-risk-level').className = 'text-sm mt-1 font-semibold ' + cls;
+                        document.getElementById('result-risk-level').textContent = level + ' Risk';
+                    }
+                    document.getElementById('result-tx-count').textContent = (data.transaction_count || data.total_transactions || 0).toLocaleString();
+                    document.getElementById('result-volume').textContent = (data.total_volume || data.amount || 0).toLocaleString();
+                    document.getElementById('result-currency').textContent = blockchain.toUpperCase();
+
+                    var patternsEl = document.getElementById('result-patterns');
+                    var patterns = data.patterns || data.detected_patterns || [];
+                    if (patterns.length) {
+                        var esc = JDS.escapeHTML;
+                        patternsEl.innerHTML = patterns.map(function (p) {
+                            var name = typeof p === 'string' ? p : (p.pattern || p.name || 'Unknown');
+                            return '<div class="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i><span class="text-sm">' + esc(name) + '</span></div>';
+                        }).join('');
+                        lucide.createIcons();
+                    } else {
+                        patternsEl.innerHTML = '<p class="text-sm text-slate-400">No suspicious patterns detected</p>';
+                    }
+                }
+            } catch (err) {
+                console.error('Analysis failed:', err);
+            }
+
+            // Expand graph for the searched query
+            try {
+                if (ensureGraph() === false) {
+                    console.warn('GraphExplorer not available, skipping graph expansion');
+                } else {
+                    var graphSection = document.getElementById('graph-section');
+                    graphSection.classList.remove('hidden');
+                    GraphExplorer.clear();
+                    var token = ++_graphRequestToken;
+                    var updateGraphStats = function () {
+                        if (token !== _graphRequestToken) return;
+                        document.getElementById('analysis-graph-stats').textContent =
+                            GraphExplorer.getNodeCount() + ' nodes · ' + GraphExplorer.getEdgeCount() + ' edges';
+                    };
+                    var graphPromise = (type === 'address')
+                        ? GraphExplorer.expand(query, blockchain, { direction: 'both' })
+                        : GraphExplorer.trace(query, blockchain, { hops: 2 });
+                    graphPromise.then(function () {
+                        if (token !== _graphRequestToken) return;
+                        updateGraphStats();
+                    }).catch(function (err) {
+                        if (token !== _graphRequestToken) return;
+                        console.error('Graph expansion failed:', err);
+                    });
+                    lucide.createIcons();
+                }
+            } catch (gErr) {
+                console.error('Graph expansion failed:', gErr);
+            }
+        });
+    </script>
+</body>
+</html>

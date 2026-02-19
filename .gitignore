@@ -1,0 +1,133 @@
+# =============================================================================
+# Jackdaw Sentry — .gitignore
+# =============================================================================
+
+# ── Environment & Secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+config/secrets/
+config/local/
+config/production/
+config/staging/
+api_keys.txt
+secrets.txt
+credentials.json
+service_accounts.json
+.auth_tokens
+.jwt_tokens
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+build/
+dist/
+.Python
+.venv/
+venv/
+env/
+site-packages/
+
+# ── Testing ──────────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+test_results/
+test_reports/
+
+# ── IDE & Editors ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ── OS files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+._*
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Data, Logs & Runtime (GDPR — never commit) ──────────────────────────────
+data/
+logs/
+uploads/
+exports/
+*.log
+*.log.*
+*.db
+*.sqlite3
+*.pid
+*.sock
+
+# ── Security & Cryptographic Material ────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+*.jks
+*.keytab
+ssl/
+certs/
+
+# ── ML Models & Large Binaries ───────────────────────────────────────────────
+*.pkl
+*.joblib
+*.h5
+*.pb
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.tflite
+*.model
+models/
+training_data/
+
+# ── Profiling & Benchmarks ───────────────────────────────────────────────────
+*.prof
+*.profile
+flamegraph.svg
+trace.json
+benchmark_results/
+tests/load/results/
+
+# ── Archives ─────────────────────────────────────────────────────────────────
+*.tar.gz
+*.zip
+*.bz2
+*.7z
+
+# ── Backups ──────────────────────────────────────────────────────────────────
+*.bak
+*.backup
+*.orig
+backups/
+database_backups/
+
+# ── Cache directories ────────────────────────────────────────────────────────
+.cache/
+.mypy_cache/
+.ipynb_checkpoints/
