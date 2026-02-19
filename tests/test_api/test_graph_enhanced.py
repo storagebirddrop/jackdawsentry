@@ -57,11 +57,12 @@ class TestClassifyEdge:
             result = _classify_edge("0xmixercontract", "0xreceiver")
         assert result == "mixer"
 
-    def test_dex_keyword_in_address_returns_dex(self):
+    def test_dex_registry_address_returns_dex(self):
+        # Uniswap V2 router — present in the protocol registry
         from src.api.routers.graph import _classify_edge
         with patch("src.api.routers.graph._get_known_bridge_addresses", return_value=set()), \
              patch("src.api.routers.graph._get_known_mixer_addresses", return_value=set()):
-            result = _classify_edge("0xsender", "uniswap_router_v3")
+            result = _classify_edge("0xsender", "0x7a250d5630b4cf539739df2c5dacb4c659f2488d")
         assert result == "dex"
 
     def test_bridge_takes_priority_over_mixer(self):

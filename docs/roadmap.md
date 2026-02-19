@@ -487,14 +487,14 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - ✅ Done — Redis pub/sub for cross-instance event distribution
 - **Gate**: Alert fires within 30s of matching transaction; live alert feed in dashboard ✅ — 405 tests passing
 
-### M13 — "It follows" (Cross-Chain Tracing + DeFi)
-**Status**: 📋 PLANNED
+### ~~M13 — "It follows"~~ ✅ COMPLETE (Cross-Chain Tracing + DeFi)
+**Status**: ✅ COMPLETE
 
-- Cross-chain fund tracing through bridges (Wormhole, LayerZero, Stargate)
-- DEX swap resolution (Uniswap, 1inch, Jupiter)
-- DeFi protocol analysis (lending, staking, yield farming)
-- Protocol registry with 50+ known protocols
-- **Gate**: Trace funds through bridge from chain A to chain B; decode DeFi interactions
+- ✅ Done — Cross-chain fund tracing through bridges (Wormhole, LayerZero, Stargate, Hop, Across, Celer, Synapse, deBridge)
+- ✅ Done — DEX swap resolution (Uniswap V2/V3, 1inch, Jupiter, Curve, SushiSwap, Balancer, Velodrome)
+- ✅ Done — DeFi protocol analysis (Aave, Compound, MakerDAO, Lido, Yearn, Convex, Pendle, Ethena, EigenLayer restaking)
+- ✅ Done — Protocol registry with 50 known protocols across 8 types
+- **Gate**: Trace funds through bridge from chain A to chain B; decode DeFi interactions ✅ — 454 tests passing
 
 ### M14 — "It thinks" (AI/ML Analysis)
 **Status**: 📋 PLANNED

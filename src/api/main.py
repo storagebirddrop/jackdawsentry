@@ -30,6 +30,7 @@ from src.api.routers import (
     workflows,
     monitoring,
     rate_limit,
+    tracing,
     visualization,
     scheduler,
     mobile,
@@ -444,6 +445,13 @@ app.include_router(
     alerts.router,
     prefix="/api/v1/alerts",
     tags=["Alerts"],
+)
+
+app.include_router(
+    tracing.router,
+    prefix="/api/v1/tracing",
+    tags=["Tracing"],
+    dependencies=[Depends(get_current_user)]
 )
 
 app.include_router(

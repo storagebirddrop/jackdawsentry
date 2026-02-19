@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Milestones M0–M11 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
+### M13 "It follows" — Cross-Chain Tracing + DeFi (✅ COMPLETE)
+
+#### Protocol Registry (`src/analysis/protocol_registry.py`)
+- **50 protocols** across 8 types: bridge (9), dex (9), lending (8), staking (5), yield_farming (5), mixer (3), nft (2), payments (2) — with addresses, chains, risk level, tags
+- Notable inclusions: Tornado Cash (critical/OFAC), Multichain (high/hacked 2023), Euler (high/hacked 2023), Radiant Capital (medium/hacked 2024)
+- Lookup helpers: `get_protocol_by_address()`, `get_protocols_by_type()`, `classify_address()`, `get_known_bridge/dex/mixer_addresses()`, `get_high_risk_addresses()`
+- Address index built at import time for O(1) lookups
+
+#### DeFi Decoder (`src/analysis/defi_decoder.py`)
+- `decode_transaction(to_address, input_data, chain)` → classifies as one of 17 interaction types: bridge_deposit/withdraw, dex_swap/add_liquidity/remove_liquidity, lending_deposit/borrow/repay/withdraw, staking_stake/unstake, yield_deposit/withdraw, mixer_deposit/withdraw, nft_buy/sell, transfer, unknown
+- Function selector tables: 70+ known 4-byte selectors (Uniswap V2/V3, Aave V2/V3, Compound, Curve, 1inch V3/V4/V5, Tornado Cash, etc.)
+- Priority: mixer > bridge > lending > staking > yield > dex > nft; address-registry fallback; plain transfer heuristic
+- `decode_transactions_bulk(txs)` — batch processing
+
+#### Tracing API Router (`src/api/routers/tracing.py`, mounted at `/api/v1/tracing`)
+- `POST /trace` — fund tracing via CrossChainAnalyzer + registry classification (depth 1–10, time range)
+- `POST /decode` — single tx DeFi interaction decode
+- `POST /decode/bulk` — up to 500 txs decoded in one call
+- `GET /protocols` — list all 50 protocols (optional `protocol_type` filter)
+- `GET /protocols/address/{address}` — registry lookup by contract address
+
+#### Graph Edge Classification (improved)
+- `_get_known_bridge_addresses()` and `_get_known_mixer_addresses()` now source from protocol registry (expanded from ~5 to 20+ addresses each)
+- `_classify_edge()` DEX detection upgraded from keyword heuristic to registry address lookup
+
+#### Tests
+- **454 tests passing** (was 405; added 49): `tests/test_analysis/test_protocol_registry.py` — 49 tests covering registry counts, type filtering, address lookup, classifier, decoder selectors, bulk decode, and all 5 tracing API endpoints
+
 ### M12 "It watches" — Real-Time Monitoring + Alerts (✅ COMPLETE)
 
 #### Alert Rules Engine (`src/monitoring/alert_rules.py`)
