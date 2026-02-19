@@ -387,7 +387,7 @@ async def log_screening(
     matched: bool,
     match_source: Optional[str],
     match_entity: Optional[str],
-    user_id: Optional[int] = None,
+    user_id: Optional[str] = None,
 ) -> None:
     """Record a screening event in the audit log."""
     pool = get_postgres_pool()

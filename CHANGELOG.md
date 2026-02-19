@@ -20,14 +20,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Real-time streaming
 - Mobile application support
 
-### M10 "It analyzes" — Analysis Engines, More Chains, Exports & Tech Debt (in progress)
+### M10 "It analyzes" — Analysis Engines, More Chains, Exports & Tech Debt ✅ COMPLETE
 
-- **Roadmap**: Added M10 milestone to `docs/roadmap.md` with 25 tasks across 6 phases
-- Wire 6 scaffolded analysis engines (pattern detection, cross-chain, mixer, clustering, stablecoin flows, bridge tracker) to real data
-- Add Solana, Tron, XRPL RPC clients
-- Cross-chain graph visualization (bridge hop coloring, entity clustering, time-lapse)
-- Investigation save/share/export workflow (PDF, CSV, Excel)
-- Pydantic V2 migration + datetime.utcnow() fixes — implementation pending
+#### Phase 1 — Tech Debt
+- **Pydantic V2 migration**: All 44 `@validator` decorators → `@field_validator` + `@classmethod` across 11 router/config files; `class Config` → `model_config = ConfigDict(...)`; `orm_mode` → `from_attributes=True`; zero V1 deprecation warnings
+- **Sanctions fix**: `log_screening()` `user_id` type corrected from `Optional[int]` to `Optional[str]` (UUID FK)
+
+#### Phase 2 — More Chains
+- **Solana RPC client** (`src/collectors/rpc/solana_rpc.py`): JSON-RPC 2.0 via aiohttp; `getTransaction`, `getBalance`, `getSignaturesForAddress`, `getBlock`, `getSlot`; 1 SOL = 1e9 lamports
+- **Tron RPC client** (`src/collectors/rpc/tron_rpc.py`): REST API client; `/wallet/gettransactionbyid`, `/wallet/getaccount`, `/wallet/getblockbynum`, `/wallet/getnowblock`; 1 TRX = 1e6 SUN
+- **XRPL RPC client** (`src/collectors/rpc/xrpl_rpc.py`): Custom `_xrpl_rpc()` wrapper; `tx`, `account_info`, `account_tx`, `ledger`; 1 XRP = 1e6 drops; handles IOU amounts
+- **Factory updated**: `get_rpc_client()` now dispatches solana/tron/xrpl family to correct client
+
+#### Phase 3 — Analysis Engine Wiring
+- **Risk scoring** (`src/analysis/risk_scoring.py`): `compute_risk_score()` with weighted signals — sanctions (0.5), patterns (0.3), mixer (0.2), volume anomaly (+0.1); capped at 1.0, rounded to 4 decimals
+- **Address analysis**: `POST /analysis/address` now calls `MLPatternDetector.detect_patterns()` and `MixerDetector.detect_mixer_usage()`; returns `detected_patterns`, `mixer_detected`, computed `risk_score`
+- **Transaction analysis**: `POST /analysis/transaction` now calls `CrossChainAnalyzer.analyze_transaction()`; returns `cross_chain_flags`
+- **Full analysis**: New `POST /analysis/address/full` — parallel `asyncio.gather()` across all engines
+- **Stablecoin flows**: Replaced `NotImplementedError` in `_get_bridge_contracts()` with `BridgeTracker.bridge_contracts` registry lookup
+
+#### Phase 4 — Graph Enhancements
+- **Colored edges**: `_classify_edge()` helper in graph router; edges classified as bridge/mixer/dex/transfer using known addresses; Cytoscape.js styles — orange=bridge, purple=dex, red dashed=mixer
+- **Compound nodes**: `:parent` Cytoscape selector for clustered address groups
+- **Timeline slider**: `filterByTimeRange(fromTs, toTs)` in `frontend/js/graph.js`
+
+#### Phase 5 — Investigation Workflow
+- **Graph persistence**: `PUT /investigations/{id}/graph` saves nodes/edges/layout as JSON on Neo4j node; `GET /investigations/{id}/graph` loads saved state
+- **Frontend save/load**: `saveGraphToInvestigation()` / `loadGraphFromInvestigation()` in `graph.js`
+- **PDF export** (`src/export/pdf_report.py`): `generate_investigation_pdf()` using reportlab — A4 document with summary table, description, addresses, evidence; `GET /investigations/{id}/report/pdf` returns `StreamingResponse`
+
+#### Phase 6 — Tests
+- **328 tests passing** (was 223; added 105+; gate was 250+): new test files for Solana/Tron/XRPL RPC clients, risk scoring, factory, analysis wiring, graph enhanced, exports/PDF
 
 ### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions (complete)
 

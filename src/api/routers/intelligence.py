@@ -6,7 +6,7 @@ Threat intelligence and dark web monitoring endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 import uuid
 import json as _json
@@ -32,14 +32,16 @@ class IntelligenceQueryRequest(BaseModel):
     sources: List[str] = ["all"]
     time_range_days: int = 30
     
-    @validator('query_type')
+    @field_validator('query_type')
+    @classmethod
     def validate_query_type(cls, v):
         valid_types = ["address", "entity", "pattern", "threat"]
         if v not in valid_types:
             raise ValueError(f'Invalid query type: {v}')
         return v
-    
-    @validator('sources')
+
+    @field_validator('sources')
+    @classmethod
     def validate_sources(cls, v):
         valid_sources = ["dark_web", "sanctions", "leaks", "forums", "social_media", "all"]
         for source in v:
@@ -56,14 +58,16 @@ class ThreatAlertRequest(BaseModel):
     indicators: List[Dict[str, Any]]
     confidence: float = 0.5
     
-    @validator('severity')
+    @field_validator('severity')
+    @classmethod
     def validate_severity(cls, v):
         valid_severities = ["low", "medium", "high", "critical"]
         if v not in valid_severities:
             raise ValueError(f'Invalid severity: {v}')
         return v
-    
-    @validator('confidence')
+
+    @field_validator('confidence')
+    @classmethod
     def validate_confidence(cls, v):
         if v < 0.0 or v > 1.0:
             raise ValueError('Confidence must be between 0.0 and 1.0')
@@ -76,7 +80,8 @@ class IntelligenceSubscriptionRequest(BaseModel):
     notification_channels: List[str] = ["email"]
     filters: Dict[str, Any] = {}
     
-    @validator('subscription_type')
+    @field_validator('subscription_type')
+    @classmethod
     def validate_subscription_type(cls, v):
         valid_types = ["address", "entity", "keyword", "pattern"]
         if v not in valid_types:

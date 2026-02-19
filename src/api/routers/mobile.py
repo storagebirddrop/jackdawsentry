@@ -13,7 +13,7 @@ Endpoints for mobile compliance clients including:
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import logging
@@ -51,8 +51,7 @@ class MobileSettingsResponse(BaseModel):
     sync_interval_minutes: int
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationRequest(BaseModel):

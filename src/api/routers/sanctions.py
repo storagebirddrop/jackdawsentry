@@ -6,7 +6,7 @@ Screen addresses against OFAC SDN + EU Consolidated sanctions lists.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 
 from src.api.auth import User, check_permissions, require_admin, PERMISSIONS
@@ -33,13 +33,15 @@ class ScreenRequest(BaseModel):
     address: str
     blockchain: Optional[str] = None
 
-    @validator("address")
+    @field_validator("address")
+    @classmethod
     def validate_address(cls, v):
         if not v or not v.strip():
             raise ValueError("Address cannot be empty")
         return v.strip()
 
-    @validator("blockchain", pre=True, always=True)
+    @field_validator("blockchain", mode="before")
+    @classmethod
     def validate_blockchain(cls, v):
         return v.lower() if v else None
 
@@ -48,7 +50,8 @@ class BulkScreenRequest(BaseModel):
     addresses: List[str]
     blockchain: Optional[str] = None
 
-    @validator("addresses")
+    @field_validator("addresses")
+    @classmethod
     def validate_addresses(cls, v):
         cleaned = [a.strip() for a in (v or []) if a.strip()]
         if not cleaned:
@@ -57,7 +60,8 @@ class BulkScreenRequest(BaseModel):
             raise ValueError("Maximum 100 addresses per bulk screen")
         return cleaned
 
-    @validator("blockchain", pre=True, always=True)
+    @field_validator("blockchain", mode="before")
+    @classmethod
     def validate_blockchain(cls, v):
         return v.lower() if v else None
 

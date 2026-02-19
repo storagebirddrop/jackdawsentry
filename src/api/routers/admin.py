@@ -6,7 +6,7 @@ System administration and management endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 
 from src.api.auth import User, check_permissions, PERMISSIONS
@@ -26,7 +26,8 @@ class UserManagementRequest(BaseModel):
     permissions: List[str]
     is_active: bool = True
     
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_role(cls, v):
         valid_roles = ["viewer", "analyst", "compliance_officer", "admin"]
         if v not in valid_roles:
@@ -47,7 +48,8 @@ class MaintenanceRequest(BaseModel):
     duration_minutes: int = 30
     notification_required: bool = True
     
-    @validator('maintenance_type')
+    @field_validator('maintenance_type')
+    @classmethod
     def validate_maintenance_type(cls, v):
         valid_types = ["backup", "cleanup", "update", "restart", "shutdown"]
         if v not in valid_types:

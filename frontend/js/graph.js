@@ -122,6 +122,45 @@ const GraphExplorer = (function () {
                 'text-background-padding': '2px',
             }
         },
+        // Colored edges by edge_type
+        {
+            selector: 'edge[edge_type="bridge"]',
+            style: {
+                'line-color': '#f97316',         // orange
+                'target-arrow-color': '#f97316',
+                'width': 2.5,
+            }
+        },
+        {
+            selector: 'edge[edge_type="dex"]',
+            style: {
+                'line-color': '#a855f7',          // purple
+                'target-arrow-color': '#a855f7',
+                'width': 2,
+            }
+        },
+        {
+            selector: 'edge[edge_type="mixer"]',
+            style: {
+                'line-color': '#ef4444',          // red
+                'target-arrow-color': '#ef4444',
+                'width': 3,
+                'line-style': 'dashed',
+            }
+        },
+        // Compound parent style for clustered addresses
+        {
+            selector: ':parent',
+            style: {
+                'background-opacity': 0.1,
+                'border-color': '#64748b',
+                'border-width': 1,
+                'label': 'data(cluster_label)',
+                'font-size': '9px',
+                'color': '#94a3b8',
+                'text-valign': 'top',
+            }
+        },
         {
             selector: 'edge:selected',
             style: {
@@ -139,6 +178,7 @@ const GraphExplorer = (function () {
     var _container = null;
     var _onNodeClick = null;
     var _loading = false;
+    var _allEdges = [];          // cache for timeline filtering
 
     /* ------------------------------------------------------------------ */
     /* Init                                                               */
@@ -297,6 +337,7 @@ const GraphExplorer = (function () {
                         tx_hash: e.tx_hash || null,
                         timestamp: e.timestamp || null,
                         block_number: e.block_number || null,
+                        edge_type: e.edge_type || 'transfer',
                     },
                 });
             }
@@ -325,6 +366,7 @@ const GraphExplorer = (function () {
 
     function clear() {
         if (_cy) _cy.elements().remove();
+        _allEdges = [];
     }
 
     function fit() {
@@ -384,6 +426,66 @@ const GraphExplorer = (function () {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Timeline slider filter                                              */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Filter edges by timestamp range using a slider value.
+     * @param {number} fromTs  Unix timestamp (seconds) – edges with ts < fromTs are hidden
+     * @param {number} toTs    Unix timestamp (seconds) – edges with ts > toTs are hidden (0 = no limit)
+     */
+    function filterByTimeRange(fromTs, toTs) {
+        if (!_cy) return;
+        _cy.edges().forEach(function (edge) {
+            var ts = edge.data('timestamp');
+            if (!ts) {
+                edge.style('display', 'element');
+                return;
+            }
+            var edgeMs = new Date(ts).getTime() / 1000;
+            var visible = edgeMs >= fromTs && (toTs === 0 || edgeMs <= toTs);
+            edge.style('display', visible ? 'element' : 'none');
+        });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Investigation graph persistence                                     */
+    /* ------------------------------------------------------------------ */
+
+    function saveGraphToInvestigation(investigationId) {
+        if (!_cy) return Promise.reject(new Error('Graph not initialised'));
+        var nodes = _cy.nodes().map(function (n) { return n.data(); });
+        var edges = _cy.edges().map(function (e) { return e.data(); });
+        var layout = {};
+        _cy.nodes().forEach(function (n) {
+            var pos = n.position();
+            layout[n.id()] = { x: pos.x, y: pos.y };
+        });
+        return Auth.fetchJSON('/api/v1/investigations/' + investigationId + '/graph', {
+            method: 'PUT',
+            body: JSON.stringify({ nodes: nodes, edges: edges, layout: layout }),
+        });
+    }
+
+    function loadGraphFromInvestigation(investigationId) {
+        return Auth.fetchJSON('/api/v1/investigations/' + investigationId + '/graph')
+            .then(function (res) {
+                if (res && res.graph_state) {
+                    var state = res.graph_state;
+                    clear();
+                    _mergeGraph(state.nodes || [], state.edges || []);
+                    // Restore positions if layout is present
+                    var layout = state.layout || {};
+                    Object.keys(layout).forEach(function (nodeId) {
+                        var node = _cy.getElementById(nodeId);
+                        if (node.length) node.position(layout[nodeId]);
+                    });
+                }
+                return res;
+            });
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Export PNG                                                          */
     /* ------------------------------------------------------------------ */
 
@@ -411,5 +513,8 @@ const GraphExplorer = (function () {
         getNodeCount: getNodeCount,
         getEdgeCount: getEdgeCount,
         isLoading: function () { return _loading; },
+        filterByTimeRange: filterByTimeRange,
+        saveGraphToInvestigation: saveGraphToInvestigation,
+        loadGraphFromInvestigation: loadGraphFromInvestigation,
     };
 })();

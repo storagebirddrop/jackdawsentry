@@ -6,7 +6,7 @@ Regulatory compliance and reporting endpoints
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 import uuid
 
@@ -47,13 +47,15 @@ class ComplianceCheckRequest(BaseModel):
     check_types: List[str] = ["sanctions", "aml", "risk"]
     jurisdiction: str = "global"
     
-    @validator('addresses')
+    @field_validator('addresses')
+    @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
             raise ValueError('At least one address must be provided')
         return [addr.strip() for addr in v if addr.strip()]
-    
-    @validator('check_types')
+
+    @field_validator('check_types')
+    @classmethod
     def validate_check_types(cls, v):
         valid_types = ["sanctions", "aml", "risk", "pep", "adverse_media"]
         for check_type in v:
@@ -70,7 +72,8 @@ class ComplianceReportRequest(BaseModel):
     threshold_amount: Optional[float] = None
     jurisdiction: str = "US"
     
-    @validator('report_type')
+    @field_validator('report_type')
+    @classmethod
     def validate_report_type(cls, v):
         valid_types = ["sar", "ctr", "str", "custom", "audit"]
         if v not in valid_types:
@@ -86,7 +89,8 @@ class RuleConfigRequest(BaseModel):
     enabled: bool = True
     priority: int = 1
     
-    @validator('priority')
+    @field_validator('priority')
+    @classmethod
     def validate_priority(cls, v):
         if v < 1 or v > 10:
             raise ValueError('Priority must be between 1 and 10')

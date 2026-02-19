@@ -6,7 +6,7 @@ Blockchain data and node management endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import logging
 import time
 
@@ -29,14 +29,16 @@ class BlockchainQueryRequest(BaseModel):
     identifier: str
     include_details: bool = True
     
-    @validator('blockchain')
+    @field_validator('blockchain')
+    @classmethod
     def validate_blockchain(cls, v):
         supported = get_supported_blockchains()
         if v.lower() not in supported:
             raise ValueError(f'Unsupported blockchain: {v}')
         return v.lower()
-    
-    @validator('query_type')
+
+    @field_validator('query_type')
+    @classmethod
     def validate_query_type(cls, v):
         valid_types = ["transaction", "address", "block", "contract"]
         if v not in valid_types:
@@ -48,7 +50,8 @@ class NodeStatusRequest(BaseModel):
     blockchain: str
     node_url: Optional[str] = None
     
-    @validator('blockchain')
+    @field_validator('blockchain')
+    @classmethod
     def validate_blockchain(cls, v):
         supported = get_supported_blockchains()
         if v.lower() not in supported:

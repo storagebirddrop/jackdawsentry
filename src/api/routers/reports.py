@@ -6,7 +6,7 @@ Report generation and management endpoints
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import csv as _csv
 import io
 import logging
@@ -32,14 +32,16 @@ class ReportRequest(BaseModel):
     format: str = "json"  # json, pdf, csv, xlsx
     schedule: Optional[str] = None  # daily, weekly, monthly, quarterly
     
-    @validator('report_type')
+    @field_validator('report_type')
+    @classmethod
     def validate_report_type(cls, v):
         valid_types = ["transaction", "compliance", "investigation", "intelligence", "custom", "audit"]
         if v not in valid_types:
             raise ValueError(f'Invalid report type: {v}')
         return v
-    
-    @validator('format')
+
+    @field_validator('format')
+    @classmethod
     def validate_format(cls, v):
         valid_formats = ["json", "pdf", "csv", "xlsx"]
         if v not in valid_formats:
@@ -54,7 +56,8 @@ class ReportTemplateRequest(BaseModel):
     template_definition: Dict[str, Any]
     is_public: bool = False
     
-    @validator('report_type')
+    @field_validator('report_type')
+    @classmethod
     def validate_report_type(cls, v):
         valid_types = ["transaction", "compliance", "investigation", "intelligence", "custom"]
         if v not in valid_types:

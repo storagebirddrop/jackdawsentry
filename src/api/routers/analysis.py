@@ -6,17 +6,48 @@ Blockchain transaction analysis endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
+import asyncio
 import logging
 import time as _time
 
 from src.api.auth import User, check_permissions, PERMISSIONS
 from src.api.database import get_neo4j_session, get_postgres_connection
 from src.api.exceptions import JackdawException
+from src.analysis.pattern_detection import MLPatternDetector
+from src.analysis.mixer_detection import MixerDetector
+from src.analysis.cross_chain import CrossChainAnalyzer
+from src.analysis.risk_scoring import compute_risk_score
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Lazy singletons for analysis engines
+_pattern_detector: Optional[MLPatternDetector] = None
+_mixer_detector: Optional[MixerDetector] = None
+_cross_chain_analyzer: Optional[CrossChainAnalyzer] = None
+
+
+def _get_pattern_detector() -> MLPatternDetector:
+    global _pattern_detector
+    if _pattern_detector is None:
+        _pattern_detector = MLPatternDetector()
+    return _pattern_detector
+
+
+def _get_mixer_detector() -> MixerDetector:
+    global _mixer_detector
+    if _mixer_detector is None:
+        _mixer_detector = MixerDetector()
+    return _mixer_detector
+
+
+def _get_cross_chain_analyzer() -> CrossChainAnalyzer:
+    global _cross_chain_analyzer
+    if _cross_chain_analyzer is None:
+        _cross_chain_analyzer = CrossChainAnalyzer()
+    return _cross_chain_analyzer
 
 
 # Pydantic models
@@ -27,21 +58,24 @@ class AddressAnalysisRequest(BaseModel):
     include_tokens: bool = True
     time_range: Optional[int] = None  # days
     
-    @validator('address')
+    @field_validator('address')
+    @classmethod
     def validate_address(cls, v):
         if not v or len(v.strip()) == 0:
             raise ValueError('Address cannot be empty')
         return v.strip()
-    
-    @validator('blockchain')
+
+    @field_validator('blockchain')
+    @classmethod
     def validate_blockchain(cls, v):
-        supported = ['bitcoin', 'ethereum', 'bsc', 'polygon', 'arbitrum', 'base', 
+        supported = ['bitcoin', 'ethereum', 'bsc', 'polygon', 'arbitrum', 'base',
                     'avalanche', 'solana', 'tron', 'xrpl', 'stellar']
         if v.lower() not in supported:
             raise ValueError(f'Unsupported blockchain: {v}')
         return v.lower()
-    
-    @validator('depth')
+
+    @field_validator('depth')
+    @classmethod
     def validate_depth(cls, v):
         if v < 1 or v > 10:
             raise ValueError('Depth must be between 1 and 10')
@@ -53,7 +87,8 @@ class TransactionAnalysisRequest(BaseModel):
     blockchain: str
     include_detailed_trace: bool = False
     
-    @validator('transaction_hash')
+    @field_validator('transaction_hash')
+    @classmethod
     def validate_hash(cls, v):
         if not v or len(v.strip()) == 0:
             raise ValueError('Transaction hash cannot be empty')
@@ -65,7 +100,8 @@ class RiskScoreRequest(BaseModel):
     blockchain: str
     analysis_type: str = "standard"  # standard, enhanced, forensic
     
-    @validator('addresses')
+    @field_validator('addresses')
+    @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
             raise ValueError('At least one address must be provided')
@@ -145,12 +181,53 @@ async def analyze_address(
             conn_records = await conn_result.data()
             analysis_data["connected_addresses"] = [r["addr"] for r in conn_records]
 
+        # Engine enrichment (graceful degradation on any failure)
+        pattern_results: List[Dict[str, Any]] = []
+        mixer_detected = False
+        mixer_risk = 0.0
+        try:
+            patterns = await _get_pattern_detector().detect_patterns(
+                request.address, request.blockchain
+            )
+            pattern_results = [
+                {
+                    "pattern_type": p.pattern_type.value,
+                    "confidence": p.confidence,
+                    "risk_score": p.risk_score,
+                    "severity": p.severity,
+                    "description": p.description,
+                }
+                for p in patterns
+            ]
+        except Exception as exc:
+            logger.debug(f"Pattern detection skipped: {exc}")
+
+        try:
+            mixer_analysis = await _get_mixer_detector().detect_mixer_usage(
+                request.address, request.blockchain
+            )
+            mixer_detected = mixer_analysis.is_mixer_user
+            mixer_risk = mixer_analysis.risk_score
+        except Exception as exc:
+            logger.debug(f"Mixer detection skipped: {exc}")
+
+        base_score = float(analysis_data.get("risk_score") or 0.0)
+        computed_risk = compute_risk_score(
+            pattern_matches=pattern_results,
+            mixer_detected=mixer_detected,
+            mixer_risk=mixer_risk,
+            base_score=base_score,
+        )
+        analysis_data["risk_score"] = computed_risk
+        analysis_data["detected_patterns"] = pattern_results
+        analysis_data["mixer_detected"] = mixer_detected
+
         elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "analysis_depth": request.depth,
             "include_tokens": request.include_tokens,
             "processing_time_ms": elapsed_ms,
-            "data_sources": ["neo4j"],
+            "data_sources": ["neo4j", "pattern_engine", "mixer_engine"],
         }
 
         return AnalysisResponse(
@@ -234,11 +311,26 @@ async def analyze_transaction(
                         "intermediate_addresses": trace_record["addresses"],
                     }
 
+        # Cross-chain analysis enrichment (graceful degradation)
+        cross_chain_flags: List[str] = []
+        try:
+            cc_result = await _get_cross_chain_analyzer().analyze_transaction(
+                request.transaction_hash, request.blockchain
+            )
+            if cc_result and cc_result.patterns:
+                cross_chain_flags = [p.value for p in cc_result.patterns]
+                if not analysis_data.get("value"):
+                    analysis_data["value"] = cc_result.amount
+        except Exception as exc:
+            logger.debug(f"Cross-chain analysis skipped: {exc}")
+
+        analysis_data["cross_chain_flags"] = cross_chain_flags
+
         elapsed_ms = int((_time.monotonic() - start) * 1000)
         metadata = {
             "include_detailed_trace": request.include_detailed_trace,
             "processing_time_ms": elapsed_ms,
-            "data_sources": ["neo4j"],
+            "data_sources": ["neo4j", "cross_chain_engine"],
         }
 
         return AnalysisResponse(
@@ -472,4 +564,74 @@ async def get_analysis_statistics(
         raise JackdawException(
             message=f"Statistics retrieval failed: {str(e)}",
             error_code="STATISTICS_FAILED",
+        )
+
+
+@router.post("/address/full", response_model=AnalysisResponse)
+async def analyze_address_full(
+    request: AddressAnalysisRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+):
+    """Full combined analysis: patterns, mixer, cross-chain, and risk score via asyncio.gather()."""
+    try:
+        start = _time.monotonic()
+
+        async def _get_patterns():
+            try:
+                return await _get_pattern_detector().detect_patterns(request.address, request.blockchain)
+            except Exception:
+                return []
+
+        async def _get_mixer():
+            try:
+                return await _get_mixer_detector().detect_mixer_usage(request.address, request.blockchain)
+            except Exception:
+                return None
+
+        patterns_raw, mixer_analysis = await asyncio.gather(_get_patterns(), _get_mixer())
+
+        pattern_results = [
+            {
+                "pattern_type": p.pattern_type.value,
+                "confidence": p.confidence,
+                "risk_score": p.risk_score,
+                "severity": p.severity,
+                "description": p.description,
+            }
+            for p in (patterns_raw or [])
+        ]
+        mixer_detected = bool(mixer_analysis and mixer_analysis.is_mixer_user)
+        mixer_risk = float(mixer_analysis.risk_score) if mixer_analysis else 0.0
+
+        computed_risk = compute_risk_score(
+            pattern_matches=pattern_results,
+            mixer_detected=mixer_detected,
+            mixer_risk=mixer_risk,
+        )
+
+        elapsed_ms = int((_time.monotonic() - start) * 1000)
+        data = {
+            "address": request.address,
+            "blockchain": request.blockchain,
+            "risk_score": computed_risk,
+            "detected_patterns": pattern_results,
+            "mixer_detected": mixer_detected,
+            "mixer_risk": mixer_risk,
+        }
+        metadata = {
+            "processing_time_ms": elapsed_ms,
+            "data_sources": ["pattern_engine", "mixer_engine"],
+        }
+        return AnalysisResponse(
+            success=True,
+            data=data,
+            metadata=metadata,
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    except Exception as e:
+        logger.error(f"Full address analysis failed: {e}")
+        raise JackdawException(
+            message=f"Full address analysis failed: {str(e)}",
+            error_code="FULL_ANALYSIS_FAILED",
         )

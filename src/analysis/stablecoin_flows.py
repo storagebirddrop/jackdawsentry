@@ -14,6 +14,7 @@ import json
 from src.api.database import get_neo4j_session, get_redis_connection
 from src.api.config import settings
 from .cross_chain import CrossChainAnalyzer, TransactionPattern
+from .bridge_tracker import BridgeTracker
 
 logger = logging.getLogger(__name__)
 
@@ -612,12 +613,24 @@ class StablecoinFlowTracker:
             return {}
     
     async def _get_bridge_contracts(self, bridge_name: str) -> Dict[str, str]:
-        """Get bridge contract addresses"""
-        # TODO: Wire to a real per-bridge contract registry or config source
-        raise NotImplementedError(
-            f"Bridge contract lookup not yet implemented for '{bridge_name}'. "
-            "Provide a bridge registry data source."
-        )
+        """Get bridge contract addresses from BridgeTracker registry."""
+        tracker = BridgeTracker()
+        result: Dict[str, str] = {}
+        bridge_key = bridge_name.lower().replace(" ", "_").replace("-", "_")
+        for chain, bridges in tracker.bridge_contracts.items():
+            if bridge_key in bridges:
+                contracts = bridges[bridge_key]
+                # Flatten: use token_bridge or the first contract address found
+                if isinstance(contracts, dict):
+                    addr = contracts.get("token_bridge") or next(iter(contracts.values()), "")
+                else:
+                    addr = str(contracts)
+                if addr:
+                    result[chain] = addr
+        if not result:
+            # Return all chains so the caller can still attempt a DB query
+            result = {chain: "" for chain in tracker.supported_blockchains}
+        return result
     
     async def cache_flow_analysis(self, key: str, result: Dict[str, Any]):
         """Cache flow analysis result in Redis"""

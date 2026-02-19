@@ -4,9 +4,10 @@ Case management and investigation endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 import json as _json
 import logging
 import uuid
@@ -33,14 +34,16 @@ class InvestigationRequest(BaseModel):
     time_range_end: datetime
     tags: List[str] = []
     
-    @validator('priority')
+    @field_validator('priority')
+    @classmethod
     def validate_priority(cls, v):
         valid_priorities = ["low", "medium", "high", "critical"]
         if v not in valid_priorities:
             raise ValueError(f'Invalid priority: {v}')
         return v
-    
-    @validator('addresses')
+
+    @field_validator('addresses')
+    @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
             raise ValueError('At least one address must be provided')
@@ -62,7 +65,8 @@ class EvidenceRequest(BaseModel):
     data: Dict[str, Any]
     confidence: float = 0.5
     
-    @validator('confidence')
+    @field_validator('confidence')
+    @classmethod
     def validate_confidence(cls, v):
         if v < 0.0 or v > 1.0:
             raise ValueError('Confidence must be between 0.0 and 1.0')
@@ -526,4 +530,179 @@ async def get_investigation_statistics(
         raise JackdawException(
             message=f"Investigation statistics failed: {str(e)}",
             error_code="STATISTICS_FAILED",
+        )
+
+
+# =============================================================================
+# Graph state persistence (save / load / share)
+# =============================================================================
+
+
+class GraphStateRequest(BaseModel):
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
+    layout: Optional[Dict[str, Any]] = None
+
+
+@router.put("/{investigation_id}/graph")
+async def save_investigation_graph(
+    investigation_id: str,
+    request: GraphStateRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+):
+    """Persist graph nodes/edges/layout as a JSON blob on the Investigation node."""
+    try:
+        now = datetime.now(timezone.utc)
+        graph_json = _json.dumps({
+            "nodes": request.nodes,
+            "edges": request.edges,
+            "layout": request.layout or {},
+            "saved_by": current_user.username,
+            "saved_at": now.isoformat(),
+        })
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                SET i.graph_state = $graph_json,
+                    i.graph_updated_at = $updated_at,
+                    i.graph_updated_by = $updated_by
+                RETURN i.investigation_id AS inv_id
+                """,
+                inv_id=investigation_id,
+                graph_json=graph_json,
+                updated_at=now.isoformat(),
+                updated_by=current_user.username,
+            )
+            record = await result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "node_count": len(request.nodes),
+            "edge_count": len(request.edges),
+            "saved_at": now.isoformat(),
+            "timestamp": now,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph state save failed: {e}")
+        raise JackdawException(
+            message=f"Graph state save failed: {str(e)}",
+            error_code="GRAPH_SAVE_FAILED",
+        )
+
+
+@router.get("/{investigation_id}/graph")
+async def load_investigation_graph(
+    investigation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+):
+    """Load/share a previously persisted graph state for an investigation."""
+    try:
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                RETURN i.graph_state AS graph_state,
+                       i.graph_updated_at AS updated_at,
+                       i.graph_updated_by AS updated_by
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        graph_state_raw = record["graph_state"]
+        if not graph_state_raw:
+            return {
+                "success": True,
+                "investigation_id": investigation_id,
+                "graph_state": None,
+                "message": "No graph state saved yet",
+                "timestamp": datetime.now(timezone.utc),
+            }
+
+        graph_state = _json.loads(graph_state_raw)
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "graph_state": graph_state,
+            "updated_at": record["updated_at"],
+            "updated_by": record["updated_by"],
+            "timestamp": datetime.now(timezone.utc),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph state load failed: {e}")
+        raise JackdawException(
+            message=f"Graph state load failed: {str(e)}",
+            error_code="GRAPH_LOAD_FAILED",
+        )
+
+
+# =============================================================================
+# PDF report export
+# =============================================================================
+
+
+@router.get("/{investigation_id}/report/pdf")
+async def export_investigation_pdf(
+    investigation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+):
+    """Export investigation as a PDF report (StreamingResponse)."""
+    try:
+        from src.export.pdf_report import generate_investigation_pdf
+
+        # Load investigation data
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                OPTIONAL MATCH (i)<-[:EVIDENCE_FOR]-(e:Evidence)
+                RETURN i, collect(e) AS evidence_nodes
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record or not record["i"]:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        investigation_data = dict(record["i"])
+        evidence = [dict(e) for e in (record["evidence_nodes"] or []) if e]
+
+        pdf_bytes = generate_investigation_pdf(investigation_data, evidence)
+
+        filename = f"investigation_{investigation_id}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    except HTTPException:
+        raise
+    except ImportError:
+        raise HTTPException(
+            status_code=501,
+            detail="PDF export requires 'reportlab'. Install it with: pip install reportlab",
+        )
+    except Exception as e:
+        logger.error(f"PDF export failed: {e}")
+        raise JackdawException(
+            message=f"PDF export failed: {str(e)}",
+            error_code="PDF_EXPORT_FAILED",
         )
