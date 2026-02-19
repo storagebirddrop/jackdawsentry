@@ -3,13 +3,14 @@ Jackdaw Sentry - PDF Investigation Report Generator
 Uses reportlab to produce a structured PDF for investigation export.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
 
 def generate_investigation_pdf(
     investigation: Dict[str, Any],
     evidence: List[Dict[str, Any]],
+    narrative: Optional[str] = None,
 ) -> bytes:
     """Generate a PDF byte string for the given investigation.
 
@@ -38,13 +39,27 @@ def generate_investigation_pdf(
     import io
 
     buffer = io.BytesIO()
+
+    # Page-number callback
+    def _add_page_number(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        page_num = canvas.getPageNumber()
+        canvas.setFillColorRGB(0.4, 0.4, 0.4)
+        canvas.drawRightString(
+            A4[0] - 2 * cm,
+            1.2 * cm,
+            f"CONFIDENTIAL — Page {page_num}",
+        )
+        canvas.restoreState()
+
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
         rightMargin=2 * cm,
         leftMargin=2 * cm,
         topMargin=2 * cm,
-        bottomMargin=2 * cm,
+        bottomMargin=2.5 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -164,6 +179,17 @@ def generate_investigation_pdf(
         elements.append(evd_table)
         elements.append(Spacer(1, 0.4 * cm))
 
+    # AI / template narrative
+    if narrative:
+        elements.append(Paragraph("Investigation Narrative", heading2_style))
+        # Split on double newlines to preserve paragraph breaks
+        for para in narrative.split("\n\n"):
+            para = para.strip()
+            if para:
+                elements.append(Paragraph(para.replace("\n", "<br/>"), body_style))
+                elements.append(Spacer(1, 0.2 * cm))
+        elements.append(Spacer(1, 0.2 * cm))
+
     # Footer note
     elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
     elements.append(Spacer(1, 0.2 * cm))
@@ -173,5 +199,5 @@ def generate_investigation_pdf(
         body_style,
     ))
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_add_page_number, onLaterPages=_add_page_number)
     return buffer.getvalue()

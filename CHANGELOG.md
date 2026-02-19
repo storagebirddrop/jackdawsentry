@@ -7,7 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M14 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M15 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### M15 "It reports" — Investigation + Compliance Workflow (✅ COMPLETE)
+
+#### Investigation Narrative Generator (`src/analysis/investigation_narrative.py`)
+- **Claude API path** (`claude-haiku-4-5-20251001`): produces 2–3 paragraph court-ready narrative from structured investigation data
+- **Deterministic template fallback**: always available; uses risk level, address list, evidence chain summary, and description
+- `extract_key_findings()`: derives factual bullet points (address count, risk score, high-confidence evidence, blockchain scope)
+- `generate_investigation_narrative()` async: returns `{narrative, key_findings, risk_assessment, source, model}`
+
+#### Graph Annotations API (`src/api/routers/investigations.py`)
+- `POST /investigations/{id}/graph/annotations` — add typed annotation (note/flag/highlight) to any node or edge
+- `GET /investigations/{id}/graph/annotations` — list all annotations with count
+- `DELETE /investigations/{id}/graph/annotations/{ann_id}` — remove single annotation
+- Annotations stored as JSON blob (`annotations_json`) on the Investigation Neo4j node; no schema migration needed
+
+#### Investigation Narrative Endpoint
+- `POST /investigations/{id}/narrative` — auto-generate AI/template narrative from live Neo4j data; returns `narrative`, `key_findings`, `risk_assessment`, `source`
+
+#### Investigation Timeline
+- `GET /investigations/{id}/timeline` — chronological event log derived from Investigation + Evidence Neo4j nodes
+- Event types: `investigation_created`, `evidence_added`, `graph_saved`, `status_updated`
+- Events sorted by timestamp; each event includes `actor` and structured `details`
+
+#### Enhanced PDF Report (`src/export/pdf_report.py`)
+- Optional `narrative` parameter: inserts AI/template narrative section before the confidentiality footer
+- Page numbers + "CONFIDENTIAL" stamp in footer via `onFirstPage`/`onLaterPages` callbacks
+- `bottomMargin` expanded to 2.5 cm to accommodate footer text
+
+#### Tests (+55 new tests, **635 total**)
+- `tests/test_analysis/test_investigation_narrative.py` (27 tests): risk level mapping, key findings extraction, template narrative, public API, Claude fallback
+- `tests/test_api/test_investigations_m15.py` (28 tests): narrative endpoint (5), add/get/delete annotations (14), timeline (6), enhanced PDF (3)
 
 ### M14 "It thinks" — AI/ML Analysis (✅ COMPLETE)
 

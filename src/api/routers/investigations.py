@@ -706,3 +706,356 @@ async def export_investigation_pdf(
             message=f"PDF export failed: {str(e)}",
             error_code="PDF_EXPORT_FAILED",
         )
+
+
+# =============================================================================
+# Investigation narrative generation (M15)
+# =============================================================================
+
+
+@router.post("/{investigation_id}/narrative")
+async def generate_investigation_narrative_endpoint(
+    investigation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+):
+    """Generate an AI/template narrative for the investigation."""
+    try:
+        from src.analysis.investigation_narrative import generate_investigation_narrative
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                OPTIONAL MATCH (i)<-[:EVIDENCE_FOR]-(e:Evidence)
+                RETURN i, collect(e) AS evidence_nodes
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record or not record["i"]:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        investigation_data = dict(record["i"])
+        evidence = [dict(e) for e in (record["evidence_nodes"] or []) if e]
+
+        narrative_result = await generate_investigation_narrative(
+            investigation_data, evidence
+        )
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            **narrative_result,
+            "timestamp": datetime.now(timezone.utc),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Narrative generation failed: {e}")
+        raise JackdawException(
+            message=f"Narrative generation failed: {str(e)}",
+            error_code="NARRATIVE_GENERATION_FAILED",
+        )
+
+
+# =============================================================================
+# Graph annotations (M15)
+# =============================================================================
+
+
+class AnnotationRequest(BaseModel):
+    target_id: str
+    annotation_type: str = "note"   # "note" | "flag" | "highlight"
+    content: str
+
+    @field_validator("annotation_type")
+    @classmethod
+    def validate_annotation_type(cls, v: str) -> str:
+        valid = {"note", "flag", "highlight"}
+        if v not in valid:
+            raise ValueError(f"annotation_type must be one of {sorted(valid)}")
+        return v
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("content must not be empty")
+        return v.strip()
+
+
+@router.post("/{investigation_id}/graph/annotations")
+async def add_graph_annotation(
+    investigation_id: str,
+    request: AnnotationRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+):
+    """Add an annotation to a node or edge within the investigation graph."""
+    try:
+        import json as _json_inner
+        now = datetime.now(timezone.utc)
+        ann_id = f"ANN-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
+
+        async with get_neo4j_session() as session:
+            # Verify investigation exists
+            check = await session.run(
+                "MATCH (i:Investigation {investigation_id: $inv_id}) RETURN i.investigation_id AS id",
+                inv_id=investigation_id,
+            )
+            if not await check.single():
+                raise HTTPException(status_code=404, detail="Investigation not found")
+
+            # Load existing annotations
+            ann_result = await session.run(
+                "MATCH (i:Investigation {investigation_id: $inv_id}) RETURN i.annotations_json AS anns",
+                inv_id=investigation_id,
+            )
+            ann_record = await ann_result.single()
+            existing_raw = ann_record["anns"] if ann_record else None
+            annotations = _json_inner.loads(existing_raw) if existing_raw else []
+
+            new_annotation = {
+                "annotation_id": ann_id,
+                "target_id": request.target_id,
+                "annotation_type": request.annotation_type,
+                "content": request.content,
+                "created_by": current_user.username,
+                "created_at": now.isoformat(),
+            }
+            annotations.append(new_annotation)
+
+            await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                SET i.annotations_json = $anns_json,
+                    i.annotations_updated_at = $updated_at
+                """,
+                inv_id=investigation_id,
+                anns_json=_json_inner.dumps(annotations),
+                updated_at=now.isoformat(),
+            )
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "annotation": new_annotation,
+            "timestamp": now,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Annotation add failed: {e}")
+        raise JackdawException(
+            message=f"Annotation add failed: {str(e)}",
+            error_code="ANNOTATION_ADD_FAILED",
+        )
+
+
+@router.get("/{investigation_id}/graph/annotations")
+async def get_graph_annotations(
+    investigation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+):
+    """List all annotations for the investigation graph."""
+    try:
+        import json as _json_inner
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                RETURN i.annotations_json AS anns, i.annotations_updated_at AS updated_at
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        raw = record["anns"]
+        annotations = _json_inner.loads(raw) if raw else []
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "annotations": annotations,
+            "count": len(annotations),
+            "updated_at": record["updated_at"],
+            "timestamp": datetime.now(timezone.utc),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Annotation list failed: {e}")
+        raise JackdawException(
+            message=f"Annotation list failed: {str(e)}",
+            error_code="ANNOTATION_LIST_FAILED",
+        )
+
+
+@router.delete("/{investigation_id}/graph/annotations/{annotation_id}")
+async def delete_graph_annotation(
+    investigation_id: str,
+    annotation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+):
+    """Remove a single annotation from the investigation graph."""
+    try:
+        import json as _json_inner
+        now = datetime.now(timezone.utc)
+
+        async with get_neo4j_session() as session:
+            result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                RETURN i.annotations_json AS anns
+                """,
+                inv_id=investigation_id,
+            )
+            record = await result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+
+        raw = record["anns"]
+        annotations = _json_inner.loads(raw) if raw else []
+        before = len(annotations)
+        annotations = [a for a in annotations if a.get("annotation_id") != annotation_id]
+
+        if len(annotations) == before:
+            raise HTTPException(status_code=404, detail="Annotation not found")
+
+        async with get_neo4j_session() as session:
+            await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                SET i.annotations_json = $anns_json,
+                    i.annotations_updated_at = $updated_at
+                """,
+                inv_id=investigation_id,
+                anns_json=_json_inner.dumps(annotations),
+                updated_at=now.isoformat(),
+            )
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "deleted_annotation_id": annotation_id,
+            "remaining_count": len(annotations),
+            "timestamp": now,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Annotation delete failed: {e}")
+        raise JackdawException(
+            message=f"Annotation delete failed: {str(e)}",
+            error_code="ANNOTATION_DELETE_FAILED",
+        )
+
+
+# =============================================================================
+# Investigation timeline (M15)
+# =============================================================================
+
+
+@router.get("/{investigation_id}/timeline")
+async def get_investigation_timeline(
+    investigation_id: str,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+):
+    """Return a chronological event timeline derived from investigation + evidence nodes."""
+    try:
+        async with get_neo4j_session() as session:
+            inv_result = await session.run(
+                """
+                MATCH (i:Investigation {investigation_id: $inv_id})
+                RETURN i
+                """,
+                inv_id=investigation_id,
+            )
+            inv_record = await inv_result.single()
+
+            if not inv_record or not inv_record["i"]:
+                raise HTTPException(status_code=404, detail="Investigation not found")
+
+            inv_props = dict(inv_record["i"])
+
+            evd_result = await session.run(
+                """
+                MATCH (e:Evidence)-[:EVIDENCE_FOR]->(i:Investigation {investigation_id: $inv_id})
+                RETURN e ORDER BY e.added_at ASC
+                """,
+                inv_id=investigation_id,
+            )
+            evd_records = await evd_result.data()
+
+        events = []
+
+        # Investigation created
+        if inv_props.get("created_at"):
+            events.append({
+                "event_type": "investigation_created",
+                "timestamp": inv_props["created_at"],
+                "actor": inv_props.get("created_by", "unknown"),
+                "details": {"title": inv_props.get("title", ""), "priority": inv_props.get("priority", "")},
+            })
+
+        # Evidence additions
+        for rec in evd_records:
+            ev = dict(rec["e"])
+            events.append({
+                "event_type": "evidence_added",
+                "timestamp": ev.get("added_at", ""),
+                "actor": ev.get("added_by", "unknown"),
+                "details": {
+                    "evidence_id": ev.get("evidence_id", ""),
+                    "evidence_type": ev.get("evidence_type", ""),
+                    "description": ev.get("description", "")[:80],
+                    "confidence": ev.get("confidence", 0.0),
+                },
+            })
+
+        # Graph saved
+        if inv_props.get("graph_updated_at"):
+            events.append({
+                "event_type": "graph_saved",
+                "timestamp": inv_props["graph_updated_at"],
+                "actor": inv_props.get("graph_updated_by", "unknown"),
+                "details": {},
+            })
+
+        # Status update
+        if inv_props.get("updated_at") and inv_props.get("status"):
+            events.append({
+                "event_type": "status_updated",
+                "timestamp": inv_props["updated_at"],
+                "actor": inv_props.get("updated_by", "unknown"),
+                "details": {"status": inv_props["status"]},
+            })
+
+        # Sort all events chronologically
+        events.sort(key=lambda e: e.get("timestamp") or "")
+
+        return {
+            "success": True,
+            "investigation_id": investigation_id,
+            "events": events,
+            "event_count": len(events),
+            "timestamp": datetime.now(timezone.utc),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Timeline retrieval failed: {e}")
+        raise JackdawException(
+            message=f"Timeline retrieval failed: {str(e)}",
+            error_code="TIMELINE_FAILED",
+        )

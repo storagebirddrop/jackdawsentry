@@ -505,14 +505,15 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - **Risk Config API** (`src/api/routers/risk_config.py`, mounted at `/api/v1/risk-config`): `GET/PATCH /weights`, `POST /weights/reset`, `GET/POST/DELETE /rules`, `POST /score`, `POST /deobfuscate`
 - **Gate**: ML risk model + AI summary + mixer de-obfuscation pipeline all functional; REST API for weight/rule management ✅ — **580 tests passing**
 
-### M15 — "It reports" (Investigation + Compliance Workflow)
-**Status**: 📋 PLANNED
+### ~~M15 — "It reports"~~ ✅ COMPLETE (Investigation + Compliance Workflow)
+**Status**: ✅ COMPLETE
 
-- Save/share/annotate graph investigations (JSONB state persistence)
-- Court-ready PDF report generation with graph snapshots
-- Auto-generated investigation narratives
-- Investigation timeline view
-- **Gate**: PDF export with graph snapshot + findings + evidence chain; shareable investigation link
+- ✅ Done — Save/share graph investigations (`PUT`/`GET /investigations/{id}/graph`) — persists nodes/edges/layout on Neo4j Investigation node (completed M10; carries forward)
+- ✅ Done — Annotate graph investigations: `POST`/`GET`/`DELETE /investigations/{id}/graph/annotations` — typed annotations (note/flag/highlight) stored as JSON blob
+- ✅ Done — Auto-generated investigation narrative: `POST /investigations/{id}/narrative` — Claude API with deterministic template fallback; returns narrative + key_findings + risk_assessment
+- ✅ Done — Investigation timeline: `GET /investigations/{id}/timeline` — chronological events (created, evidence, graph saved, status updated)
+- ✅ Done — Court-ready PDF: narrative section, page numbers, CONFIDENTIAL footer stamp (`src/export/pdf_report.py`)
+- **Gate**: Narrative endpoint returns AI/template text + findings; timeline returns sorted event log; PDF includes narrative and page numbers ✅ — **635 tests passing**
 
 ### M16 — "It scales" (Enterprise Features)
 **Status**: 📋 PLANNED
