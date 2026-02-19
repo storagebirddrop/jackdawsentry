@@ -30,6 +30,7 @@ from src.api.routers import (
     workflows,
     monitoring,
     rate_limit,
+    risk_config,
     tracing,
     visualization,
     scheduler,
@@ -452,6 +453,12 @@ app.include_router(
     prefix="/api/v1/tracing",
     tags=["Tracing"],
     dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    risk_config.router,
+    prefix="/api/v1",
+    tags=["Risk Config"],
 )
 
 app.include_router(

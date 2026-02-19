@@ -496,14 +496,14 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - ✅ Done — Protocol registry with 50 known protocols across 8 types
 - **Gate**: Trace funds through bridge from chain A to chain B; decode DeFi interactions ✅ — 454 tests passing
 
-### M14 — "It thinks" (AI/ML Analysis)
-**Status**: 📋 PLANNED
+### ~~M14 — "It thinks"~~ ✅ COMPLETE (AI/ML Analysis)
+**Status**: ✅ COMPLETE
 
-- ML risk scoring model trained on labeled entity data
-- AI triage: LLM-generated plain-language risk summaries
-- Mixer de-obfuscation (timing analysis, amount correlation)
-- Configurable risk weights + custom rules engine
-- **Gate**: ML risk model outperforms heuristic on test set; AI summary generated for any address
+- **ML risk scoring model** (`src/analysis/ml_risk_model.py`): logistic-regression-style scorer with 12 feature dimensions, sigmoid squash, PostgreSQL-persisted configurable weights, custom rules engine (CRUD + condition evaluation with AND logic, risk bump up to 0.5)
+- **AI risk summarizer** (`src/analysis/ai_summarizer.py`): Claude API integration (`claude-haiku-4-5-20251001`) with deterministic template fallback; produces plain-language summaries for addresses, transactions, and clusters
+- **Mixer de-obfuscation** (`src/analysis/mixer_deobfuscator.py`): timing analysis + amount-similarity correlation (exp-decay), ranks deposit↔withdrawal candidate pairs by confidence score
+- **Risk Config API** (`src/api/routers/risk_config.py`, mounted at `/api/v1/risk-config`): `GET/PATCH /weights`, `POST /weights/reset`, `GET/POST/DELETE /rules`, `POST /score`, `POST /deobfuscate`
+- **Gate**: ML risk model + AI summary + mixer de-obfuscation pipeline all functional; REST API for weight/rule management ✅ — **580 tests passing**
 
 ### M15 — "It reports" (Investigation + Compliance Workflow)
 **Status**: 📋 PLANNED

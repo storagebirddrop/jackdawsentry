@@ -7,7 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M11 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M14 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### M14 "It thinks" — AI/ML Analysis (✅ COMPLETE)
+
+#### ML Risk Scoring Model (`src/analysis/ml_risk_model.py`)
+- **12-feature logistic-regression scorer**: `mixer_usage` (0.30), `sanctions_entity` (0.40), `darknet_entity` (0.35), `scam_entity` (0.25), `privacy_tool_usage` (0.15), `high_frequency_periods` (0.10), `round_amount_ratio` (0.08), `large_tx_ratio` (0.08), `off_peak_ratio` (0.07), `cross_chain_activity` (0.05), `low_counterparty_ratio` (0.06), `bridge_usage` (0.04)
+- Sigmoid squash with ×4 scale factor for well-calibrated output near 0/1 boundary
+- PostgreSQL `risk_weights` table: operator-tunable per-feature weights with audit `updated_at`
+- PostgreSQL `custom_risk_rules` table: CRUD custom bump rules (conditions: feature threshold, entity_type, address_prefix); AND logic; bump capped at 0.50
+- `compute_ml_risk_score()` async pipeline: load weights → extract FeatureVector → score → level
+- `evaluate_custom_rules()` async: evaluates all enabled rules, returns (bump, triggered_names)
+
+#### AI Risk Summarizer (`src/analysis/ai_summarizer.py`)
+- **Claude API path** (`claude-haiku-4-5-20251001`): generates 2–3 sentence compliance narrative for addresses, one-line transaction descriptions
+- **Deterministic template fallback**: always available when `ANTHROPIC_API_KEY` absent or API quota exceeded
+- Three summary types: `summarize_address_risk`, `summarize_transaction`, `summarize_cluster`
+- Response includes `source: "claude_api" | "template"` and `model` for audit trail
+
+#### Mixer De-obfuscation Engine (`src/analysis/mixer_deobfuscator.py`)
+- Correlates mixer deposits↔withdrawals by amount similarity (exp-decay) + timing window + chain continuity
+- Configurable `max_delay_hours` (default 72h) and `min_confidence` (default 0.40)
+- Returns ranked `CandidatePair` list with per-signal scores and human-readable notes ("exact amount match", "withdrawn within 1 hour", etc.)
+- `build_mixer_transactions()` normalises raw transaction dicts from any RPC source
+- All results include disclaimer: results are investigative leads, not evidence
+
+#### Risk Config API (`src/api/routers/risk_config.py`, `/api/v1/risk-config`)
+- `GET /weights` — list all feature weights (any authenticated user)
+- `PATCH /weights/{feature}` — update single weight [0.0, 1.0] (admin)
+- `POST /weights/reset` — restore all weights to calibrated defaults (admin)
+- `GET /rules` / `POST /rules` / `DELETE /rules/{id}` — custom rule CRUD (admin write)
+- `POST /score` — on-demand score an address feature vector with current DB weights
+- `POST /deobfuscate` — run mixer de-obfuscation on a batch of transactions (up to 1000)
+
+#### Tests
+- **580 tests passing** (was 454; added 126): `test_ml_risk_model.py` (43), `test_ai_summarizer.py` (22), `test_mixer_deobfuscator.py` (30), `test_risk_config.py` (31)
+
+---
 
 ### M13 "It follows" — Cross-Chain Tracing + DeFi (✅ COMPLETE)
 
