@@ -19,6 +19,7 @@ from src.api.routers import (
     alerts,
     analysis,
     analytics,
+    bulk,
     compliance,
     entities,
     export,
@@ -27,6 +28,9 @@ from src.api.routers import (
     intelligence,
     reports,
     admin,
+    teams,
+    travel_rule,
+    webhooks,
     workflows,
     monitoring,
     rate_limit,
@@ -536,6 +540,30 @@ app.include_router(
     prefix="/api/v1/compliance/mobile",
     tags=["Mobile"],
     dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    teams.router,
+    prefix="/api/v1/teams",
+    tags=["Teams"],
+)
+
+app.include_router(
+    webhooks.router,
+    prefix="/api/v1/webhooks",
+    tags=["Webhooks"],
+)
+
+app.include_router(
+    travel_rule.router,
+    prefix="/api/v1/travel-rule",
+    tags=["Travel Rule"],
+)
+
+app.include_router(
+    bulk.router,
+    prefix="/api/v1/bulk",
+    tags=["Bulk"],
 )
 
 

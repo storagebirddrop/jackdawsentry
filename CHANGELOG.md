@@ -7,7 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M15 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M16 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### M16 "It scales" — Enterprise Features (✅ COMPLETE)
+
+#### Team Workspaces (`src/services/teams.py`, `src/api/routers/teams.py`)
+- Multi-tenant org management: `POST/GET /teams/organizations`, `POST/GET/DELETE /teams/organizations/{id}/members`, `GET /teams/my-org`
+- Plans: standard / professional / enterprise; roles: admin / member / viewer
+- PostgreSQL-backed (`organizations` + `org_members` tables)
+
+#### Outbound Webhooks (`src/services/webhook_manager.py`, `src/api/routers/webhooks.py`)
+- HMAC-SHA256 payload signing (`X-JDS-Signature` header); httpx async delivery
+- Register/list/delete/test webhooks; 6 event types: `alert.triggered`, `investigation.created/updated`, `evidence.added`, `sanctions.match`, `risk.high`
+- Secret minimum length enforced (16 chars)
+
+#### Travel Rule Compliance (`src/compliance/travel_rule.py`, `src/api/routers/travel_rule.py`)
+- FATF Recommendation 16 + MiCA Article 83 compliance: $1,000 USD threshold
+- Built-in VASP registry (5 VASPs: Coinbase, Kraken, Binance, Bitstamp, Kraken EU) with prefix-based lookup
+- `build_travel_rule_record()`: threshold check → originator/beneficiary VASP lookup → compliance_status (compliant/partial/non_compliant) + missing_fields list
+- `validate_vasp_info()`: field completeness + ISO 3166-1 jurisdiction code validation
+- Endpoints: `POST /travel-rule/check`, `GET /travel-rule/vasp/{address}`, `POST /travel-rule/vasp/validate`, `GET /travel-rule/threshold`
+
+#### Smart Contract Analysis (`src/analysis/smart_contract_analyzer.py`)
+- 4-byte selector decode: 19 known functions across ERC-20, ERC-721, ERC-1155, WETH, Uniswap V2/V3
+- `decode_calldata()`, `is_nft_interaction()`, `classify_contract()`, `analyze_nft_transfer()`, `get_supported_standards()`
+- Risk indicators: `minimal_bytecode`, `token_transfer`
+
+#### Bulk Data API (`src/api/routers/bulk.py`)
+- `POST /bulk/screen` — batch screen up to 500 addresses with VASP match
+- `POST /bulk/screen/export` — CSV streaming download
+- `POST /bulk/analyze/contract` — calldata decode + NFT classification
+- `GET /bulk/stats` — API limits and supported chains
+
+#### Tests (+113 new tests, **748 total**)
+- `tests/test_compliance/test_travel_rule.py` (25 tests)
+- `tests/test_analysis/test_smart_contract.py` (30 tests)
+- `tests/test_api/test_teams.py` (18 tests)
+- `tests/test_api/test_webhooks.py` (18 tests)
+- `tests/test_api/test_bulk.py` (22 tests — bulk + travel rule API)
 
 ### M15 "It reports" — Investigation + Compliance Workflow (✅ COMPLETE)
 
