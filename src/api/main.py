@@ -16,6 +16,7 @@ from src.api.config import settings
 from src.api.database import init_databases, close_databases
 from src.api.auth import get_current_user, require_admin, User
 from src.api.routers import (
+    alerts,
     analysis,
     analytics,
     compliance,
@@ -146,6 +147,14 @@ async def start_background_tasks():
         logger.info("Entity labels sync scheduler started (every 24h)")
     except Exception as e:
         logger.error(f"Failed to start labels sync scheduler: {e}")
+
+    # Start transaction monitoring pipeline (M12)
+    try:
+        from src.monitoring.tx_monitor import start_monitor
+        start_monitor(chains=["ethereum", "bitcoin"])
+        logger.info("Transaction monitor started (ethereum, bitcoin)")
+    except Exception as e:
+        logger.error(f"Failed to start transaction monitor: {e}")
 
     # Store task references for monitoring and cleanup
     if hasattr(start_background_tasks, '_tasks'):
@@ -429,6 +438,12 @@ app.include_router(
     prefix="/api/v1/entities",
     tags=["Entities"],
     dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    alerts.router,
+    prefix="/api/v1/alerts",
+    tags=["Alerts"],
 )
 
 app.include_router(

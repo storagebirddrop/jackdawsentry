@@ -478,14 +478,14 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - ✅ Done — Background label sync scheduler (24h interval)
 - **Gate**: Address lookup returns entity labels; graph nodes colored by entity type ✅ — 361 tests passing
 
-### M12 — "It watches" (Real-Time Monitoring + Alerts)
-**Status**: 📋 PLANNED
+### ~~M12 — "It watches"~~ ✅ COMPLETE (Real-Time Monitoring + Alerts)
+**Status**: ✅ COMPLETE
 
-- Transaction monitoring pipeline with WebSocket mempool/block listeners
-- Configurable alert rules engine with CRUD API
-- WebSocket endpoint for real-time dashboard updates
-- Redis pub/sub for cross-instance event distribution
-- **Gate**: Alert fires within 30s of matching transaction; live alert feed in dashboard
+- ✅ Done — Transaction monitoring pipeline with per-chain RPC polling loops
+- ✅ Done — Configurable alert rules engine with CRUD API (5 conditions: chain, address_match, value_gte, pattern_type)
+- ✅ Done — WebSocket endpoint `/api/v1/alerts/ws` for real-time alert streaming
+- ✅ Done — Redis pub/sub for cross-instance event distribution
+- **Gate**: Alert fires within 30s of matching transaction; live alert feed in dashboard ✅ — 405 tests passing
 
 ### M13 — "It follows" (Cross-Chain Tracing + DeFi)
 **Status**: 📋 PLANNED

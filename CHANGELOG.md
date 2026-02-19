@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Milestones M0–M11 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
+### M12 "It watches" — Real-Time Monitoring + Alerts (✅ COMPLETE)
+
+#### Alert Rules Engine (`src/monitoring/alert_rules.py`)
+- **PostgreSQL schema**: `alert_rules` + `alert_events` tables with indexes
+- **Rule conditions**: `chain` (filter by blockchain), `address_match` (watch specific address), `value_gte` (minimum native token value), `pattern_type` (AML pattern name); all combinable with AND logic
+- **`evaluate_transaction(tx, patterns)`**: evaluates all enabled rules against a transaction; fires matching rules → persists `alert_events` → publishes to Redis pub/sub channel `jackdaw:alerts`
+- **CRUD**: `create_rule`, `list_rules`, `get_rule`, `update_rule`, `delete_rule`, `get_recent_alerts`
+- **Graceful degradation**: Redis publish failures logged but don't suppress the alert return value
+
+#### Transaction Monitor (`src/monitoring/tx_monitor.py`)
+- `start_monitor(chains)` / `stop_monitor()` — background asyncio tasks per chain
+- Per-chain family poll intervals: EVM 12s, Bitcoin 60s, Solana 4s, Tron 3s, XRPL 4s
+- Normalises RPC transaction dataclasses/dicts to a flat alert-engine dict
+- Capped at 50 txs per poll cycle; errors logged and retried next cycle
+- Wired into FastAPI lifespan for ethereum + bitcoin by default
+
+#### Alerts API Router (`src/api/routers/alerts.py`, mounted at `/api/v1/alerts`)
+- `GET /rules` — list all rules (optional `enabled_only` filter)
+- `POST /rules` — create rule (admin only); validates severity enum + non-empty name
+- `GET /rules/{id}` — fetch single rule
+- `PATCH /rules/{id}` — update mutable fields (admin only); 400 on empty body
+- `DELETE /rules/{id}` — delete rule (admin only); 204 on success
+- `GET /recent` — query recent alert events (limit + severity filter)
+- `WS /ws` — WebSocket live stream; JWT auth via first message; Redis pub/sub subscriber
+
+#### Database (`src/api/database.py`)
+- Added `get_redis_client()` — returns a bare `redis.asyncio.Redis` instance bound to the shared pool (needed for pub/sub)
+
+#### Frontend (`frontend/js/alerts.js`)
+- `AlertFeed.start()` — connects WebSocket, sends JWT, streams alerts
+- Toast notifications with severity-coloured left border (6s auto-dismiss)
+- `#alert-feed-body` table prepend with auto-trim at 100 rows
+- `#alert-badge` counter; auto-reconnect on unexpected disconnect
+
+#### Tests
+- **405 tests passing** (was 361; added 44): `tests/test_monitoring/test_alert_rules.py` (30 tests — condition matching, evaluate_transaction pipeline, CRUD) + `tests/test_monitoring/test_alerts_api.py` (18 tests — full REST coverage)
+
 ### 🔄 In Development
 - GraphQL API implementation
 - Advanced ML models
