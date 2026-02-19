@@ -6,7 +6,7 @@ Suspicious Activity Reporting (SAR) templates and automated report generation
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 import json

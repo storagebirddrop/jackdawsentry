@@ -7,7 +7,7 @@ Inspired by FUCKIN-DANS-ASS MCP implementation
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 import json
 import aiohttp

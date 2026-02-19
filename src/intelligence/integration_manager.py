@@ -7,7 +7,7 @@ Combines MCP integration, professional tools, OSINT workflows, and academic rese
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import json
 from enum import Enum

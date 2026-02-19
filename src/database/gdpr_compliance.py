@@ -5,7 +5,7 @@ Data protection, consent management, and automated deletion
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 import hashlib
 import json

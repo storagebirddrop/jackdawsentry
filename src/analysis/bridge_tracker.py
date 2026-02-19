@@ -6,7 +6,7 @@ Detects and tracks stablecoin movements across blockchain bridges
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import re
 
@@ -703,7 +703,7 @@ class BridgeTracker:
             await session.run(query,
                 tx_hash=tx['hash'],
                 amount=transfer.get('amount'),
-                bridge_name=cross_chain_info.get('bridge_name')
+                bridge_name=transfer.get('bridge_name')
             )
     
     async def alert_rapid_hopping(self, tx: Dict, transfer: Dict):

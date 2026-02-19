@@ -7,7 +7,7 @@ Inspired by Amrita-TIFAC-Cyber-Blockchain/Blockchain-and-Cryptocurrency-Forensic
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import aiohttp
 import json
