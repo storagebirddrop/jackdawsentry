@@ -7,12 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M9 are complete. Core API routers are wired to Neo4j and compliance
-> engines; frontend is connected via JWT auth; load testing infrastructure is in place.
-> Live blockchain RPC clients (EVM + Bitcoin) connect to public endpoints.
-> Items below marked "scaffolded" have code structure but are not yet connected to
-> live external services (ML models, third-party APIs beyond blockchain RPCs).
-> See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M11 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
 ### 🔄 In Development
 - GraphQL API implementation
@@ -51,6 +46,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Phase 6 — Tests
 - **328 tests passing** (was 223; added 105+; gate was 250+): new test files for Solana/Tron/XRPL RPC clients, risk scoring, factory, analysis wiring, graph enhanced, exports/PDF
+
+### M11 "It knows" — Entity Attribution (✅ COMPLETE)
+
+#### Entity Attribution Service (`src/services/entity_attribution.py`)
+- **PostgreSQL schema**: `entities`, `entity_addresses`, `label_sources` tables with indexes and ON CONFLICT upsert logic
+- **Open-source ingestors**: `ingest_etherscan_labels()` (brianleect/etherscan-labels dataset), `ingest_scam_databases()` (CryptoScamDB), `ingest_community_labels()` (exchange/custodian community labels)
+- **Lookup functions**: `lookup_address()` (single, with blockchain filter), `lookup_addresses_bulk()` (DISTINCT ON batched query), `get_entity_details()` (entity + all addresses), `search_entities()` (name/type ILIKE search)
+- **Sync orchestration**: `sync_all_labels()` runs all ingestors, records per-source counts, gracefully handles partial failures
+- **Type classification**: `_classify_entity_type()` keyword matcher (exchange/mixer/darknet/scam/bridge/defi/mining); `_risk_for_type()` default risk by entity class
+
+#### Entity API Router (`src/api/routers/entities.py`, mounted at `/api/v1/entities`)
+- `GET /lookup?address=&blockchain=` — single address attribution lookup
+- `POST /lookup` — bulk lookup up to 500 addresses
+- `GET /search?q=&type=&limit=` — entity name/address search
+- `GET /{entity_id}` — full entity details with all associated addresses
+- `POST /sync` — admin-only manual label sync trigger
+- `GET /sync/status` — per-source sync status and address counts
+
+#### Graph Enrichment (`src/api/routers/graph.py`)
+- `_enrich_with_entity_labels()`: bulk entity lookup enriches all expanded nodes with `entity_name`, `entity_type`, `entity_category`, overrides risk score from entity `risk_level`
+- Cytoscape.js styles for 7 entity types: exchange (blue), mixer (red pulsing), darknet_market (dark red), defi_protocol (green), scam (orange), bridge (yellow), mining_pool (gray)
+
+#### Background Scheduler (`src/api/main.py`)
+- `_entity_label_sync_loop()`: async task started on app lifespan; syncs labels every 24 hours
+
+#### Tests
+- **361 tests passing** (was 328; added 33): `tests/test_analysis/test_entity_attribution.py` — 33 tests covering `_classify_entity_type`, `_risk_for_type`, `lookup_address`, `lookup_addresses_bulk`, `get_entity_details`, `search_entities`, `sync_all_labels` (including partial failure), `ingest_etherscan_labels`, `ingest_scam_databases`
 
 ### M9 "It traces" — Blockchain APIs, Graph Explorer & Sanctions (complete)
 

@@ -469,14 +469,14 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 
 ## Future Milestones (M11–M16)
 
-### M11 — "It knows" (Entity Attribution + Expanded Chain Coverage)
-**Status**: ⏳ IN PROGRESS
+### ~~M11 — "It knows"~~ ✅ COMPLETE (Entity Attribution + Expanded Chain Coverage)
+**Status**: ✅ COMPLETE
 
-- Entity attribution database with open-source label ingestion (Etherscan labels, CryptoScamDB, community labels)
-- Entity lookup API endpoints (single, bulk, search)
-- Graph explorer enrichment with entity-type-aware node styles
-- Background label sync scheduler (24h interval)
-- **Gate**: Address lookup returns entity labels; graph nodes colored by entity type
+- ✅ Done — Entity attribution database with open-source label ingestion (Etherscan labels, CryptoScamDB, community labels)
+- ✅ Done — Entity lookup API endpoints (single, bulk, search)
+- ✅ Done — Graph explorer enrichment with entity-type-aware node styles
+- ✅ Done — Background label sync scheduler (24h interval)
+- **Gate**: Address lookup returns entity labels; graph nodes colored by entity type ✅ — 361 tests passing
 
 ### M12 — "It watches" (Real-Time Monitoring + Alerts)
 **Status**: 📋 PLANNED
