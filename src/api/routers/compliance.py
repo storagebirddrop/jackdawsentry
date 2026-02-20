@@ -224,8 +224,8 @@ async def generate_compliance_report(
         # Map request jurisdiction to enum
         try:
             jurisdiction = RegulatoryJurisdiction(request.jurisdiction.lower())
-        except ValueError:
-            jurisdiction = RegulatoryJurisdiction.USA
+        except (ValueError, AttributeError):
+            jurisdiction = RegulatoryJurisdiction.USA_FINCEN
 
         # Map report type to enum
         try:
@@ -239,7 +239,13 @@ async def generate_compliance_report(
             jurisdiction=jurisdiction,
             report_type=report_type,
             case_id=entity_id,
-            submitted_by=current_user.username,
+            triggered_by=current_user.username,
+            report_data={
+                "period_start": request.period_start.isoformat(),
+                "period_end": request.period_end.isoformat(),
+                "description": getattr(request, "description", ""),
+                "addresses": getattr(request, "addresses", []),
+            },
         )
 
         elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -253,7 +259,7 @@ async def generate_compliance_report(
                 "start": request.period_start.isoformat(),
                 "end": request.period_end.isoformat(),
             },
-            "content": report.content,
+            "content": report.report_data,
             "created_at": report.created_at.isoformat() if report.created_at else None,
         }
 
@@ -605,7 +611,7 @@ async def get_regulatory_report(
                 "report_type": report.report_type.value,
                 "status": report.status.value,
                 "entity_id": report.entity_id,
-                "content": report.content,
+                "content": report.report_data,
                 "submitted_at": report.submitted_at,
                 "created_at": report.created_at
             },

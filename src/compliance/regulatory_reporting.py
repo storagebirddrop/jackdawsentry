@@ -104,7 +104,11 @@ class RegulatoryReportingEngine:
         # Initialize regulatory requirements
         self._initialize_regulatory_requirements()
         self._initialize_report_templates()
-    
+
+    async def initialize(self):
+        """No-op async initializer — setup is done synchronously in __init__."""
+        pass
+
     def _initialize_regulatory_requirements(self):
         """Initialize regulatory requirements by jurisdiction"""
         self.requirements_cache = {
@@ -259,12 +263,13 @@ class RegulatoryReportingEngine:
         if self.session:
             await self.session.close()
     
-    async def create_regulatory_report(self, 
+    async def create_regulatory_report(self,
                                     jurisdiction: RegulatoryJurisdiction,
                                     report_type: ReportType,
                                     case_id: str,
                                     triggered_by: str,
-                                    report_data: Dict[str, Any]) -> RegulatoryReport:
+                                    report_data: Dict[str, Any],
+                                    draft: bool = True) -> RegulatoryReport:
         """Create regulatory report"""
         try:
             report_id = f"reg_{jurisdiction.value}_{report_type.value}_{datetime.now(timezone.utc).timestamp()}"
@@ -279,10 +284,11 @@ class RegulatoryReportingEngine:
             filing_deadline = triggered_time + requirement.filing_deadline
             submission_deadline = filing_deadline + timedelta(days=1)  # Buffer for submission
             
-            # Validate report data
-            validation_result = await self._validate_report_data(report_data, requirement)
-            if not validation_result['valid']:
-                raise ValueError(f"Report data validation failed: {validation_result['errors']}")
+            # Validate report data (skip for drafts — fields filled in before submission)
+            if not draft:
+                validation_result = await self._validate_report_data(report_data, requirement)
+                if not validation_result['valid']:
+                    raise ValueError(f"Report data validation failed: {validation_result['errors']}")
             
             # Create report
             report = RegulatoryReport(

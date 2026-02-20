@@ -174,7 +174,11 @@ class CaseManagementEngine:
         
         # Initialize workflows
         self._initialize_workflows()
-    
+
+    async def initialize(self):
+        """No-op async initializer — setup is done synchronously in __init__."""
+        pass
+
     def _initialize_workflows(self):
         """Initialize case workflows"""
         self.workflows_cache = {

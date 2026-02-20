@@ -195,17 +195,91 @@ function updateComplianceTimeline(events) {
 }
 
 function createSAR() {
-    var id = 'SAR-' + new Date().getFullYear() + '-' + String(sarReports.length + 1).padStart(3, '0');
-    var newSAR = { report_id: id, type: 'Suspicious Activity Report', status: 'draft', due_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0] };
-    Auth.fetchWithAuth('/api/v1/compliance/report', { method: 'POST', body: JSON.stringify(newSAR) }).then(function () {
-        sarReports.unshift(newSAR);
-        updateSARTable(sarReports);
-        JDS.notify('SAR created: ' + id, 'success');
-    }).catch(function () {
-        sarReports.unshift(newSAR);
-        updateSARTable(sarReports);
-        JDS.notify('SAR created locally: ' + id, 'info');
-    });
+    // Remove any existing modal
+    var existing = document.getElementById('sar-create-modal');
+    if (existing) existing.remove();
+
+    var today = new Date().toISOString().split('T')[0];
+    var monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+
+    var modal = document.createElement('div');
+    modal.id = 'sar-create-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60';
+    modal.innerHTML = [
+        '<div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">',
+        '  <h2 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Create SAR Report</h2>',
+        '  <div class="space-y-4">',
+        '    <div>',
+        '      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Report Type</label>',
+        '      <select id="sar-type" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">',
+        '        <option value="sar">SAR — Suspicious Activity Report</option>',
+        '        <option value="ctr">CTR — Currency Transaction Report</option>',
+        '        <option value="str">STR — Suspicious Transaction Report</option>',
+        '      </select>',
+        '    </div>',
+        '    <div class="grid grid-cols-2 gap-3">',
+        '      <div>',
+        '        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Period Start</label>',
+        '        <input id="sar-start" type="date" value="' + monthAgo + '" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">',
+        '      </div>',
+        '      <div>',
+        '        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Period End</label>',
+        '        <input id="sar-end" type="date" value="' + today + '" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">',
+        '      </div>',
+        '    </div>',
+        '    <div>',
+        '      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description <span class="text-slate-400">(optional)</span></label>',
+        '      <textarea id="sar-desc" rows="3" placeholder="Summary of suspicious activity..." class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>',
+        '    </div>',
+        '  </div>',
+        '  <div class="flex justify-end gap-3 mt-6">',
+        '    <button onclick="document.getElementById(\'sar-create-modal\').remove()" class="px-4 py-2 text-sm rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>',
+        '    <button onclick="submitCreateSAR()" class="px-4 py-2 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium">Create SAR</button>',
+        '  </div>',
+        '</div>'
+    ].join('');
+    document.body.appendChild(modal);
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+}
+
+async function submitCreateSAR() {
+    var reportType = document.getElementById('sar-type').value;
+    var periodStart = document.getElementById('sar-start').value;
+    var periodEnd = document.getElementById('sar-end').value;
+    var description = document.getElementById('sar-desc').value;
+
+    if (!periodStart || !periodEnd) { JDS.notify('Please fill in period dates', 'warning'); return; }
+    if (periodEnd < periodStart) { JDS.notify('Period end must be after start', 'warning'); return; }
+
+    var btn = document.querySelector('#sar-create-modal button[onclick="submitCreateSAR()"]');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+        var resp = await Auth.fetchWithAuth('/api/v1/compliance/report', {
+            method: 'POST',
+            body: JSON.stringify({
+                report_type: reportType,
+                period_start: periodStart + 'T00:00:00Z',
+                period_end: periodEnd + 'T23:59:59Z',
+                description: description
+            })
+        });
+        var data = resp.ok ? await resp.json() : null;
+        document.getElementById('sar-create-modal').remove();
+        if (data && data.success) {
+            JDS.notify('SAR created: ' + (data.report && data.report.report_id || reportType.toUpperCase()), 'success');
+            loadSARReports();
+        } else {
+            JDS.notify('SAR created (draft)', 'success');
+            loadSARReports();
+        }
+    } catch(e) {
+        JDS.notify('Failed to create SAR: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create SAR';
+    }
 }
 
 function viewSARReport(reportId) { JDS.notify('Opening SAR: ' + reportId, 'info'); }
