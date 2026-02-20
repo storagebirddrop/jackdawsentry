@@ -168,15 +168,17 @@ async def analyze_address(
                 analysis_data["risk_score"] = 0.0
 
             # Connected addresses (up to depth)
+            # Neo4j 5 does not allow parameter substitution in relationship depth bounds,
+            # so the depth literal is interpolated directly (it's an integer, safe to inline).
+            _depth = max(1, min(int(request.depth), 10))
             conn_result = await session.run(
-                """
-                MATCH (a:Address {address: $address, blockchain: $blockchain})
-                      -[:SENT|RECEIVED*1..$depth]-(connected:Address)
+                f"""
+                MATCH (a:Address {{address: $address, blockchain: $blockchain}})
+                      -[:SENT|RECEIVED*1..{_depth}]-(connected:Address)
                 RETURN DISTINCT connected.address AS addr LIMIT 50
                 """,
                 address=request.address,
                 blockchain=request.blockchain,
-                depth=request.depth,
             )
             conn_records = await conn_result.data()
             analysis_data["connected_addresses"] = [r["addr"] for r in conn_records]

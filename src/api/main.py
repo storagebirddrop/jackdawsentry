@@ -73,7 +73,12 @@ async def lifespan(app: FastAPI):
         # Initialize databases
         await init_databases()
         logger.info("Databases initialized successfully")
-        
+
+        # Ensure monitoring tables exist (alert_rules, alert_events)
+        from src.monitoring.alert_rules import ensure_tables as ensure_alert_tables
+        await ensure_alert_tables()
+        logger.info("Alert tables ready")
+
         # Start background tasks
         asyncio.create_task(start_background_tasks())
         logger.info("Background tasks started")
