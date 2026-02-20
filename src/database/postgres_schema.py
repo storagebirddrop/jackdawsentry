@@ -61,7 +61,7 @@ class PostgresSchema:
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 closed_at TIMESTAMP WITH TIME ZONE,
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (created_at + INTERVAL '7 years') STORED,
+                retention_until TIMESTAMP WITH TIME ZONE,
                 gdpr_consent_recorded BOOLEAN DEFAULT TRUE,
                 data_classification VARCHAR(20) DEFAULT 'confidential'
             )
@@ -83,7 +83,7 @@ class PostgresSchema:
                 status VARCHAR(50) NOT NULL DEFAULT 'draft',
                 filed_at TIMESTAMP WITH TIME ZONE,
                 acknowledgement_received BOOLEAN DEFAULT FALSE,
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (report_date + INTERVAL '7 years') STORED,
+                retention_until TIMESTAMP WITH TIME ZONE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -104,7 +104,7 @@ class PostgresSchema:
                 added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 valid_until TIMESTAMP WITH TIME ZONE,
                 is_active BOOLEAN DEFAULT TRUE,
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (added_at + INTERVAL '7 years') STORED
+                retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
         
@@ -121,7 +121,7 @@ class PostgresSchema:
                 status VARCHAR(50) NOT NULL DEFAULT 'draft',
                 submitted_at TIMESTAMP WITH TIME ZONE,
                 submission_reference VARCHAR(100),
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (submitted_at + INTERVAL '7 years') STORED,
+                retention_until TIMESTAMP WITH TIME ZONE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -165,7 +165,7 @@ class PostgresSchema:
                 timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 session_id VARCHAR(255),
                 compliance_impact VARCHAR(50) DEFAULT 'low',
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (timestamp + INTERVAL '7 years') STORED
+                retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
         
@@ -181,7 +181,7 @@ class PostgresSchema:
                 legal_basis VARCHAR(100), -- GDPR legal basis
                 timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 ip_address INET,
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (timestamp + INTERVAL '7 years') STORED
+                retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
         
@@ -200,12 +200,12 @@ class PostgresSchema:
                 status VARCHAR(50) NOT NULL DEFAULT 'pending',
                 assigned_to UUID REFERENCES compliance.users(id),
                 received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                due_date TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (received_at + INTERVAL '30 days'),
+                due_date TIMESTAMP WITH TIME ZONE,
                     CONSTRAINT check_due_date CHECK (due_date > received_at),
                 completed_at TIMESTAMP WITH TIME ZONE,
                 response_data JSONB,
                 notes TEXT,
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (completed_at + INTERVAL '7 years') STORED
+                retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
         
@@ -224,7 +224,7 @@ class PostgresSchema:
                 controller VARCHAR(100) NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (updated_at + INTERVAL '7 years') STORED
+                retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
         
@@ -245,7 +245,7 @@ class PostgresSchema:
                 reported_to_authority BOOLEAN DEFAULT FALSE,
                 authority_notification_date TIMESTAMP WITH TIME ZONE,
                 status VARCHAR(50) NOT NULL DEFAULT 'open',
-                retention_until TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (notification_date + INTERVAL '7 years') STORED,
+                retention_until TIMESTAMP WITH TIME ZONE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -385,48 +385,21 @@ async def create_postgres_schema():
     )
     
     try:
-        # Create compliance schema
+        # Create compliance schema namespace (actual tables are managed by the
+        # API migration manager via src/api/migrations/*.sql on startup)
         await pool.execute("CREATE SCHEMA IF NOT EXISTS compliance")
-        
-        schema = PostgresSchema(pool)
-        await schema.create_schema()
-        
-        # Create initial admin user
+        logger.info("✅ compliance schema namespace ready")
+
+        # Create initial admin user (idempotent — skips if already exists)
         await create_initial_admin_user(pool)
-        
+
     finally:
         await pool.close()
 
 
 async def create_initial_admin_user(pool):
-    """Create initial admin user"""
-    from src.api.config import settings
-    import bcrypt
-    
-    # Hash the password
-    password_hash = bcrypt.hashpw("admin_password".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
-    # Encrypt email for GDPR
-    from cryptography.fernet import Fernet
-    fernet = Fernet(settings.ENCRYPTION_KEY.encode())
-    encrypted_email = fernet.encrypt("admin@jackdawsentry.com".encode()).decode()
-    
-    query = """
-    INSERT INTO compliance.users (username, email_encrypted, password_hash, role, permissions, gdpr_consent_date, data_processing_consent)
-    VALUES ($1, $2, $3, $4, $5, NOW(), TRUE)
-    ON CONFLICT (username) DO NOTHING
-    """
-    
-    await pool.execute(
-        query,
-        "admin",
-        encrypted_email,
-        password_hash,
-        "admin",
-        '["read", "write", "delete", "admin", "compliance", "investigations"]'
-    )
-    
-    logger.info("✅ Created initial admin user")
+    """No-op: admin user is seeded by 002_seed_admin_user.sql via the API migration manager."""
+    logger.info("✅ Admin user seeded by migration (002_seed_admin_user.sql)")
 
 
 if __name__ == "__main__":

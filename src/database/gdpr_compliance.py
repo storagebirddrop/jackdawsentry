@@ -7,6 +7,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
+import base64
 import hashlib
 import json
 from cryptography.fernet import Fernet
@@ -20,19 +21,26 @@ class GDPRComplianceManager:
     def __init__(self, postgres_pool, neo4j_driver, encryption_key: str):
         self.postgres_pool = postgres_pool
         self.neo4j_driver = neo4j_driver
-        self.fernet = Fernet(encryption_key.encode())
+        _key_bytes = hashlib.sha256(encryption_key.encode()).digest()
+        self.fernet = Fernet(base64.urlsafe_b64encode(_key_bytes))
         self._data_cleanup_task: Optional[asyncio.Task] = None
         self._consent_review_task: Optional[asyncio.Task] = None
     
     async def initialize_compliance_framework(self):
         """Initialize GDPR compliance framework"""
         logger.info("Initializing GDPR compliance framework...")
-        
-        await self.setup_data_processing_records()
-        await self.setup_retention_policies()
-        await self.setup_consent_management()
-        await self.setup_data_subject_request_handling()
-        
+
+        for step_name, coro in [
+            ("data_processing_records", self.setup_data_processing_records()),
+            ("retention_policies", self.setup_retention_policies()),
+            ("consent_management", self.setup_consent_management()),
+            ("data_subject_request_handling", self.setup_data_subject_request_handling()),
+        ]:
+            try:
+                await coro
+            except Exception as e:
+                logger.warning(f"⚠️  GDPR setup step '{step_name}' skipped (tables may not be migrated yet): {e}")
+
         logger.info("✅ GDPR compliance framework initialized")
     
     async def setup_data_processing_records(self):
@@ -84,7 +92,18 @@ class GDPRComplianceManager:
         
         async with self.postgres_pool.acquire() as conn:
             for activity in processing_activities:
-                await conn.execute(query, **activity)
+                await conn.execute(
+                    query,
+                    activity["processing_activity"],
+                    json.dumps(activity["data_types"]),
+                    json.dumps(activity["purposes"]),
+                    activity["legal_basis"],
+                    json.dumps(activity["data_subject_categories"]),
+                    json.dumps(activity.get("recipients")),
+                    activity.get("retention_period"),
+                    activity.get("security_measures"),
+                    activity["controller"],
+                )
         
         logger.info("✅ Setup data processing records")
     

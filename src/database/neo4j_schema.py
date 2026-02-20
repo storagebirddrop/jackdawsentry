@@ -37,7 +37,7 @@ class Neo4jSchema:
             "CREATE CONSTRAINT entity_name_unique IF NOT EXISTS FOR (e:Entity) REQUIRE e.name IS UNIQUE",
             
             # Stablecoin constraints
-            "CREATE CONSTRAINT stablecoin_symbol_unique IF NOT EXISTS FOR (s:Stablecoin) REQUIRE s.symbol IS UNIQUE",
+            "CREATE CONSTRAINT stablecoin_symbol_blockchain_unique IF NOT EXISTS FOR (s:Stablecoin) REQUIRE (s.symbol, s.blockchain) IS UNIQUE",
             "CREATE CONSTRAINT stablecoin_contract_unique IF NOT EXISTS FOR (s:Stablecoin) REQUIRE (s.blockchain, s.contract_address) IS UNIQUE",
             
             # Lightning constraints
@@ -329,10 +329,13 @@ async def create_initial_blockchain_data(driver):
         b.supports_smart_contracts = $supports_smart_contracts,
         b.created_at = timestamp()
     """
-    
+
     async with driver.session() as session:
         for blockchain in blockchains:
-            await session.run(query, **blockchain)
+            params = dict(blockchain)
+            params.setdefault("supports_lightning", False)
+            params.setdefault("supports_smart_contracts", False)
+            await session.run(query, **params)
     
     logger.info("✅ Created initial blockchain data")
 
