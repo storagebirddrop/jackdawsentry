@@ -113,6 +113,19 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Blockchain RPC endpoints
+      - ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+      - ETHEREUM_NETWORK=${ETHEREUM_NETWORK:-mainnet}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      - SOLANA_NETWORK=${SOLANA_NETWORK:-mainnet}
+      - BSC_RPC_URL=${BSC_RPC_URL:-https://bsc-dataseed.binance.org}
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL:-https://polygon-rpc.com}
+      - ARBITRUM_RPC_URL=${ARBITRUM_RPC_URL:-https://arb1.arbitrum.io/rpc}
+      - BASE_RPC_URL=${BASE_RPC_URL:-https://mainnet.base.org}
+      - AVALANCHE_RPC_URL=${AVALANCHE_RPC_URL:-https://api.avax.network/ext/bc/C/rpc}
+      - TRON_RPC_URL=${TRON_RPC_URL:-https://api.trongrid.io}
+      - XRPL_RPC_URL=${XRPL_RPC_URL:-https://xrplcluster.com}
+      - STELLAR_RPC_URL=${STELLAR_RPC_URL:-https://horizon.stellar.org}
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data

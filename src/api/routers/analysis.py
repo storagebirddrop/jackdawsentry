@@ -160,12 +160,25 @@ async def analyze_address(
                 analysis_data["labels"] = node_props.get("labels", [])
                 analysis_data["risk_score"] = node_props.get("risk_score", 0.0)
             else:
+                # Address not in Neo4j yet — query RPC directly for live data
                 analysis_data["transaction_count"] = 0
                 analysis_data["total_value"] = 0.0
                 analysis_data["first_seen"] = None
                 analysis_data["last_seen"] = None
                 analysis_data["labels"] = []
                 analysis_data["risk_score"] = 0.0
+                try:
+                    from src.collectors.rpc.factory import get_rpc_client
+                    rpc = get_rpc_client(request.blockchain)
+                    if rpc:
+                        addr_info = await rpc.get_address_info(request.address)
+                        if addr_info:
+                            analysis_data["transaction_count"] = addr_info.transaction_count or 0
+                            analysis_data["total_value"] = float(addr_info.balance or 0)
+                            analysis_data["labels"] = [addr_info.type] if addr_info.type else []
+                            analysis_data["source"] = "live_rpc"
+                except Exception as _rpc_err:
+                    logger.warning(f"Live RPC fallback failed for {request.address}: {_rpc_err}")
 
             # Connected addresses (up to depth)
             # Neo4j 5 does not allow parameter substitution in relationship depth bounds,
