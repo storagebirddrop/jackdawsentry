@@ -15,6 +15,7 @@
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/alerts.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
@@ -92,8 +93,24 @@
             <!-- Alerts Table -->
             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold">Recent Alerts</h2>
+                    <h2 class="text-base font-semibold flex items-center gap-2">
+                        Recent Alerts
+                        <span id="alert-badge" style="display:none;" class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-rose-500 text-white rounded-full"></span>
+                    </h2>
                     <button onclick="loadAlerts()" class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">Refresh</button>
+                </div>
+                <!-- Alert filters -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <input id="alert-search" type="text" placeholder="Search alerts…"
+                           class="flex-1 min-w-[180px] px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="alert-filter-severity" onchange="loadAlerts()"
+                            class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -108,6 +125,71 @@
                         </thead>
                         <tbody id="alerts-tbody">
                             <tr><td colspan="5" class="py-8 text-center text-slate-400">Loading alerts...</td></tr>
+                        </tbody>
+                        <!-- Live Feed separator -->
+                        <tbody>
+                            <tr><td colspan="5" class="py-2 px-4 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                                <span class="flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Live Feed</span>
+                            </td></tr>
+                        </tbody>
+                        <tbody id="alert-feed-body">
+                            <tr><td colspan="5" class="py-3 px-4 text-xs text-slate-400 italic">Connecting to live alert stream…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Alert Rules CRUD -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold">Alert Rules</h2>
+                    <button onclick="_showRuleForm()" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors flex items-center gap-1.5">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Rule
+                    </button>
+                </div>
+                <!-- New rule form (hidden by default) -->
+                <div id="rule-form" class="hidden mb-4 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <input id="rule-name" type="text" placeholder="Rule name"
+                               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select id="rule-severity"
+                                class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                        <input id="rule-pattern" type="text" placeholder="Condition / pattern"
+                               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select id="rule-blockchain"
+                                class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Any Chain</option>
+                            <option value="bitcoin">Bitcoin</option>
+                            <option value="ethereum">Ethereum</option>
+                            <option value="bsc">BSC</option>
+                            <option value="polygon">Polygon</option>
+                            <option value="solana">Solana</option>
+                            <option value="tron">Tron</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="_createRule()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">Create Rule</button>
+                        <button onclick="document.getElementById('rule-form').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors">Cancel</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700">
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Name</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Severity</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Pattern</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Enabled</th>
+                                <th class="text-left py-3 px-4 font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rules-tbody">
+                            <tr><td colspan="5" class="py-6 text-center text-slate-400">Loading rules…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -141,28 +223,123 @@
 
         var severityColors = { low: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300', critical: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' };
 
+        var _alertSearchDebounce = null;
+        var _allAlerts = [];
+
         async function loadAlerts() {
+            var severity = document.getElementById('alert-filter-severity').value;
+            var url = '/api/v1/intelligence/alerts';
+            if (severity) url += '?severity=' + encodeURIComponent(severity);
             try {
-                var data = await Auth.fetchJSON('/api/v1/intelligence/alerts');
-                var alerts = Array.isArray(data) ? data : (data && data.alerts ? data.alerts : []);
-                document.getElementById('stat-alerts').textContent = alerts.length;
-                var tbody = document.getElementById('alerts-tbody');
-                if (!alerts.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No alerts found</td></tr>'; return; }
-                var esc = JDS.escapeHTML;
-                tbody.innerHTML = alerts.slice(0, 20).map(function (a) {
-                    var sev = a.severity || 'medium';
-                    var cls = severityColors[sev] || severityColors.medium;
-                    return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
-                        + '<td class="py-3 px-4 font-medium">' + esc(a.title || a.alert_type || '—') + '</td>'
-                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(sev) + '</span></td>'
-                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(a.source || '—') + '</td>'
-                        + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (a.created_at ? new Date(a.created_at).toLocaleDateString() : '—') + '</td>'
-                        + '<td class="py-3 px-4"><span class="inline-block w-2 h-2 rounded-full ' + (a.status === 'resolved' ? 'bg-emerald-500' : 'bg-amber-500') + '"></span> ' + esc(a.status || 'active') + '</td>'
-                        + '</tr>';
-                }).join('');
+                var data = await Auth.fetchJSON(url);
+                _allAlerts = Array.isArray(data) ? data : (data && data.alerts ? data.alerts : []);
+                document.getElementById('stat-alerts').textContent = _allAlerts.length;
+                _renderAlerts();
             } catch (_) {
                 document.getElementById('stat-alerts').textContent = '7';
                 document.getElementById('alerts-tbody').innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load alerts — using demo data</td></tr>';
+            }
+        }
+
+        function _renderAlerts() {
+            var search = (document.getElementById('alert-search').value || '').toLowerCase();
+            var filtered = search ? _allAlerts.filter(function (a) {
+                return (a.title || '').toLowerCase().includes(search) || (a.description || '').toLowerCase().includes(search);
+            }) : _allAlerts;
+            var tbody = document.getElementById('alerts-tbody');
+            if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No alerts found</td></tr>'; return; }
+            var esc = JDS.escapeHTML;
+            tbody.innerHTML = filtered.slice(0, 100).map(function (a) {
+                var sev = a.severity || 'medium';
+                var cls = severityColors[sev] || severityColors.medium;
+                return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
+                    + '<td class="py-3 px-4 font-medium">' + esc(a.title || a.alert_type || '—') + '</td>'
+                    + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + cls + '">' + esc(sev) + '</span></td>'
+                    + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + esc(a.source || '—') + '</td>'
+                    + '<td class="py-3 px-4 text-slate-500 dark:text-slate-400">' + (a.created_at ? new Date(a.created_at).toLocaleDateString() : '—') + '</td>'
+                    + '<td class="py-3 px-4"><span class="inline-block w-2 h-2 rounded-full ' + (a.status === 'resolved' ? 'bg-emerald-500' : 'bg-amber-500') + '"></span> ' + esc(a.status || 'active') + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        // Alert rules CRUD
+        async function loadRules() {
+            var tbody = document.getElementById('rules-tbody');
+            try {
+                var data = await Auth.fetchJSON('/api/v1/alerts/rules');
+                var rules = Array.isArray(data) ? data : (data && data.rules ? data.rules : []);
+                if (!rules.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">No rules defined</td></tr>'; return; }
+                var esc = JDS.escapeHTML;
+                var sevCls = { low: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300', critical: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' };
+                tbody.innerHTML = rules.map(function (r) {
+                    var pattern = r.conditions ? (r.conditions.pattern || JSON.stringify(r.conditions)) : '—';
+                    return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
+                        + '<td class="py-3 px-4 font-medium">' + esc(r.name || '—') + '</td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (sevCls[r.severity] || sevCls.medium) + '">' + esc(r.severity || 'medium') + '</span></td>'
+                        + '<td class="py-3 px-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs truncate">' + esc(String(pattern)) + '</td>'
+                        + '<td class="py-3 px-4">'
+                        +   '<label class="relative inline-flex items-center cursor-pointer">'
+                        +     '<input type="checkbox" ' + (r.enabled ? 'checked' : '') + ' onchange="_toggleRule(\'' + esc(r.id) + '\', this.checked)" class="sr-only peer">'
+                        +     '<div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>'
+                        +   '</label>'
+                        + '</td>'
+                        + '<td class="py-3 px-4">'
+                        +   '<button onclick="_deleteRule(\'' + esc(r.id) + '\')" class="text-rose-500 hover:text-rose-700 text-xs font-medium transition-colors">Delete</button>'
+                        + '</td>'
+                        + '</tr>';
+                }).join('');
+            } catch (_) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Could not load rules</td></tr>';
+            }
+        }
+
+        function _showRuleForm() {
+            document.getElementById('rule-form').classList.toggle('hidden');
+        }
+
+        async function _createRule() {
+            var name = document.getElementById('rule-name').value.trim();
+            var severity = document.getElementById('rule-severity').value;
+            var pattern = document.getElementById('rule-pattern').value.trim();
+            var blockchain = document.getElementById('rule-blockchain').value;
+            if (!name) { alert('Rule name is required.'); return; }
+            try {
+                await Auth.fetchWithAuth('/api/v1/alerts/rules', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: name,
+                        severity: severity,
+                        conditions: { pattern: pattern, blockchain: blockchain || undefined }
+                    })
+                });
+                document.getElementById('rule-name').value = '';
+                document.getElementById('rule-pattern').value = '';
+                document.getElementById('rule-form').classList.add('hidden');
+                loadRules();
+            } catch (err) {
+                alert('Failed to create rule: ' + err);
+            }
+        }
+
+        async function _toggleRule(ruleId, enabled) {
+            try {
+                await Auth.fetchWithAuth('/api/v1/alerts/rules/' + ruleId, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ enabled: enabled })
+                });
+            } catch (err) {
+                alert('Failed to update rule: ' + err);
+                loadRules(); // revert UI
+            }
+        }
+
+        async function _deleteRule(ruleId) {
+            if (!confirm('Delete this alert rule?')) return;
+            try {
+                await Auth.fetchWithAuth('/api/v1/alerts/rules/' + ruleId, { method: 'DELETE' });
+                loadRules();
+            } catch (err) {
+                alert('Failed to delete rule: ' + err);
             }
         }
 
@@ -228,9 +405,16 @@
             } catch (_) {}
         });
 
+        document.getElementById('alert-search').addEventListener('input', function () {
+            clearTimeout(_alertSearchDebounce);
+            _alertSearchDebounce = setTimeout(_renderAlerts, 300);
+        });
+
         loadAlerts();
         loadSources();
         loadStats();
+        loadRules();
+        AlertFeed.start();
     </script>
 </body>
 </html>

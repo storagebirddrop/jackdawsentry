@@ -6,18 +6,18 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 
 ## Current Status
 
-✅ **152 API Endpoints** mounted — REST API with JWT auth & RBAC  
-✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)  
-✅ **Database Migrations** — Automated schema management; first-launch admin setup wizard  
-✅ **Structured Logging** — GDPR-compliant JSON logging with audit trail  
-✅ **Secrets Management** — Cryptographic secrets with generation tooling  
-⚠️ **Business Logic** — Core routers wired to Neo4j/engines; collectors and ML engines are scaffolded  
-✅ **Testing** — 196 tests passing (smoke, auth, analysis, compliance engines, API integration, workflows, load testing)  
-✅ **Frontend** — 9-page dashboard with dark mode, JWT auth, shared nav, Chart.js + Cytoscape.js visualizations  
-✅ **M9 "It traces"** — Live blockchain RPC (EVM + Bitcoin), Cytoscape.js transaction graph explorer, OFAC/EU sanctions screening  
-⏳ **M10 "It analyzes"** — Wire analysis engines, Solana/Tron/XRPL RPC, cross-chain graph viz, investigation exports, Pydantic V2  
+✅ **M0–M17 complete** — all planned milestones shipped
+✅ **152+ API Endpoints** — REST API with JWT auth & RBAC across 19 routers
+✅ **748 tests passing** — smoke, auth, analysis, compliance, API integration, workflows
+✅ **10-page frontend** — investigation detail page, live alert feed, full investigator UX
+✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)
+✅ **Live blockchain RPC** — EVM, Bitcoin, Solana, Tron, XRPL with Neo4j fallback
+✅ **AI/ML analysis** — Claude API narrative generation, ML risk scoring, mixer de-obfuscation
+✅ **Investigation suite** — 5-tab detail page, evidence, timeline, graph, narrative, PDF export
+✅ **Enterprise features** — multi-tenant teams, webhooks, Travel Rule, bulk screening, smart contract analysis
+✅ **Real-time monitoring** — WebSocket alert stream, configurable alert rules, live feed UI
 
-See [docs/roadmap.md](docs/roadmap.md) for the full milestone plan.
+See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
 ## 💝 Support My Work
 
@@ -227,16 +227,22 @@ docker compose -f docker/compliance-compose.yml up -d
 - **Async Processing**: Scalable asynchronous compliance workflows
 - **Immutable Logging**: Cryptographically secure audit trail with hash chaining
 
-### ✅ **Frontend Dashboard (M6/M8)**
+### ✅ **Frontend Dashboard (M6/M8/M17)**
 
-9-page dashboard connected to the live API via JWT authentication:
+10-page dashboard connected to the live API via JWT authentication:
 
-- **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Graph Explorer, Login
+- **Pages**: Dashboard, Compliance, Analytics, Analysis, Intelligence, Reports, Investigations, Graph Explorer, **Investigation Detail**, Login
+- **Investigation Detail** (`/investigation?id=X`): 5-tab layout — Overview (notes), Evidence (inline add), Timeline, Graph (Cytoscape + annotations), Narrative (AI generation + PDF export)
+- **Add to Investigation**: folder-plus modal on Analysis and Graph pages links results/graph state to any open case
+- **Live Alert Feed**: WebSocket stream via `alerts.js` on Intelligence page with severity toasts, feed table, and badge counter
+- **Alert Rules CRUD**: Create, enable/disable toggle, and delete alert rules directly from the Intelligence page
+- **Table filtering**: Status/priority/search filters with debounce + pagination on Investigations; severity filter + search on Intelligence alerts
+- **Graph time filter**: Collapsible datetime range panel wired to `filterByTimeRange()` on the Graph Explorer
 - **Auth**: `auth.js` handles login/logout, JWT storage, `fetchJSON()` with bearer token, 403 toast, 5xx retry
 - **Shared nav**: `nav.js` sidebar with dark mode toggle, active page highlight, logout
 - **Shared utils**: `utils.js` (`JDS` module) for chart colors, stat cards, date formatting, notifications
 - **Charts**: Chart.js with dark-mode-aware color schemes
-- **Stack**: HTML5, Tailwind CSS (CDN), JavaScript ES6+, Lucide icons
+- **Stack**: HTML5, Tailwind CSS (CDN), JavaScript ES6+, Lucide icons, Cytoscape.js
 
 ### ⚠️ **Intelligence Integration — Scaffolded**
 
@@ -491,7 +497,7 @@ See [docs/security.md](docs/security.md#-secrets-management) for details.
 
 ## 🧪 Testing
 
-**196 tests passing** (`pytest -m "not integration"` in ~3.6s):
+**748 tests passing** (`pytest -m "not integration"` in ~4s):
 
 | Suite | Tests | Description |
 |---|---|---|
@@ -551,7 +557,7 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 - **Type Hints** - Used throughout
 - **Documentation** - Docstrings on public functions
 - **Linting** - `flake8` in CI (`make lint`)
-- **Testing** - 196 tests (`make test`)
+- **Testing** - 748 tests (`make test`)
 
 ## 📚 Documentation
 

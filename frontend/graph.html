@@ -17,6 +17,8 @@
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/graph.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/investigation-modal.js"></script>
     <style>
         #graph-canvas { width: 100%; height: 100%; }
         .graph-toolbar button { transition: all 0.15s ease; }
@@ -76,12 +78,39 @@
                     <button onclick="GraphExplorer.exportPNG()" title="Export PNG" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                         <i data-lucide="download" class="w-4 h-4"></i>
                     </button>
+                    <button onclick="_openSaveToInvModal()" title="Save to Investigation" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="_toggleTimeFilter()" title="Time range filter" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                    </button>
                     <div class="flex-1"></div>
                     <span id="graph-loading" class="hidden text-xs text-blue-500 animate-pulse">Loading…</span>
                 </div>
 
                 <!-- Cytoscape container -->
                 <div id="graph-canvas" class="relative bg-slate-950"></div>
+            </div>
+
+            <!-- Time Filter Panel -->
+            <div id="time-filter-panel" class="hidden mt-3 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
+                <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Filter by Time Range</h4>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <label class="text-xs">From</label>
+                        <input id="time-from" type="datetime-local"
+                               class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <label class="text-xs">To</label>
+                        <input id="time-to" type="datetime-local"
+                               class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <button id="btn-apply-time"
+                            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">Apply</button>
+                    <button id="btn-clear-time"
+                            class="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors">Clear</button>
+                </div>
             </div>
 
             <!-- Node Detail Panel (shown on click) -->
@@ -217,6 +246,43 @@
             GraphExplorer.expand(selectedNode.id, selectedChain, { direction: 'out' })
                 .then(function () { updateStats(); })
                 .catch(function (err) { console.error('Expand (out) failed:', err); alert('Expand failed — see console for details.'); });
+        });
+
+        /* --- Save to Investigation modal --- */
+        function _openSaveToInvModal() {
+            var q = document.getElementById('graph-query').value.trim();
+            var bc = document.getElementById('graph-blockchain').value;
+            InvestigationModal.show({
+                evidence_type: 'graph_snapshot',
+                description: 'Graph snapshot: ' + (q || 'current graph') + ' on ' + bc,
+                data: { query: q, blockchain: bc, node_count: GraphExplorer.getNodeCount(), edge_count: GraphExplorer.getEdgeCount() },
+                confidence: 0.9,
+                _onConfirm: function (invId) {
+                    GraphExplorer.saveGraphToInvestigation(invId).catch(function (err) {
+                        console.error('Failed to save graph state:', err);
+                    });
+                }
+            });
+        }
+
+        /* --- Time filter panel --- */
+        function _toggleTimeFilter() {
+            var panel = document.getElementById('time-filter-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        document.getElementById('btn-apply-time').addEventListener('click', function () {
+            var fromVal = document.getElementById('time-from').value;
+            var toVal = document.getElementById('time-to').value;
+            var fromTs = fromVal ? Math.floor(new Date(fromVal).getTime() / 1000) : 0;
+            var toTs = toVal ? Math.floor(new Date(toVal).getTime() / 1000) : 0;
+            GraphExplorer.filterByTimeRange(fromTs, toTs);
+        });
+
+        document.getElementById('btn-clear-time').addEventListener('click', function () {
+            document.getElementById('time-from').value = '';
+            document.getElementById('time-to').value = '';
+            GraphExplorer.filterByTimeRange(0, 0);
         });
     </script>
 </body>

@@ -310,7 +310,7 @@ _Full code review across M0–M8, documentation accuracy pass, and repo hygiene 
 
 ---
 
-## M9 — "It traces" ⏳ IN PROGRESS
+## ~~M9 — "It traces"~~ ✅ COMPLETE
 
 _Live blockchain transaction lookup via RPC, interactive graph explorer (TRM/Chainalysis Reactor-style), and automated OFAC/EU sanctions screening._
 
@@ -514,6 +514,20 @@ M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8 → Post-milestone cl
 - ✅ Done — Investigation timeline: `GET /investigations/{id}/timeline` — chronological events (created, evidence, graph saved, status updated)
 - ✅ Done — Court-ready PDF: narrative section, page numbers, CONFIDENTIAL footer stamp (`src/export/pdf_report.py`)
 - **Gate**: Narrative endpoint returns AI/template text + findings; timeline returns sorted event log; PDF includes narrative and page numbers ✅ — **635 tests passing**
+
+### ~~M17 — "The Investigation Suite"~~ ✅ COMPLETE (Frontend UX Overhaul)
+**Status**: ✅ COMPLETE
+
+Pure frontend milestone. All backend APIs were already complete (M0–M16).
+
+- ✅ Done — Investigation detail page (`/investigation?id=X`) with 5 tabs: Overview, Evidence, Timeline, Graph, Narrative
+- ✅ Done — Clickable title links in `investigations.html`; filter bar (status, priority, search); client-side pagination
+- ✅ Done — Shared "Add to Investigation" modal (`investigation-modal.js`) on Analysis and Graph pages
+- ✅ Done — Graph page: Save to Investigation toolbar button + time filter panel (datetime-local → `filterByTimeRange()`)
+- ✅ Done — `alerts.js` wired into `intelligence.html`; live feed tbody; `AlertFeed.start()` called; badge counter
+- ✅ Done — Alert rules CRUD section on Intelligence page (create, toggle enable, delete)
+- ✅ Done — Nginx route for `/investigation`
+- **Gate**: All 8 gate criteria verified — investigation detail end-to-end, PDF export, Add to Investigation from Analysis and Graph, AlertFeed WebSocket, table filtering, timeline slider, alert rules CRUD. ✅ **PASSED**
 
 ### ~~M16 — "It scales"~~ ✅ COMPLETE (Enterprise Features)
 **Status**: ✅ COMPLETE

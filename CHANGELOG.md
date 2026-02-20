@@ -7,7 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M16 are complete. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M17 are complete. The platform is feature-complete and ready for first launch. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### M17 "The Investigation Suite" — Frontend UX Overhaul (✅ COMPLETE)
+
+#### Investigation Detail Page (`frontend/investigation.html`, `frontend/js/investigation.js`)
+- New page at `/investigation?id=X` — clickable from every title cell in the investigations table
+- **5-tab layout**: Overview (editable notes, debounced auto-save), Evidence (inline add form + type filter), Timeline (vertical CSS timeline from API), Graph (Cytoscape + save/fit/export + annotations CRUD), Narrative (AI generation + PDF export)
+- **Header strip**: priority badge, status dropdown (fires `PUT /{id}` on change), Generate Narrative, Export PDF, Open Graph buttons
+- **Right sidebar**: inline-editable status, priority, assigned_to, tags — all saved with a single "Save Changes" button
+
+#### "Add to Investigation" Modal (`frontend/js/investigation-modal.js`)
+- Shared `InvestigationModal.show(evidence)` component injected into `analysis.html` and `graph.html`
+- Fetches `GET /investigations/list?status=open&limit=50`, renders radio list of open cases
+- On confirm: `POST /investigations/evidence`; optional `_onConfirm(invId)` callback used by Graph page to also call `saveGraphToInvestigation()`
+- **Analysis page**: folder-plus button unhides after successful analysis; wired to modal
+- **Graph page**: "Save to Investigation" toolbar button; modal `_onConfirm` saves graph state
+
+#### AlertFeed Live Stream (`frontend/intelligence.html`)
+- Added `<script src="js/alerts.js">` — was dead code, now active
+- Split alerts table into historical `#alerts-tbody` + "Live Feed" separator row + `#alert-feed-body`
+- `#alert-badge` counter in section header; `AlertFeed.start()` called on page load
+- Severity filter dropdown (`GET /alerts/recent?severity=X`) + client-side text search with 300ms debounce
+
+#### Alert Rules CRUD (`frontend/intelligence.html`)
+- New "Alert Rules" section: rules table with name, severity badge, condition, enabled toggle, delete button
+- Enabled toggle → `PATCH /api/v1/alerts/rules/{id}` with `{enabled: bool}`; delete → `DELETE` with confirm dialog
+- "New Rule" inline form: name, severity, pattern, blockchain → `POST /api/v1/alerts/rules`
+- Rules load on page init from `GET /api/v1/alerts/rules`
+
+#### Table Filtering & Pagination (`frontend/investigations.html`)
+- Filter bar: status dropdown, priority dropdown, search input (300ms debounce, client-side)
+- Status/priority changes reload from server with query params; search filters the fetched batch client-side
+- Pagination footer: "Showing X–Y of Z", Prev/Next over 100-item server fetch
+
+#### Graph Timeline Slider (`frontend/graph.html`)
+- Collapsible time filter panel toggled by `calendar-range` toolbar button
+- `datetime-local` From/To inputs; Apply → `GraphExplorer.filterByTimeRange(fromTs, toTs)`; Clear resets
+
+#### Nginx Route (`docker/nginx.conf`)
+- Added `location = /investigation { try_files /investigation.html =404; }`
 
 ### M16 "It scales" — Enterprise Features (✅ COMPLETE)
 

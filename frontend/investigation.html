@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigation Detail - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/graph.js"></script>
+    <style>
+        .tab-btn { border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-color: #3b82f6; color: #3b82f6; }
+        #inv-graph-canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+            <!-- Header Strip -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 mb-6">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span id="inv-id-badge" class="px-2.5 py-1 rounded-full text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">#—</span>
+                    <h1 id="inv-title-text" class="text-lg font-bold flex-1 min-w-0 truncate">Loading…</h1>
+                    <span id="inv-priority-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">—</span>
+                    <select id="inv-status-select"
+                            onchange="InvestigationDetail.saveStatus(this.value)"
+                            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="closed">Closed</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button id="btn-generate-narrative" onclick="InvestigationDetail.generateNarrative()"
+                                class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generate Narrative
+                        </button>
+                        <button onclick="InvestigationDetail.exportPDF()"
+                                class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors flex items-center gap-1.5">
+                            <i data-lucide="file-down" class="w-3.5 h-3.5"></i> Export PDF
+                        </button>
+                        <a href="/graph" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors flex items-center gap-1.5">
+                            <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Open Graph
+                        </a>
+                        <a href="/investigations" class="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1">
+                            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-column layout -->
+            <div class="flex gap-6 items-start">
+
+                <!-- Main content (70%) -->
+                <div class="flex-1 min-w-0">
+
+                    <!-- Tabs -->
+                    <div class="flex gap-0 border-b border-slate-200 dark:border-slate-700 mb-6">
+                        <button data-tab="overview" class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Overview</button>
+                        <button data-tab="evidence" class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Evidence</button>
+                        <button data-tab="timeline" class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Timeline</button>
+                        <button data-tab="graph" class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Graph</button>
+                        <button data-tab="narrative" class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Narrative</button>
+                    </div>
+
+                    <!-- Panel: Overview -->
+                    <div id="panel-overview" data-panel class="space-y-4">
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                            <h3 class="text-sm font-semibold mb-4 text-slate-500 uppercase tracking-wide">Details</h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><p class="text-xs text-slate-400 mb-0.5">Created</p><p id="ov-created" class="font-medium">—</p></div>
+                                <div><p class="text-xs text-slate-400 mb-0.5">Assigned To</p><p id="ov-assigned" class="font-medium">—</p></div>
+                                <div><p class="text-xs text-slate-400 mb-0.5">Type</p><p id="ov-type" class="font-medium capitalize">—</p></div>
+                                <div><p class="text-xs text-slate-400 mb-0.5">Tags</p><p id="ov-tags" class="font-medium">—</p></div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                            <h3 class="text-sm font-semibold mb-3 text-slate-500 uppercase tracking-wide">Notes</h3>
+                            <textarea id="ov-notes"
+                                      oninput="InvestigationDetail.scheduleSaveNotes(this.value)"
+                                      placeholder="Add investigation notes…"
+                                      rows="6"
+                                      class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none resize-y"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Evidence -->
+                    <div id="panel-evidence" data-panel class="hidden">
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide flex-1">Evidence Items</h3>
+                                <select id="evidence-type-filter" onchange="InvestigationDetail.loadEvidence(this.value)"
+                                        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="all">All Types</option>
+                                    <option value="address_analysis">Address Analysis</option>
+                                    <option value="transaction">Transaction</option>
+                                    <option value="graph_snapshot">Graph Snapshot</option>
+                                    <option value="document">Document</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                            </div>
+                            <div class="overflow-x-auto mb-6">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 dark:border-slate-700">
+                                            <th class="text-left py-2 px-4 font-medium text-slate-400 text-xs">ID</th>
+                                            <th class="text-left py-2 px-4 font-medium text-slate-400 text-xs">Type</th>
+                                            <th class="text-left py-2 px-4 font-medium text-slate-400 text-xs">Description</th>
+                                            <th class="text-left py-2 px-4 font-medium text-slate-400 text-xs">Confidence</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="evidence-tbody">
+                                        <tr><td colspan="4" class="py-6 text-center text-slate-400">Loading…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Add Evidence inline form -->
+                            <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Add Evidence</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <select id="ev-type" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <option value="address_analysis">Address Analysis</option>
+                                        <option value="transaction">Transaction</option>
+                                        <option value="graph_snapshot">Graph Snapshot</option>
+                                        <option value="document">Document</option>
+                                        <option value="manual">Manual</option>
+                                    </select>
+                                    <input id="ev-description" type="text" placeholder="Description"
+                                           class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <input id="ev-confidence" type="number" min="0" max="1" step="0.05" value="0.8" placeholder="Confidence (0-1)"
+                                           class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <button onclick="InvestigationDetail.addEvidence(document.getElementById('ev-type').value, document.getElementById('ev-description').value, {}, document.getElementById('ev-confidence').value)"
+                                            class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+                                        Add Evidence
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Timeline -->
+                    <div id="panel-timeline" data-panel class="hidden">
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-6">Timeline</h3>
+                            <div id="timeline-container">
+                                <p class="text-slate-400 text-sm">Select the Timeline tab to load events.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Graph -->
+                    <div id="panel-graph" data-panel class="hidden">
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-4">
+                            <!-- Graph toolbar -->
+                            <div class="flex items-center gap-1 px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                                <button onclick="if(window.GraphExplorer)GraphExplorer.fit()" title="Fit" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="if(window.GraphExplorer)GraphExplorer.exportPNG()" title="Export PNG" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="if(window.GraphExplorer)GraphExplorer.saveGraphToInvestigation(new URLSearchParams(location.search).get('id')).then(function(){alert('Graph saved.')})" title="Save graph state" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                    <i data-lucide="save" class="w-4 h-4"></i>
+                                </button>
+                                <div class="flex-1"></div>
+                                <span id="inv-graph-stats" class="text-xs text-slate-500">0 nodes · 0 edges</span>
+                            </div>
+                            <div id="inv-graph-canvas" class="bg-slate-950" style="height: 400px;"></div>
+                        </div>
+
+                        <!-- Annotations -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+                            <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Annotations</h4>
+                            <div id="annotations-list" class="mb-4 space-y-1">
+                                <p class="text-xs text-slate-400">Loading…</p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input id="ann-target" type="text" placeholder="Target node ID"
+                                       class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                                <select id="ann-type" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="note">Note</option>
+                                    <option value="flag">Flag</option>
+                                    <option value="highlight">Highlight</option>
+                                </select>
+                                <input id="ann-content" type="text" placeholder="Annotation text"
+                                       class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <button onclick="InvestigationDetail.addAnnotation(document.getElementById('ann-target').value, document.getElementById('ann-type').value, document.getElementById('ann-content').value)"
+                                    class="mt-2 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">
+                                Add Annotation
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Narrative -->
+                    <div id="panel-narrative" data-panel class="hidden">
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide flex-1">AI Narrative</h3>
+                                <button id="btn-generate-narrative-tab" onclick="InvestigationDetail.generateNarrative()"
+                                        class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium transition-colors flex items-center gap-1.5">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generate
+                                </button>
+                                <button onclick="InvestigationDetail.exportPDF()"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium transition-colors flex items-center gap-1.5">
+                                    <i data-lucide="file-down" class="w-3.5 h-3.5"></i> Export PDF
+                                </button>
+                            </div>
+                            <div id="narrative-output" class="min-h-[200px] text-sm text-slate-400 dark:text-slate-500">
+                                Click "Generate" to create an AI-powered investigation narrative.
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- end main content -->
+
+                <!-- Right Sidebar (30%) -->
+                <div class="w-72 shrink-0 sticky top-6 space-y-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+                        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Case Details</h3>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Status</label>
+                                <select id="sb-status-select"
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="open">Open</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="closed">Closed</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Priority</label>
+                                <select id="sb-priority-select"
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Assigned To</label>
+                                <p id="sb-assigned" class="text-sm font-medium mb-1">—</p>
+                                <input id="sb-assigned-input" type="text" placeholder="Username"
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Tags</label>
+                                <p id="sb-tags" class="text-xs text-slate-500 mb-1">—</p>
+                                <input id="sb-tags-input" type="text" placeholder="tag1, tag2, tag3"
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <button onclick="InvestigationDetail.saveSidebar()"
+                                    class="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- end two-column -->
+        </main>
+
+        <footer class="border-t border-slate-200 dark:border-slate-800 mt-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+                <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+                <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/investigation.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

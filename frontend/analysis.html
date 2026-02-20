@@ -19,6 +19,7 @@
     <script src="js/nav.js"></script>
     <script src="js/graph.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/investigation-modal.js"></script>
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
@@ -87,7 +88,13 @@
 
                 <!-- Patterns -->
                 <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                    <h3 class="text-base font-semibold mb-4">Detected Patterns</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-semibold">Detected Patterns</h3>
+                        <button id="btn-add-to-inv" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition-colors flex items-center gap-1.5"
+                                onclick="_openInvModal()">
+                            <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i> Add to Investigation
+                        </button>
+                    </div>
                     <div id="result-patterns" class="space-y-3">
                         <p class="text-sm text-slate-400">No patterns detected</p>
                     </div>
@@ -227,6 +234,22 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { color: Nav.isDark() ? '#1e293b' : '#f1f5f9' } }, x: { ticks: { color: Nav.isDark() ? '#94a3b8' : '#64748b' }, grid: { display: false } } } }
         });
 
+        // Investigation modal trigger
+        var _lastAnalysisResult = null;
+        function _openInvModal() {
+            if (!_lastAnalysisResult) return;
+            var q = document.getElementById('analysis-query').value.trim();
+            var blockchain = document.getElementById('analysis-blockchain').value;
+            var score = _lastAnalysisResult.risk_score != null ? _lastAnalysisResult.risk_score : (_lastAnalysisResult.risk_assessment ? _lastAnalysisResult.risk_assessment.score : null);
+            var patterns = _lastAnalysisResult.patterns || _lastAnalysisResult.detected_patterns || [];
+            InvestigationModal.show({
+                evidence_type: 'address_analysis',
+                description: 'Address analysis: ' + q + ' on ' + blockchain,
+                data: { query: q, blockchain: blockchain, risk_score: score, patterns: patterns },
+                confidence: score != null ? Math.min(score + 0.1, 1.0) : 0.8
+            });
+        }
+
         // Init embedded graph
         var _analysisGraphReady = false;
         var _graphRequestToken = 0;
@@ -261,6 +284,9 @@
                 var data = await Auth.fetchJSON(endpoint, { method: 'POST', body: JSON.stringify(body) });
 
                 if (data) {
+                    _lastAnalysisResult = data;
+                    var invBtn = document.getElementById('btn-add-to-inv');
+                    if (invBtn) { invBtn.classList.remove('hidden'); lucide.createIcons(); }
                     var score = data.risk_score != null ? data.risk_score : (data.risk_assessment ? data.risk_assessment.score : null);
                     if (score != null) {
                         document.getElementById('result-risk-score').textContent = (score * 100).toFixed(0) + '%';
