@@ -216,7 +216,18 @@ const GraphExplorer = (function () {
         });
 
         _cy.on('tap', 'node', function (evt) {
-            var data = evt.target.data();
+            var node = evt.target;
+            var data = Object.assign({}, node.data());
+            // Collect adjacent edge TxIDs for display in Node Detail
+            var inTxIds = [], outTxIds = [];
+            node.connectedEdges().forEach(function (e) {
+                var txid = e.data('tx_hash');
+                if (!txid) return;
+                if (e.data('target') === data.id && inTxIds.indexOf(txid) < 0) inTxIds.push(txid);
+                if (e.data('source') === data.id && outTxIds.indexOf(txid) < 0) outTxIds.push(txid);
+            });
+            data._inTxIds  = inTxIds;
+            data._outTxIds = outTxIds;
             if (_onNodeClick) _onNodeClick(data);
         });
 
@@ -386,8 +397,8 @@ const GraphExplorer = (function () {
     /* ------------------------------------------------------------------ */
 
     function _shorten(id) {
-        if (!id || id.length <= 14) return id || '';
-        return id.substring(0, 6) + '…' + id.substring(id.length - 4);
+        if (!id || id.length <= 10) return id || '';
+        return id.substring(0, 4) + '…' + id.substring(id.length - 4);
     }
 
     function _formatValue(val) {
@@ -407,22 +418,61 @@ const GraphExplorer = (function () {
     function _showEdgeTooltip(data) {
         var el = document.getElementById('graph-edge-info');
         if (!el) return;
-        el.textContent = '';
+        el.innerHTML = '';
+
+        // Header row with dismiss button
+        var header = document.createElement('div');
+        header.className = 'flex items-center justify-between mb-2';
+        var title = document.createElement('span');
+        title.className = 'font-semibold text-slate-200 text-xs uppercase tracking-wide';
+        title.textContent = 'Transaction';
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.className = 'ml-3 text-slate-400 hover:text-white text-sm leading-none';
+        closeBtn.onclick = function () { el.classList.add('hidden'); };
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+        el.appendChild(header);
+
         var rows = [];
-        if (data.tx_hash) rows.push(['TX', _shorten(data.tx_hash)]);
-        if (data.value) rows.push(['Value', _formatValue(data.value)]);
-        if (data.chain) rows.push(['Chain', String(data.chain)]);
-        if (data.timestamp) rows.push(['Time', String(data.timestamp)]);
+        if (data.tx_hash) rows.push(['TxID', data.tx_hash, true]);   // full hash, copyable
+        if (data.value)   rows.push(['Value', _formatValue(data.value) + ' BTC']);
+        if (data.chain)   rows.push(['Chain', String(data.chain)]);
+        if (data.timestamp) rows.push(['Time',  String(data.timestamp).replace('T', ' ').replace(/\.\d+Z$/, ' UTC')]);
         if (data.block_number) rows.push(['Block', String(data.block_number)]);
-        rows.forEach(function (r, idx) {
-            if (idx > 0) el.appendChild(document.createElement('br'));
-            var b = document.createElement('b');
-            b.textContent = r[0] + ': ';
-            el.appendChild(b);
-            el.appendChild(document.createTextNode(r[1]));
+
+        rows.forEach(function (r) {
+            var row = document.createElement('div');
+            row.className = 'flex items-start gap-1 mt-1';
+            var label = document.createElement('span');
+            label.className = 'text-slate-400 w-10 flex-shrink-0';
+            label.textContent = r[0];
+            var val = document.createElement('span');
+            val.className = 'text-slate-200 break-all font-mono text-xs';
+            val.textContent = r[1];
+            row.appendChild(label);
+            row.appendChild(val);
+            // Copy button for TxID
+            if (r[2]) {
+                var copyBtn = document.createElement('button');
+                copyBtn.className = 'ml-1 text-slate-500 hover:text-blue-400 flex-shrink-0';
+                copyBtn.title = 'Copy TxID';
+                copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+                copyBtn.onclick = function () {
+                    navigator.clipboard.writeText(r[1]).then(function () {
+                        copyBtn.innerHTML = '✓';
+                        setTimeout(function () {
+                            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+                        }, 1500);
+                    });
+                };
+                row.appendChild(copyBtn);
+            }
+            el.appendChild(row);
         });
+
         el.classList.remove('hidden');
-        setTimeout(function () { el.classList.add('hidden'); }, 5000);
+        // Don't auto-hide — user dismisses with ×
     }
 
     /* ------------------------------------------------------------------ */
@@ -516,5 +566,6 @@ const GraphExplorer = (function () {
         filterByTimeRange: filterByTimeRange,
         saveGraphToInvestigation: saveGraphToInvestigation,
         loadGraphFromInvestigation: loadGraphFromInvestigation,
+        resize: function () { if (_cy) { _cy.resize(); _cy.fit(); } },
     };
 })();

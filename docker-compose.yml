@@ -114,18 +114,49 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       # Blockchain RPC endpoints
+      - BITCOIN_RPC_URL=${BITCOIN_RPC_URL:-https://bitcoin-rpc.publicnode.com}
+      - BITCOIN_NETWORK=${BITCOIN_NETWORK:-mainnet}
       - ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+      - ETHEREUM_RPC_FALLBACK=${ETHEREUM_RPC_FALLBACK:-https://ethereum-rpc.publicnode.com}
       - ETHEREUM_NETWORK=${ETHEREUM_NETWORK:-mainnet}
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
-      - SOLANA_NETWORK=${SOLANA_NETWORK:-mainnet}
       - BSC_RPC_URL=${BSC_RPC_URL:-https://bsc-dataseed.binance.org}
+      - BSC_NETWORK=${BSC_NETWORK:-mainnet}
       - POLYGON_RPC_URL=${POLYGON_RPC_URL:-https://polygon-rpc.com}
-      - ARBITRUM_RPC_URL=${ARBITRUM_RPC_URL:-https://arb1.arbitrum.io/rpc}
-      - BASE_RPC_URL=${BASE_RPC_URL:-https://mainnet.base.org}
-      - AVALANCHE_RPC_URL=${AVALANCHE_RPC_URL:-https://api.avax.network/ext/bc/C/rpc}
+      - POLYGON_RPC_FALLBACK=${POLYGON_RPC_FALLBACK:-https://polygon-bor-rpc.publicnode.com}
+      - POLYGON_NETWORK=${POLYGON_NETWORK:-mainnet}
+      - ARBITRUM_RPC_URL=${ARBITRUM_RPC_URL:-https://arbitrum-one-rpc.publicnode.com}
+      - ARBITRUM_RPC_FALLBACK=${ARBITRUM_RPC_FALLBACK:-https://arbitrum-one-rpc.publicnode.com}
+      - ARBITRUM_NETWORK=${ARBITRUM_NETWORK:-mainnet}
+      - BASE_RPC_URL=${BASE_RPC_URL:-https://base-rpc.publicnode.com}
+      - BASE_RPC_FALLBACK=${BASE_RPC_FALLBACK:-https://base-rpc.publicnode.com}
+      - BASE_NETWORK=${BASE_NETWORK:-mainnet}
+      - AVALANCHE_RPC_URL=${AVALANCHE_RPC_URL:-https://avalanche-c-chain-rpc.publicnode.com}
+      - AVALANCHE_RPC_FALLBACK=${AVALANCHE_RPC_FALLBACK:-https://avalanche-c-chain-rpc.publicnode.com}
+      - AVALANCHE_NETWORK=${AVALANCHE_NETWORK:-mainnet}
+      - OPTIMISM_RPC_URL=${OPTIMISM_RPC_URL:-https://optimism-rpc.publicnode.com}
+      - OPTIMISM_RPC_FALLBACK=${OPTIMISM_RPC_FALLBACK:-https://optimism-rpc.publicnode.com}
+      - OPTIMISM_NETWORK=${OPTIMISM_NETWORK:-mainnet}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://solana-rpc.publicnode.com}
+      - SOLANA_RPC_FALLBACK=${SOLANA_RPC_FALLBACK:-https://solana-rpc.publicnode.com}
+      - SOLANA_NETWORK=${SOLANA_NETWORK:-mainnet}
+      - SUI_RPC_URL=${SUI_RPC_URL:-https://sui-rpc.publicnode.com}
+      - SUI_RPC_FALLBACK=${SUI_RPC_FALLBACK:-https://sui-rpc.publicnode.com}
+      - SUI_NETWORK=${SUI_NETWORK:-mainnet}
+      - STARKNET_RPC_URL=${STARKNET_RPC_URL:-https://starknet-rpc.publicnode.com}
+      - STARKNET_RPC_FALLBACK=${STARKNET_RPC_FALLBACK:-https://starknet-rpc.publicnode.com}
+      - STARKNET_NETWORK=${STARKNET_NETWORK:-mainnet}
+      - INJECTIVE_RPC_URL=${INJECTIVE_RPC_URL:-https://injective-rpc.publicnode.com:443}
+      - INJECTIVE_RPC_FALLBACK=${INJECTIVE_RPC_FALLBACK:-https://injective-rpc.publicnode.com:443}
+      - INJECTIVE_NETWORK=${INJECTIVE_NETWORK:-mainnet}
+      - COSMOS_RPC_URL=${COSMOS_RPC_URL:-https://cosmos-rpc.publicnode.com:443}
+      - COSMOS_RPC_FALLBACK=${COSMOS_RPC_FALLBACK:-https://cosmos-rpc.publicnode.com:443}
+      - COSMOS_NETWORK=${COSMOS_NETWORK:-mainnet}
       - TRON_RPC_URL=${TRON_RPC_URL:-https://api.trongrid.io}
+      - TRON_NETWORK=${TRON_NETWORK:-mainnet}
       - XRPL_RPC_URL=${XRPL_RPC_URL:-https://xrplcluster.com}
+      - XRPL_NETWORK=${XRPL_NETWORK:-mainnet}
       - STELLAR_RPC_URL=${STELLAR_RPC_URL:-https://horizon.stellar.org}
+      - STELLAR_NETWORK=${STELLAR_NETWORK:-public}
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data

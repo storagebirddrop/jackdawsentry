@@ -25,11 +25,11 @@
         .graph-toolbar button:hover { transform: scale(1.05); }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
     <script>Auth.requireAuth();</script>
 
     <div id="jds-main" class="transition-all duration-200">
-        <main class="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
+        <main class="max-w-full px-4 sm:px-6 py-6">
             <!-- Page Header -->
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                 <div>
@@ -49,8 +49,8 @@
                            class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none font-mono">
                     <select id="graph-blockchain" aria-label="Blockchain"
                             class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="ethereum">Ethereum</option>
                         <option value="bitcoin">Bitcoin</option>
+                        <option value="ethereum">Ethereum</option>
                         <option value="bsc">BSC</option>
                         <option value="polygon">Polygon</option>
                         <option value="arbitrum">Arbitrum</option>
@@ -141,7 +141,7 @@
 
         <!-- Footer -->
         <footer class="lg:ml-0 border-t border-slate-200 dark:border-slate-800 mt-auto">
-            <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
                 <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
                 <div class="flex gap-4">
                     <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
@@ -156,7 +156,7 @@
         /* --- Init graph --- */
         var canvas = document.getElementById('graph-canvas');
         var selectedNode = null;
-        var selectedChain = 'ethereum';
+        var selectedChain = document.getElementById('graph-blockchain').value;
 
         GraphExplorer.init(canvas, {
             onNodeClick: function (data) {
@@ -185,47 +185,74 @@
         });
 
         /* --- Node detail panel --- */
+        function _copyBtn(text) {
+            return '<button onclick="navigator.clipboard.writeText(\'' + text.replace(/'/g, "\\'") + '\').then(function(){var b=event.target;b.textContent=\'✓\';setTimeout(function(){b.textContent=\'⧉\'},1200)})" '
+                 + 'class="ml-1 text-slate-400 hover:text-blue-400 text-xs" title="Copy">⧉</button>';
+        }
+
+        function _renderItems(items, esc) {
+            return items.map(function (it) {
+                var valHtml;
+                if (it.sanctioned) {
+                    valHtml = '<span class="text-rose-500 font-bold">' + esc(it.value) + '</span>';
+                } else if (it.copy) {
+                    valHtml = '<span class="font-mono break-all">' + esc(it.value) + '</span>' + _copyBtn(it.value);
+                } else {
+                    valHtml = esc(String(it.value));
+                }
+                return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
+                     + '<p class="font-medium text-sm flex items-start gap-1 flex-wrap">' + valHtml + '</p></div>';
+            }).join('');
+        }
+
         function showNodeDetail(data) {
             var panel = document.getElementById('node-detail');
             var body = document.getElementById('node-detail-body');
             panel.classList.remove('hidden');
 
-            var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+            var esc = function (s) { var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; };
+
+            // Address shown as full + copy button
+            var addr = data.id || '—';
             var items = [
-                { label: 'Address', value: data.id || '—' },
-                { label: 'Chain', value: data.chain || '—' },
-                { label: 'Type', value: data.type || '—' },
-                { label: 'Entity Name', value: data.entity_name || '—' },
-                { label: 'Entity Type', value: data.entity_type || '—' },
-                { label: 'Category', value: data.entity_category || '—' },
-                { label: 'Balance', value: data.balance != null ? parseFloat(data.balance).toFixed(6) : '—' },
-                { label: 'Transactions', value: data.tx_count != null ? String(data.tx_count) : '—' },
-                { label: 'Risk', value: data.risk != null ? (data.risk * 100).toFixed(0) + '%' : '—' },
+                { label: 'Address', value: addr, copy: addr !== '—' },
+                { label: 'Chain',   value: data.chain || '—' },
+                { label: 'Type',    value: data.type  || '—' },
+                { label: 'Entity',  value: data.entity_name || '—' },
+                { label: 'Balance', value: data.balance != null ? parseFloat(data.balance).toFixed(8) + ' BTC' : '—' },
+                { label: 'Txs',     value: data.tx_count != null ? String(data.tx_count) : '—' },
+                { label: 'Risk',    value: data.risk != null ? (data.risk * 100).toFixed(0) + '%' : '—' },
                 { label: 'Sanctioned', value: data.sanctioned ? 'YES' : 'No', sanctioned: !!data.sanctioned },
-                { label: 'Label', value: data.label || '—' },
+                { label: 'Label',   value: data.label || '—' },
             ];
-            body.innerHTML = items.map(function (it) {
-                var valHtml = it.sanctioned ? '<span class="text-rose-500 font-bold">' + esc(it.value) + '</span>' : esc(String(it.value));
-                return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
-                     + '<p class="font-medium text-sm break-all">' + valHtml + '</p></div>';
-            }).join('');
-            lucide.createIcons();
+
+            // Show incoming edge TxIDs for this node
+            if (data._inTxIds && data._inTxIds.length) {
+                items.push({ label: 'In TxIDs', value: data._inTxIds[0], copy: true });
+            }
+            if (data._outTxIds && data._outTxIds.length) {
+                items.push({ label: 'Out TxIDs', value: data._outTxIds[0], copy: true });
+            }
+
+            body.innerHTML = _renderItems(items, esc);
 
             // Fetch live summary
             GraphExplorer.summary(data.id, selectedChain).then(function (res) {
                 if (res && res.summary) {
                     var s = res.summary;
-                    if (s.balance != null) items[3].value = parseFloat(s.balance).toFixed(6);
-                    if (s.tx_count != null) items[4].value = s.tx_count;
-                    if (s.risk_score != null) items[5].value = (s.risk_score * 100).toFixed(0) + '%';
-                    if (s.sanctioned) { items[6].value = 'YES'; items[6].sanctioned = true; }
-                    body.innerHTML = items.map(function (it) {
-                        var valHtml = it.sanctioned ? '<span class="text-rose-500 font-bold">' + esc(it.value) + '</span>' : esc(String(it.value));
-                        return '<div><p class="text-xs text-slate-500 dark:text-slate-400">' + esc(it.label) + '</p>'
-                             + '<p class="font-medium text-sm break-all">' + valHtml + '</p></div>';
-                    }).join('');
+                    if (s.balance  != null) items[4].value = parseFloat(s.balance).toFixed(8) + ' BTC';
+                    if (s.tx_count != null) items[5].value = String(s.tx_count);
+                    if (s.risk_score != null) items[6].value = (s.risk_score * 100).toFixed(0) + '%';
+                    if (s.sanctioned) { items[7].value = 'YES'; items[7].sanctioned = true; }
+                    body.innerHTML = _renderItems(items, esc);
                 }
-            }).catch(function (err) { console.error('Live summary fetch failed:', err); });
+            }).catch(function () {});
+
+            // Populate TxIDs from adjacent edges in the graph
+            setTimeout(function () {
+                if (typeof GraphExplorer !== 'undefined' && GraphExplorer._cy) return; // handled by graph module
+                // Fallback: look at currently rendered edges
+            }, 0);
         }
 
         /* --- Expand buttons --- */

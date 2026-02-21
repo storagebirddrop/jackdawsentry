@@ -20,17 +20,17 @@
         .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
     <script>Auth.requireAuth();</script>
 
     <div id="jds-main" class="transition-all duration-200">
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <main class="max-w-full px-4 sm:px-6 py-8">
             <div class="mb-8">
                 <p class="text-slate-500 dark:text-slate-400 text-sm">Case management, evidence tracking, and investigation workflows</p>
             </div>
 
             <!-- Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
                     <div class="flex items-center gap-3">
                         <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30"><i data-lucide="briefcase" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i></div>
@@ -162,7 +162,7 @@
         </main>
 
         <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
                 <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
                 <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
             </div>

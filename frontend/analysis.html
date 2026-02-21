@@ -28,11 +28,11 @@
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
     <script>Auth.requireAuth();</script>
 
     <div id="jds-main" class="transition-all duration-200">
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <main class="max-w-full px-4 sm:px-6 py-8">
             <!-- Page Header -->
             <div class="mb-8">
                 <p class="text-slate-500 dark:text-slate-400 text-sm">Blockchain address and transaction analysis</p>
@@ -68,7 +68,7 @@
             <!-- Results Section (hidden until search) -->
             <div id="analysis-results" class="hidden space-y-6 mb-8">
                 <!-- Risk Score Card -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
                         <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Risk Score</p>
                         <p id="result-risk-score" class="text-3xl font-bold mt-1">—</p>
@@ -128,7 +128,7 @@
             </div>
 
             <!-- Statistics Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
                     <div class="flex items-center gap-3">
                         <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30"><i data-lucide="search" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i></div>
@@ -182,7 +182,7 @@
 
         <!-- Footer -->
         <footer class="lg:ml-0 border-t border-slate-200 dark:border-slate-800 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
                 <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
                 <div class="flex gap-4">
                     <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
@@ -196,19 +196,32 @@
 
         // Load statistics
         (async function () {
+            var set = function (id, v) { document.getElementById(id).textContent = v; };
             try {
-                var stats = await Auth.fetchJSON('/api/v1/analysis/statistics');
-                if (stats) {
-                    document.getElementById('stat-analyses').textContent = stats.total_analyses || 0;
-                    document.getElementById('stat-high-risk').textContent = stats.high_risk_count || 0;
-                    document.getElementById('stat-clean').textContent = stats.clean_count || 0;
-                    document.getElementById('stat-patterns').textContent = stats.patterns_detected || 0;
+                var resp = await Auth.fetchJSON('/api/v1/analysis/statistics');
+                var s = (resp && resp.statistics) ? resp.statistics : {};
+                var risk = s.risk_distribution || {};
+                var highRisk = (risk['high'] || 0) + (risk['critical'] || 0);
+                var clean = (risk['low'] || 0) + (risk['very_low'] || 0);
+                var total = Object.values(risk).reduce(function (a, b) { return a + b; }, 0);
+                set('stat-analyses', (s.total_addresses || 0).toLocaleString());
+                set('stat-high-risk', highRisk.toLocaleString());
+                set('stat-clean', clean.toLocaleString());
+                set('stat-patterns', total.toLocaleString());
+
+                // Update risk distribution chart with real data
+                if (_riskChart) {
+                    _riskChart.data.datasets[0].data = [
+                        risk['very_low'] || 0, risk['low'] || 0, risk['medium'] || 0,
+                        risk['high'] || 0, risk['critical'] || 0
+                    ];
+                    _riskChart.update();
                 }
             } catch (_) {
-                document.getElementById('stat-analyses').textContent = '142';
-                document.getElementById('stat-high-risk').textContent = '18';
-                document.getElementById('stat-clean').textContent = '98';
-                document.getElementById('stat-patterns').textContent = '26';
+                set('stat-analyses', '0');
+                set('stat-high-risk', '0');
+                set('stat-clean', '0');
+                set('stat-patterns', '0');
             }
         })();
 
@@ -281,7 +294,9 @@
                 var body = type === 'address'
                     ? { address: query, blockchain: blockchain }
                     : { transaction_hash: query, blockchain: blockchain };
-                var data = await Auth.fetchJSON(endpoint, { method: 'POST', body: JSON.stringify(body) });
+                var resp = await Auth.fetchJSON(endpoint, { method: 'POST', body: JSON.stringify(body) });
+                // API wraps results in a `data` envelope: { success, data: {...}, metadata, timestamp }
+                var data = (resp && resp.data) ? resp.data : resp;
 
                 if (data) {
                     _lastAnalysisResult = data;

@@ -175,18 +175,23 @@ async def trigger_sync(
 ):
     """Trigger a manual sanctions sync (admin only).
 
-    Downloads and parses OFAC SDN + EU Consolidated lists.
+    Fires sync in the background and returns immediately to avoid proxy timeouts.
+    Poll GET /sanctions/status to track progress.
     """
-    try:
-        results = await sync_all(requested_by=current_user.username)
-        return {
-            "success": True,
-            "sync_results": results,
-            "timestamp": datetime.now(timezone.utc),
-        }
-    except Exception as exc:
-        logger.error(f"Sanctions sync failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Sanctions sync failed")
+    import asyncio as _asyncio
+
+    async def _run():
+        try:
+            await sync_all(requested_by=current_user.username)
+        except Exception as exc:
+            logger.error(f"Background sanctions sync failed: {exc}", exc_info=True)
+
+    _asyncio.create_task(_run())
+    return {
+        "success": True,
+        "message": "Sanctions sync started in background. Poll /sanctions/status for progress.",
+        "timestamp": datetime.now(timezone.utc),
+    }
 
 
 @router.get("/status")

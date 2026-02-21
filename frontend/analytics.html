@@ -52,11 +52,11 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
     <script>Auth.requireAuth();</script>
 
     <div id="jds-main" class="transition-all duration-200">
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <main class="max-w-full px-4 sm:px-6 py-8">
         <!-- Page Header -->
         <div class="flex justify-between items-center mb-8">
             <div>
@@ -78,7 +78,7 @@
         <!-- Key Metrics -->
         <section class="mb-8">
             <h2 class="text-lg font-semibold mb-4">Key Performance Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <!-- SAR Reports -->
                 <div class="metric-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between">
@@ -225,7 +225,7 @@
         <!-- Alerts Section -->
         <section class="mb-8">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Active Alerts</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="alertsContainer">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4" id="alertsContainer">
                 <div class="alert-card p-4 rounded">
                     <div class="flex items-center">
                         <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mr-2"></i>
@@ -259,7 +259,7 @@
         <!-- Performance Metrics -->
         <section class="mb-8">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Performance Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                     <h3 class="text-md font-medium mb-4">Processing Time</h3>
                     <div class="flex items-center justify-between">
@@ -298,7 +298,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+        <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
             <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
             <div class="flex gap-4">
                 <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>

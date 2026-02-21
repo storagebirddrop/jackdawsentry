@@ -24,11 +24,11 @@
         #inv-graph-canvas { width: 100%; height: 100%; }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
     <script>Auth.requireAuth();</script>
 
     <div id="jds-main" class="transition-all duration-200">
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <main class="max-w-full px-4 sm:px-6 py-6">
 
             <!-- Header Strip -->
             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 mb-6">
@@ -278,7 +278,7 @@
         </main>
 
         <footer class="border-t border-slate-200 dark:border-slate-800 mt-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+            <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
                 <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
                 <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
             </div>

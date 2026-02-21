@@ -147,6 +147,32 @@ const Nav = (function () {
         if (menuBtn) menuBtn.addEventListener('click', openSidebar);
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
 
+        // Resize handling — notify Chart.js and Cytoscape when the browser
+        // enters/exits fullscreen or the window resizes. Both libraries attach
+        // their own ResizeObserver but fullscreenchange doesn't always trigger
+        // it reliably across browsers.
+        function onResize() {
+            // Chart.js: resize every registered chart instance
+            if (typeof Chart !== 'undefined' && Chart.instances) {
+                Object.values(Chart.instances).forEach(function (chart) {
+                    try { chart.resize(); } catch (_) {}
+                });
+            }
+            // Cytoscape: resize the graph canvas if GraphExplorer is present
+            if (typeof GraphExplorer !== 'undefined' && typeof GraphExplorer.resize === 'function') {
+                try { GraphExplorer.resize(); } catch (_) {}
+            }
+        }
+
+        window.addEventListener('resize', onResize);
+        document.addEventListener('fullscreenchange', function () {
+            // Small delay so the browser has committed the new viewport size
+            setTimeout(onResize, 50);
+        });
+        document.addEventListener('webkitfullscreenchange', function () {
+            setTimeout(onResize, 50);
+        });
+
         // Dark mode toggle
         var darkBtn = document.getElementById('jds-dark-toggle');
         if (darkBtn) {

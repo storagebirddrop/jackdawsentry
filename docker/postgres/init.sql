@@ -335,3 +335,77 @@ CREATE TRIGGER update_entities_updated_at BEFORE UPDATE ON entities
 
 CREATE TRIGGER update_entity_addresses_updated_at BEFORE UPDATE ON entity_addresses
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- Sanctioned Addresses Table (used by services/sanctions.py ingestion)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS sanctioned_addresses (
+    id              BIGSERIAL PRIMARY KEY,
+    address         VARCHAR(130)  NOT NULL,
+    blockchain      VARCHAR(30)   NOT NULL DEFAULT 'unknown',
+    source          VARCHAR(50)   NOT NULL,  -- 'ofac_sdn' | 'eu_consolidated' | 'uk_hmt'
+    list_name       VARCHAR(200),
+    entity_name     VARCHAR(300),
+    entity_id       VARCHAR(100),
+    program         VARCHAR(200),
+    added_at        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_seen_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    removed_at      TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT uq_sanctioned_address UNIQUE (address, blockchain, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sanctioned_address_lookup
+    ON sanctioned_addresses (address, blockchain)
+    WHERE removed_at IS NULL;
+
+-- =============================================================================
+-- Sanctions Sync Status Table
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS sanctions_sync_status (
+    source          VARCHAR(50) PRIMARY KEY,
+    status          VARCHAR(20) NOT NULL DEFAULT 'pending',
+    last_sync_at    TIMESTAMP WITH TIME ZONE,
+    records_synced  INTEGER DEFAULT 0,
+    error_message   TEXT,
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Seed initial rows so UPDATE statements in sync_all() work correctly
+INSERT INTO sanctions_sync_status (source, status)
+VALUES ('ofac_sdn', 'pending'), ('eu_consolidated', 'pending')
+ON CONFLICT (source) DO NOTHING;
+
+-- =============================================================================
+-- Sanctions Screening Log Table
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS sanctions_screening_log (
+    id           BIGSERIAL PRIMARY KEY,
+    address      VARCHAR(130) NOT NULL,
+    blockchain   VARCHAR(30)  NOT NULL DEFAULT 'unknown',
+    matched      BOOLEAN      NOT NULL DEFAULT FALSE,
+    match_source VARCHAR(50),
+    match_entity VARCHAR(300),
+    user_id      UUID REFERENCES users(id) ON DELETE SET NULL,
+    screened_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_screening_log_address
+    ON sanctions_screening_log (address, screened_at DESC);
+
+-- =============================================================================
+-- Default Admin User
+-- Password: Admin123!@#  (bcrypt cost 12)
+-- Change via PUT /api/v1/admin/users/{id} or the /setup wizard after first boot.
+-- ON CONFLICT DO NOTHING ensures this never overwrites an existing admin.
+-- =============================================================================
+INSERT INTO users (username, email, password_hash, full_name, role, is_active, gdpr_consent_given)
+VALUES (
+    'admin',
+    'admin@jackdawsentry.local',
+    '$2b$12$WuGFDxpZ1xPaRywfL6UEaepmHqH82JDlfaN3sw4ks/Kf2UKIzptd6',
+    'System Administrator',
+    'admin',
+    true,
+    false
+)
+ON CONFLICT (username) DO NOTHING;
