@@ -85,3 +85,16 @@ models/
 training_data/
 *.tar.gz
 *.zip
+
+# ── AI Assistant Configurations ───────────────────────────────────────────────
+.agents/
+.claude/
+.clinerules/
+.continue/
+
+# ── Package Manager Lock Files ───────────────────────────────────────────────
+poetry.lock
+Pipfile
+Pipfile.lock
+pdm.lock
+*.toml.lock

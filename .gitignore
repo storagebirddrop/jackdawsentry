@@ -131,3 +131,16 @@ database_backups/
 .cache/
 .mypy_cache/
 .ipynb_checkpoints/
+
+# ── AI Assistant Configurations ───────────────────────────────────────────────
+.agents/
+.claude/
+.clinerules/
+.continue/
+
+# ── Package Managers ───────────────────────────────────────────────────────────
+poetry.lock
+Pipfile
+Pipfile.lock
+pdm.lock
+*.toml.lock
