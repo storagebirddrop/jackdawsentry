@@ -19,6 +19,7 @@ from src.api.routers import (
     alerts,
     analysis,
     analytics,
+    attribution,
     bulk,
     compliance,
     entities,
@@ -114,6 +115,7 @@ async def start_background_tasks():
     """Start background collection and analysis tasks with error handling"""
     from src.collectors.manager import CollectorManager
     from src.analysis.manager import AnalysisManager
+    from src.attribution import get_attribution_engine
     
     tasks = []
     
@@ -140,6 +142,17 @@ async def start_background_tasks():
     except Exception as e:
         logger.error(f"❌ Failed to start analysis engine: {e}")
         # Continue with other tasks even if analysis fails
+    
+    try:
+        # Initialize attribution engine
+        logger.info("Initializing attribution engine...")
+        attribution_engine = get_attribution_engine()
+        await attribution_engine.initialize()
+        logger.info("✅ Attribution engine initialized")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize attribution engine: {e}")
+        # Continue with other tasks even if attribution fails
     
     # Start sanctions sync background loop
     try:
@@ -455,6 +468,13 @@ app.include_router(
     alerts.router,
     prefix="/api/v1/alerts",
     tags=["Alerts"],
+)
+
+app.include_router(
+    attribution.router,
+    prefix="/api/v1/attribution",
+    tags=["Attribution"],
+    dependencies=[Depends(get_current_user)]
 )
 
 app.include_router(

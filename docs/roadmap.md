@@ -538,3 +538,98 @@ Pure frontend milestone. All backend APIs were already complete (M0–M16).
 - ✅ Done — Smart contract analysis: `src/analysis/smart_contract_analyzer.py` — decodes ERC-20/721/1155 + DeFi selectors; classifies NFT/DeFi interactions; 19 known function signatures
 - ✅ Done — Bulk data API: `src/api/routers/bulk.py` — batch screening (500 addresses), CSV export, contract analysis endpoint
 - **Gate**: All 5 components deployed as REST APIs; Travel Rule check returns compliance_status; bulk screen returns VASP matches; NFT calldata correctly classified ✅ — **748 tests passing**
+
+---
+
+## M18 — "It competes" - Enterprise Intelligence Platform
+**Status**: 🔄 IN PROGRESS
+
+Transform Jackdaw Sentry from a compliance tool into a competitive enterprise intelligence platform with advanced attribution, pattern detection, and investigative capabilities comparable to Elliptic and TRM Labs.
+
+### Core Enterprise Features
+
+#### 1. Advanced Entity Attribution System
+- **VASP Database**: Comprehensive database of exchanges, mixers, gambling sites with risk classifications
+- **Glass Box Attribution**: Transparent attribution sources with confidence scores for every label
+- **Entity Classification**: Automated categorization (Exchange, Mixer, DeFi, Gambling, Institutional, Retail)
+- **Attribution API**: REST endpoints for entity lookup, classification, and source verification
+
+#### 2. Enhanced Pattern Detection Engine
+- **Pattern Signatures® Library**: Pre-built suspicious patterns beyond basic AML
+  - Peeling chains detection, layering patterns, custody change detection
+  - Synchronized transfer analysis, off-peak hours activity, round amount patterns
+- **Automatic Pattern Surfacing**: Real-time detection and alerting for suspicious behaviors
+- **Pattern Confidence Scoring**: Statistical confidence levels for each pattern detection
+
+#### 3. Advanced Graph Analysis Tools
+- **Multi-Route Pathfinding**: Find ALL paths between addresses through multiple hops
+- **Seed Phrase Analysis**: Identify all wallets derived from single seed phrase
+- **Transaction Fingerprinting**: Search transactions with limited information or specific patterns
+- **Advanced Graph Customizations**: Color coding, custom names, notes, professional export formats
+
+#### 4. Intelligence Integration Hub
+- **Victim Reports Database**: Integration with scam/fraud victim reporting systems
+- **Threat Intelligence Feeds**: Real-time threat data from multiple sources
+- **Cross-Platform Attribution**: Unified attribution across multiple intelligence sources
+- **Investigative Support Tools**: Professional case management and evidence tracking
+
+### Implementation Phases
+
+#### Phase 1: Attribution Foundation (Week 3-4)
+- Entity Database Schema: PostgreSQL tables for VASP registry, classifications, sources
+- Attribution Engine: Core attribution logic with confidence scoring
+- VASP Screening API: REST endpoints for entity lookup and classification
+- Glass Box Attribution: Source tracking and transparency features
+
+#### Phase 2: Pattern Intelligence (Week 5-6)
+- Pattern Library: Expanded pattern detection beyond current 14 AML patterns
+- Automatic Detection: Real-time pattern surfacing and alerting
+- Pattern Scoring: Confidence levels and statistical validation
+- Pattern API: Management and configuration of pattern detection rules
+
+#### Phase 3: Advanced Analytics (Week 7-8)
+- Multi-Route Algorithms: Advanced pathfinding visualization
+- Seed Analysis Tools: Wallet cluster recovery from seed phrases
+- Transaction Fingerprinting: Pattern-based transaction search
+- Graph Enhancement: Professional visualization and customization tools
+
+#### Phase 4: Intelligence Integration (Week 9-10)
+- Victim Reports Integration: Connection to fraud reporting databases
+- Threat Feeds: Real-time intelligence from multiple sources
+- Cross-Platform Attribution: Unified intelligence from various providers
+- Professional Services: Expert support and training framework
+
+### Technical Components
+
+#### New Modules
+- `src/attribution/` - Entity attribution and VASP screening
+- `src/patterns/` - Advanced pattern detection library
+- `src/intelligence/` - External intelligence integration
+- `src/forensics/` - Advanced forensic analysis tools
+
+#### API Extensions
+- `/api/v1/attribution/` - Entity lookup and classification
+- `/api/v1/patterns/` - Pattern detection and management
+- `/api/v1/intelligence/` - External intelligence feeds
+- `/api/v1/forensics/` - Advanced forensic tools
+
+#### Database Enhancements
+- **PostgreSQL**: Entity database, attribution sources, pattern library
+- **Neo4j**: Enhanced graph relationships, forensic metadata
+- **Redis**: Intelligence caching, pattern matching optimization
+
+### Success Metrics
+
+#### Technical Gates
+- **Attribution Accuracy**: >95% accuracy for known VASP classifications
+- **Pattern Detection**: 20+ additional patterns beyond current AML library
+- **Pathfinding Performance**: <2s for complex multi-hop path analysis
+- **Integration Coverage**: 5+ external intelligence sources integrated
+
+#### Business Gates
+- **Professional Readiness**: Features comparable to Elliptic/TRM Labs core offerings
+- **Investigative Value**: 50% reduction in investigation time for complex cases
+- **Enterprise Compliance**: Meets regulatory requirements for financial institutions
+- **Law Enforcement Support**: Court-defensible attribution and evidence handling
+
+**Gate**: All 4 core enterprise features implemented with APIs, >95% attribution accuracy, 20+ new patterns, <2s pathfinding performance ✅ — **Target: 850+ tests passing**
