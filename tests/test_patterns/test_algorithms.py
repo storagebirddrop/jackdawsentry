@@ -305,13 +305,14 @@ class TestRoundAmountDetector:
 async def test_algorithms_integration():
     """Integration test for all pattern algorithms"""
     
-    detectors = [
-        PeelingChainDetector(),
-        CustodyChangeDetector(),
-        SynchronizedTransferDetector(),
-        OffPeakActivityDetector(),
-        RoundAmountDetector()
-    ]
+    # Mapping of detector classes to their detection methods
+    detector_methods = {
+        PeelingChainDetector: 'detect_peeling_chain',
+        CustodyChangeDetector: 'detect_custody_change',
+        SynchronizedTransferDetector: 'detect_synchronized_transfers',
+        OffPeakActivityDetector: 'detect_off_peak_activity',
+        RoundAmountDetector: 'detect_round_amounts'
+    }
     
     base_time = datetime.now(timezone.utc)
     sample_transactions = [
@@ -326,9 +327,11 @@ async def test_algorithms_integration():
         )
     ]
     
-    for detector in detectors:
+    for detector_class, method_name in detector_methods.items():
+        detector = detector_class()
         # Test with insufficient transactions (should return empty result)
-        result = await detector.detect_peeling_chain(
+        method = getattr(detector, method_name)
+        result = await method(
             transactions=sample_transactions[:1],  # Only 1 transaction
             address="0x1234567890123456789012345678901234567890"
         )

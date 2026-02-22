@@ -279,16 +279,20 @@ class VASPRegistry:
         
         if filters:
             if filters.entity_types:
-                param_count += 1
-                placeholders = ','.join(f'${param_count}' for _ in filters.entity_types)
-                where_clauses.append(f"entity_type IN ({placeholders})")
-                params.extend([et.value for et in filters.entity_types])
+                placeholders = []
+                for et in filters.entity_types:
+                    param_count += 1
+                    placeholders.append(f'${param_count}')
+                    params.append(et.value)
+                where_clauses.append(f"entity_type IN ({','.join(placeholders)})")
             
             if filters.risk_levels:
-                param_count += 1
-                placeholders = ','.join(f'${param_count}' for _ in filters.risk_levels)
-                where_clauses.append(f"risk_level IN ({placeholders})")
-                params.extend([rl.value for rl in filters.risk_levels])
+                placeholders = []
+                for rl in filters.risk_levels:
+                    param_count += 1
+                    placeholders.append(f'${param_count}')
+                    params.append(rl.value)
+                where_clauses.append(f"risk_level IN ({','.join(placeholders)})")
             
             if filters.jurisdictions:
                 param_count += 1

@@ -24,12 +24,12 @@ class EntityType(str, Enum):
 
 
 class RiskLevel(str, Enum):
-    """Risk classification levels"""
+    """Risk classification levels - ordered from lowest to highest severity"""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-    SEVERE = "severe"
+    # Note: SEVERE was removed to avoid ambiguity with CRITICAL
 
 
 class VerificationStatus(str, Enum):

@@ -47,6 +47,7 @@ Documentation for Jackdaw Sentry, a blockchain onchain analysis platform *(in ac
 | **Database** | Schema and migrations | [Database Schema](database/README.md) |
 | **Compliance** | Regulatory frameworks | [Compliance Framework](compliance/README.md) |
 | **Roadmap** | Milestone plan and status | [Roadmap](roadmap.md) |
+| **Claude/AI** | Agent rules & subagents | [CLAUDE.md](./CLAUDE.md) |
 
 ## 📖 Documentation Standards
 
@@ -69,7 +70,19 @@ We welcome contributions to improve the documentation:
 
 This documentation is licensed under the same MIT License as the Jackdaw Sentry project.
 
+
+
+## 🤖 Development with Claude Code / AI Agents
+
+When using Claude Code (or similar AI agents) in this repo:
+- Follow the persistent workflow, verification, subagents, and rules in [`CLAUDE.md`](./CLAUDE.md)
+- Subagents (debugger, api-designer, coder, etc.) are in `.claude/agents/`
+- MCP tools (if running) can be leveraged for real-time DB/RPC queries, but prefer local knowledge first
+
+This keeps Claude disciplined, compliant-focused, and aligned with the project's security & auditability priorities.
+
 ---
 
 **Need Help?**
 - [Open an issue](https://github.com/storagebirddrop/jackdaw-sentry/issues) on GitHub
+

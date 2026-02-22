@@ -25,7 +25,7 @@ class PatternType(str, Enum):
     BRIDGE_HOPPING = "bridge_hopping"
     DEX_HOPPING = "dex_hopping"
     CIRCULAR_TRADING = "circular_trading"
-    INSTANT_REDEPLOY = "instant_deploy"
+    INSTANT_REDEPLOY = "instant_redeploy"
 
 
 class PatternSeverity(str, Enum):
@@ -52,17 +52,10 @@ class PatternIndicator(BaseModel):
     """Individual indicator for pattern detection"""
     indicator_type: IndicatorType = Field(...)
     threshold: float = Field(..., gt=0.0)
-    weight: float = Field(..., gt=0.0, le=1.0)
+    weight: float = Field(..., ge=0.0, le=1.0)
     description: str = Field(...)
     detection_function: Optional[str] = None  # Reference to detection function
     
-    @field_validator('weight')
-    @classmethod
-    def validate_weight(cls, v):
-        if not 0.0 <= v <= 1.0:
-            raise ValueError('Weight must be between 0.0 and 1.0')
-        return v
-
 
 class PatternSignature(BaseModel):
     """Definition of a suspicious pattern"""
@@ -148,9 +141,11 @@ class PatternRequest(BaseModel):
     @field_validator('addresses')
     @classmethod
     def validate_addresses(cls, v):
-        if not v or len(v) == 0:
+        # Filter first, then validate
+        cleaned = [addr.strip().lower() for addr in v if addr.strip()]
+        if not cleaned:
             raise ValueError('At least one address must be provided')
-        return [addr.strip().lower() for addr in v if addr.strip()]
+        return cleaned
     
     @field_validator('blockchain')
     @classmethod

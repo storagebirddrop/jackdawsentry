@@ -41,6 +41,7 @@ class AdvancedPatternDetector:
         self._initialized = False
         self.metrics = {
             'total_detections': 0,
+            'total_analyses': 0,
             'patterns_detected': {},
             'avg_processing_time': 0.0,
             'cache_hit_rate': 0.0,
@@ -161,10 +162,10 @@ class AdvancedPatternDetector:
         start_time = _time.time()
         
         # Check cache first
-        cache_key = f"{address}:{blockchain}:{time_range_hours}:{min_confidence}"
+        cache_key = f"{address}:{blockchain}:{time_range_hours}:{min_confidence}:{','.join(pattern_types or [])}:{min_severity or ''}"
         if cache_key in self.cache:
             cached_result = self.cache[cache_key]
-            if (datetime.now(timezone.utc) - cached_result['timestamp']).seconds < self.cache_ttl:
+            if (datetime.now(timezone.utc) - cached_result['timestamp']).total_seconds() < self.cache_ttl:
                 logger.debug(f"Cache hit for pattern analysis: {address}")
                 self._update_cache_hit_rate(True)
                 return cached_result['result']
@@ -322,7 +323,7 @@ class AdvancedPatternDetector:
             for address in request.addresses
         ]
         
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks)
         
         # Build results dictionary
         analysis_results = {}
@@ -348,7 +349,7 @@ class AdvancedPatternDetector:
         
         return analysis_results
     
-    def _get_transaction_history(self, address: str, blockchain: str, time_range_hours: int) -> List:
+    async def _get_transaction_history(self, address: str, blockchain: str, time_range_hours: int) -> List:
         """Get transaction history for address (placeholder implementation)"""
         
         # This would integrate with the existing blockchain collectors
@@ -412,12 +413,15 @@ class AdvancedPatternDetector:
     def _update_processing_metrics(self, processing_time_ms: float):
         """Update processing time metrics"""
         
-        current_avg = self.metrics['avg_processing_time']
-        total_detections = self.metrics['total_detections']
+        # Increment total analyses counter
+        self.metrics['total_analyses'] += 1
         
-        if total_detections > 0:
+        current_avg = self.metrics['avg_processing_time']
+        total_analyses = self.metrics['total_analyses']
+        
+        if total_analyses > 0:
             self.metrics['avg_processing_time'] = (
-                (current_avg * (total_detections - 1) + processing_time_ms) / total_detections
+                (current_avg * (total_analyses - 1) + processing_time_ms) / total_analyses
             )
         
         self.metrics['last_update'] = datetime.now(timezone.utc)

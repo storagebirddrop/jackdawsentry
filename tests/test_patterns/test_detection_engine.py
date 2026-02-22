@@ -264,16 +264,7 @@ async def test_pattern_detector_integration():
     assert detector._initialized is True
     
     # Test basic functionality with mocked dependencies
-    with patch.object(detector, '_get_transaction_history', return_value=[]), \
-         patch.object(detector, 'analyze_address_patterns') as mock_analyze:
-        
-        mock_result = MagicMock(
-            address="0x1234567890123456789012345678901234567890",
-            blockchain="ethereum",
-            patterns=[],
-            overall_risk_score=0.0
-        )
-        mock_analyze.return_value = mock_result
+    with patch.object(detector, '_get_transaction_history', return_value=[]):
         
         result = await detector.analyze_address_patterns(
             address="0x1234567890123456789012345678901234567890",

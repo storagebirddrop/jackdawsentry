@@ -575,29 +575,43 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 
 ### Implementation Phases
 
+*Timeline weeks are counted from the project kickoff date: Weeks 1-2 are reserved for planning and setup.*
+
 #### Phase 1: Attribution Foundation (Week 3-4)
-- Entity Database Schema: PostgreSQL tables for VASP registry, classifications, sources
-- Attribution Engine: Core attribution logic with confidence scoring
-- VASP Screening API: REST endpoints for entity lookup and classification
-- Glass Box Attribution: Source tracking and transparency features
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Entity Database Schema - PostgreSQL tables for VASP registry (`src/attribution/vasp_registry.py`) | ⬜ Pending |
+| 2 | Attribution Engine - Core attribution logic with confidence scoring (`src/attribution/attribution_engine.py`) | ⬜ Pending |
+| 3 | VASP Screening API - REST endpoints for entity lookup and classification (`src/api/routers/attribution.py`) | ⬜ Pending |
+| 4 | Glass Box Attribution - Source tracking and transparency features (`src/attribution/models.py`) | ⬜ Pending |
 
 #### Phase 2: Pattern Intelligence (Week 5-6)
-- Pattern Library: Expanded pattern detection beyond current 14 AML patterns
-- Automatic Detection: Real-time pattern surfacing and alerting
-- Pattern Scoring: Confidence levels and statistical validation
-- Pattern API: Management and configuration of pattern detection rules
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Pattern Library - Expanded pattern detection beyond current 14 AML patterns (`src/patterns/library.py`) | ⬜ Pending |
+| 2 | Automatic Detection - Real-time pattern surfacing and alerting (`src/patterns/detector.py`) | ⬜ Pending |
+| 3 | Pattern Scoring - Confidence levels and statistical validation (`src/patterns/scoring.py`) | ⬜ Pending |
+| 4 | Pattern API - Management and configuration of pattern detection rules (`src/api/routers/patterns.py`) | ⬜ Pending |
 
 #### Phase 3: Advanced Analytics (Week 7-8)
-- Multi-Route Algorithms: Advanced pathfinding visualization
-- Seed Analysis Tools: Wallet cluster recovery from seed phrases
-- Transaction Fingerprinting: Pattern-based transaction search
-- Graph Enhancement: Professional visualization and customization tools
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Multi-Route Algorithms - Advanced pathfinding visualization (`src/analysis/pathfinding.py`) | ⬜ Pending |
+| 2 | Seed Analysis Tools - Wallet cluster recovery from seed phrases (`src/analysis/seed_analysis.py`) | ⬜ Pending |
+| 3 | Transaction Fingerprinting - Pattern-based transaction search (`src/analysis/fingerprinting.py`) | ⬜ Pending |
+| 4 | Graph Enhancement - Professional visualization and customization tools (`src/analysis/graph_enhancement.py`) | ⬜ Pending |
 
 #### Phase 4: Intelligence Integration (Week 9-10)
-- Victim Reports Integration: Connection to fraud reporting databases
-- Threat Feeds: Real-time intelligence from multiple sources
-- Cross-Platform Attribution: Unified intelligence from various providers
-- Professional Services: Expert support and training framework
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Victim Reports Integration - Connection to fraud reporting databases (`src/intelligence/victim_reports.py`) | ⬜ Pending |
+| 2 | Threat Feeds - Real-time intelligence from multiple sources (`src/intelligence/threat_feeds.py`) | ⬜ Pending |
+| 3 | Cross-Platform Attribution - Unified intelligence from various providers (`src/intelligence/cross_platform.py`) | ⬜ Pending |
+| 4 | Professional Services - Expert support and training framework (`src/intelligence/professional_services.py`) | ⬜ Pending |
 
 ### Technical Components
 
@@ -621,15 +635,15 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 ### Success Metrics
 
 #### Technical Gates
-- **Attribution Accuracy**: >95% accuracy for known VASP classifications
-- **Pattern Detection**: 20+ additional patterns beyond current AML library
-- **Pathfinding Performance**: <2s for complex multi-hop path analysis
-- **Integration Coverage**: 5+ external intelligence sources integrated
+- **Attribution Accuracy**: >95% accuracy measured against ground-truth VASP dataset (Etherscan labels + CryptoScamDB) using precision/recall/F1 scores on 1000 known addresses
+- **Pattern Detection**: 20+ additional patterns beyond current AML library with statistical validation (p-value < 0.05, minimum 100 confirmed instances per pattern)
+- **Pathfinding Performance**: <2s for complex multi-hop path analysis on test graphs with 500+ nodes, measured across 50 test cases
+- **Integration Coverage**: 5+ external intelligence sources integrated with API health checks and 99% uptime SLA
 
 #### Business Gates
-- **Professional Readiness**: Features comparable to Elliptic/TRM Labs core offerings
-- **Investigative Value**: 50% reduction in investigation time for complex cases
-- **Enterprise Compliance**: Meets regulatory requirements for financial institutions
-- **Law Enforcement Support**: Court-defensible attribution and evidence handling
+- **Professional Readiness**: Feature-parity checklist completed - entity attribution, pattern detection, cross-chain tracing, real-time alerts, investigation workflow, export capabilities (pass/fail criteria: 90%+ feature match vs Elliptic/TRM Labs core offerings)
+- **Investigative Value**: 50% reduction in investigation time measured against baseline manual investigation process on 20 representative cases (current baseline: 4 hours average → target: 2 hours average, measured with timed protocol and statistical significance test p < 0.05)
+- **Enterprise Compliance**: Full compliance with FATF Travel Rule, MiCA Art 83, and 5AMLD requirements verified through compliance audit checklist and legal review
+- **Law Enforcement Support**: Court-defensible attribution with evidence chain, audit trail, and PDF export functionality validated by legal counsel test cases
 
-**Gate**: All 4 core enterprise features implemented with APIs, >95% attribution accuracy, 20+ new patterns, <2s pathfinding performance ✅ — **Target: 850+ tests passing**
+**Gate**: All 4 core enterprise features implemented with APIs, >95% attribution accuracy, 20+ new patterns, <2s pathfinding performance — **Target: 850+ tests passing**

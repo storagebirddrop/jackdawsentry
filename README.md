@@ -13,7 +13,7 @@ Jackdaw Sentry is a comprehensive blockchain intelligence platform designed for 
 - **Court-Defensible Evidence**: Complete evidence chains for legal proceedings
 
 ### Advanced Pattern Detection Engine
-- **Pattern Signatures® Library**: 20+ patterns beyond basic AML (peeling chains, layering, custody changes, synchronized transfers, etc.)
+- **Pattern Signatures™ Library**: 20+ patterns beyond basic AML (peeling chains, layering, custody changes, synchronized transfers, etc.)
 - **Real-Time Analysis**: Sub-second pattern detection with intelligent caching
 - **Professional Classification**: 5-level severity system (LOW → SEVERE)
 - **Batch Processing**: Analyze up to 1000 addresses in <30 seconds
@@ -29,7 +29,7 @@ Jackdaw Sentry is a comprehensive blockchain intelligence platform designed for 
 ✅ **M0–M17 complete** — all planned milestones shipped
 ✅ **M18 Phase 1-2 complete** — Enterprise intelligence platform implemented
 ✅ **152+ API Endpoints** — REST API with JWT auth & RBAC across 21 routers
-✅ **850+ tests passing** — smoke, auth, analysis, compliance, API integration, workflows
+✅ **748 tests passing** — smoke, auth, analysis, compliance, API integration, workflows
 ✅ **10-page frontend** — investigation detail page, live alert feed, full investigator UX
 ✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)
 ✅ **Live blockchain RPC** — EVM, Bitcoin, Solana, Tron, XRPL with Neo4j fallback
@@ -41,7 +41,7 @@ Jackdaw Sentry is a comprehensive blockchain intelligence platform designed for 
 ✅ **Advanced Patterns** — 20+ patterns beyond basic AML with real-time detection
 
 ### Competitive Positioning Achieved
-- **vs Elliptic**: Feature parity with Pattern Signatures® and Glass Box Attribution
+- **vs Elliptic**: Feature parity with Pattern Signatures™ and Glass Box Attribution
 - **vs TRM Labs**: Advanced detection capabilities with real-time performance
 - **vs Crystal Intelligence**: Professional investigation tools with court-defensible evidence
 

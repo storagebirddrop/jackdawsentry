@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, field_validator
 import logging
 
-from src.api.auth import User, check_permissions, PERMISSIONS
+from src.api.auth import User, get_current_user, check_permissions, PERMISSIONS
 from src.api.database import get_postgres_connection
 from src.attribution import (
     get_attribution_engine, 
@@ -59,9 +59,11 @@ class AddressAttributionRequest(BaseModel):
     @field_validator('addresses')
     @classmethod
     def validate_addresses(cls, v):
-        if not v or len(v) == 0:
+        # Filter first, then validate
+        cleaned = [addr.strip().lower() for addr in v if addr.strip()]
+        if not cleaned:
             raise ValueError('At least one address must be provided')
-        return [addr.strip().lower() for addr in v if addr.strip()]
+        return cleaned
     
     @field_validator('blockchain')
     @classmethod
@@ -94,7 +96,7 @@ async def search_vasps(
     entity_types: Optional[List[EntityType]] = Query(None, description="Filter by entity types"),
     risk_levels: Optional[List[RiskLevel]] = Query(None, description="Filter by risk levels"),
     jurisdictions: Optional[List[str]] = Query(None, description="Filter by jurisdictions"),
-    min_reliability: float = Query(0.0, description="Minimum reliability score"),
+    min_reliability: float = Query(0.0, ge=0.0, le=1.0, description="Minimum reliability score"),
     supported_blockchains: Optional[List[str]] = Query(None, description="Filter by supported blockchains"),
     current_user: User = Depends(get_current_user)
 ):
@@ -122,11 +124,17 @@ async def search_vasps(
         # Search VASPs
         vasps = await vasp_registry.search_vasps(query=query, filters=filters)
         
+        # Get attribution counts in batch to avoid N+1 queries
+        if vasps:
+            vasp_ids = [vasp.id for vasp in vasps]
+            attribution_counts = await _get_vasp_attribution_counts_batch(vasp_ids)
+        else:
+            attribution_counts = {}
+        
         # Convert to VASPResult format
         results = []
         for vasp in vasps:
-            # Get attribution count for this VASP
-            attribution_count = await _get_vasp_attribution_count(vasp.id)
+            attribution_count = attribution_counts.get(vasp.id, 0)
             
             vasp_result = VASPResult(
                 vasp=vasp,
@@ -211,6 +219,7 @@ async def attribute_address(
         
         # Filter sources if not requested
         if not request.include_sources:
+            result = result.model_copy(deep=True)
             result.sources = []
         
         return result
@@ -265,8 +274,9 @@ async def batch_attribute_addresses(
         
         # Filter sources if not requested
         if not request.include_sources:
-            for result in results.values():
-                result.sources = []
+            for address, result in results.items():
+                results[address] = result.model_copy(deep=True)
+                results[address].sources = []
         
         return BatchAttributionResponse(
             results=results,
@@ -348,6 +358,32 @@ async def get_attribution_statistics(
 
 
 # Helper functions
+
+async def _get_vasp_attribution_counts_batch(vasp_ids: List[int]) -> Dict[int, int]:
+    """Get attribution counts for multiple VASPs in a single batch query"""
+    if not vasp_ids:
+        return {}
+    
+    # Create IN clause placeholders
+    placeholders = ", ".join([f"${i+1}" for i in range(len(vasp_ids))])
+    
+    query = f"""
+    SELECT vasp_id, COUNT(*) as attribution_count
+    FROM address_attributions
+    WHERE vasp_id IN ({placeholders})
+    GROUP BY vasp_id
+    """
+    
+    conn = await get_postgres_connection()
+    try:
+        rows = await conn.fetch(query, *vasp_ids)
+        return {row["vasp_id"]: row["attribution_count"] for row in rows}
+    except Exception as e:
+        logger.error(f"Error getting batch VASP attribution counts: {e}")
+        return {}
+    finally:
+        await conn.close()
+
 
 async def _get_vasp_attribution_count(vasp_id: int) -> int:
     """Get number of attributions for a VASP"""

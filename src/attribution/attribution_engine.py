@@ -114,7 +114,7 @@ class AttributionEngine:
         start_time = datetime.now(timezone.utc)
         
         # Check cache first
-        cache_key = f"{address}:{blockchain}:{min_confidence}"
+        cache_key = f"{address.lower()}:{blockchain}:{min_confidence}"
         if cache_key in self.cache:
             cached_result = self.cache[cache_key]
             if (datetime.now(timezone.utc) - cached_result['timestamp']).total_seconds() < self.cache_ttl:
@@ -436,7 +436,7 @@ class AttributionEngine:
             
             # Clear cache for this address (all confidence levels)
             keys_to_remove = []
-            prefix = f"{attribution.address}:{attribution.blockchain}:"
+            prefix = f"{attribution.address.lower()}:{attribution.blockchain}:"
             for cache_key in self.cache:
                 if cache_key.startswith(prefix):
                     keys_to_remove.append(cache_key)

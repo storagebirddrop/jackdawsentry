@@ -79,12 +79,12 @@
 - **Total Files**: 18 core files + 7 test files
 - **Lines of Code**: ~6,700 lines of production code
 - **Test Coverage**: ~2,000 lines of test code
-- **API Endpoints**: 14 new REST endpoints
+- **API Endpoints**: 16 new REST endpoints
 - **Database Tables**: 7 new tables
 
 ### Performance Achieved
 - **Attribution Accuracy**: >95% for known VASPs ✅
-- **Pattern Detection**: 20+ patterns beyond basic AML library ✅
+- **Pattern Detection**: 10 new patterns beyond basic AML library ✅
 - **Response Time**: <200ms for single attribution/pattern analysis ✅
 - **Batch Processing**: 1000 addresses in <30 seconds ✅
 - **Cache Hit Rate**: >80% for repeated queries ✅
@@ -129,7 +129,7 @@
 
 ### Version 1.2.0 - Enterprise Intelligence Platform (Phases 1 & 2)
 - **New Feature**: Enterprise-grade entity attribution system with glass box transparency
-- **New Feature**: Advanced Pattern Signatures® library (10 patterns)
+- **New Feature**: Advanced Pattern Signatures™ library (10 patterns)
 - **New Feature**: Real-time pattern detection with <200ms response time
 - **New Feature**: Batch analysis for up to 1000 addresses
 - **New Feature**: Pattern management and configuration API
@@ -137,7 +137,7 @@
 - **New Feature**: Professional pattern tuning and optimization
 - **Improvement**: 30-minute intelligent caching system
 - **Improvement**: Performance metrics and accuracy tracking
-- **API Changes**: 14 new endpoints under `/api/v1/attribution/` and `/api/v1/patterns/`
+- **API Changes**: 16 new endpoints under `/api/v1/attribution/` and `/api/v1/patterns/`
 
 ### Breaking Changes
 - None - all changes are additive and backward compatible
@@ -163,7 +163,7 @@
 
 ### Business Value Delivered
 - **Investigation Efficiency**: 50%+ reduction in attribution and pattern analysis time
-- **Detection Capability**: 20+ patterns beyond basic AML library
+- **Detection Capability**: 10 new patterns beyond basic AML library
 - **Legal Defensibility**: Complete evidence chains for court proceedings
 - **Scalability**: Enterprise-ready batch processing capabilities
 

@@ -284,11 +284,18 @@ class PeelingChainDetector:
         
         # Add amount decrease evidence
         if len(sequence) >= 2:
-            avg_decrease = sum(
-                (sequence[i-1].amount - sequence[i].amount) / sequence[i-1].amount
-                for i in range(1, len(sequence))
-                if sequence[i-1].amount > 0
-            ) / (len(sequence) - 1)
+            # Calculate valid decrease ratios only where previous amount > 0
+            valid_ratios = []
+            for i in range(1, len(sequence)):
+                if sequence[i-1].amount > 0:
+                    ratio = (sequence[i-1].amount - sequence[i].amount) / sequence[i-1].amount
+                    valid_ratios.append(ratio)
+            
+            # Calculate average only from valid ratios
+            if valid_ratios:
+                avg_decrease = sum(valid_ratios) / len(valid_ratios)
+            else:
+                avg_decrease = 0.0
             
             evidence.append(PatternEvidence(
                 evidence_type="amount_decrease",

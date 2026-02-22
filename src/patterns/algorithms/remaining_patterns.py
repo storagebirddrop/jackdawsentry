@@ -202,7 +202,8 @@ class CustodyChangeDetector:
         
         # Lower variance = more regular pattern
         if avg_interval > 0:
-            return 1.0 - (variance ** 0.5) / avg_interval
+            score = 1.0 - (variance ** 0.5) / avg_interval
+            return min(1.0, max(0.0, score))
         
         return 0.0
     
@@ -245,7 +246,7 @@ class CustodyChangeDetector:
                 evidence_type="amount_change",
                 description=f"Transaction amount change detected (score: {amount_change:.2f})",
                 confidence_contribution=0.3,
-                transaction_hash=transactions[len(transitions)//2].hash,
+                transaction_hash=transactions[len(transactions)//2].hash,
                 address=address
             ))
         
@@ -626,7 +627,7 @@ class RoundAmountDetector:
             return self._create_empty_result(f"Confidence {confidence:.2f} below threshold {min_confidence}")
         
         # Create evidence
-        evidence = self._create_round_evidence(round_txs, address, round_ratio)
+        evidence = self._create_round_evidence(round_txs, address, round_ratio, len(transactions))
         
         return PatternResult(
             pattern_id="round_amount_patterns",
@@ -688,7 +689,7 @@ class RoundAmountDetector:
         else:
             return PatternSeverity.LOW
     
-    def _create_round_evidence(self, round_txs: List[Transaction], address: str, round_ratio: float) -> List[PatternEvidence]:
+    def _create_round_evidence(self, round_txs: List[Transaction], address: str, round_ratio: float, total_transactions: int) -> List[PatternEvidence]:
         """Create evidence for round amount detection"""
         
         evidence = []
@@ -701,7 +702,7 @@ class RoundAmountDetector:
             address=address,
             metadata={
                 "round_transaction_count": len(round_txs),
-                "total_transactions": len(round_txs),
+                "total_transactions": total_transactions,
                 "common_round_amounts": self._get_common_round_amounts(round_txs)
             }
         ))

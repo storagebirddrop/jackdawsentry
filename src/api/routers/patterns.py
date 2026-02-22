@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, field_validator
 import logging
 
-from src.api.auth import User, check_permissions, PERMISSIONS
+from src.api.auth import User, get_current_user, check_permissions, PERMISSIONS
 from src.api.database import get_postgres_connection
 from src.patterns import (
     get_pattern_detector,

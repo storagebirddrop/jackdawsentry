@@ -311,6 +311,11 @@ class LayeringDetector:
         amounts = [tx.amount for tx in path]
         avg_amount = sum(amounts) / len(amounts)
         
+        # Handle zero average case
+        if avg_amount == 0:
+            # If average is 0, only return True if all amounts are exactly 0
+            return all(amount == 0 for amount in amounts)
+        
         # Check if most amounts are close to average
         similar_count = sum(1 for amount in amounts if abs(amount - avg_amount) / avg_amount <= 0.1)
         
