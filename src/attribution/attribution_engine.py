@@ -5,6 +5,7 @@ Core attribution logic with confidence scoring and source tracking
 
 import asyncio
 import logging
+import asyncpg
 from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -116,7 +117,7 @@ class AttributionEngine:
         cache_key = f"{address}:{blockchain}:{min_confidence}"
         if cache_key in self.cache:
             cached_result = self.cache[cache_key]
-            if (datetime.now(timezone.utc) - cached_result['timestamp']).seconds < self.cache_ttl:
+            if (datetime.now(timezone.utc) - cached_result['timestamp']).total_seconds() < self.cache_ttl:
                 logger.debug(f"Cache hit for attribution: {address}")
                 return cached_result['result']
         
@@ -411,7 +412,7 @@ class AttributionEngine:
             # Insert attribution
             result = await conn.fetchrow(
                 insert_query,
-                attribution.address,
+                attribution.address.lower(),  # Normalize to lowercase
                 attribution.blockchain,
                 attribution.vasp_id,
                 attribution.confidence_score,
@@ -428,15 +429,20 @@ class AttributionEngine:
             
             # Insert evidence if provided
             if evidence:
-                await self._add_evidence(attribution.id, evidence)
+                await self._add_evidence(attribution.id, evidence, conn)
             
             await conn.commit()
             logger.info(f"Added attribution for {attribution.address}")
             
-            # Clear cache for this address
-            cache_key = f"{attribution.address}:{attribution.blockchain}:0.5"
-            if cache_key in self.cache:
-                del self.cache[cache_key]
+            # Clear cache for this address (all confidence levels)
+            keys_to_remove = []
+            prefix = f"{attribution.address}:{attribution.blockchain}:"
+            for cache_key in self.cache:
+                if cache_key.startswith(prefix):
+                    keys_to_remove.append(cache_key)
+            
+            for key in keys_to_remove:
+                del self.cache[key]
             
             return attribution
             
@@ -447,7 +453,7 @@ class AttributionEngine:
         finally:
             await conn.close()
     
-    async def _add_evidence(self, attribution_id: uuid.UUID, evidence: List[Evidence]):
+    async def _add_evidence(self, attribution_id: uuid.UUID, evidence: List[Evidence], conn: Optional[asyncpg.Connection] = None):
         """Add evidence for attribution"""
         
         insert_evidence_query = """
@@ -457,7 +463,12 @@ class AttributionEngine:
         ) VALUES ($1, $2, $3, $4, $5, $6)
         """
         
-        conn = await get_postgres_connection()
+        # Use provided connection or create a new one
+        should_close = False
+        if conn is None:
+            conn = await get_postgres_connection()
+            should_close = True
+        
         try:
             for ev in evidence:
                 await conn.execute(
@@ -473,7 +484,8 @@ class AttributionEngine:
             logger.error(f"Error adding evidence: {e}")
             raise
         finally:
-            await conn.close()
+            if should_close:
+                await conn.close()
 
 
 class ConsolidatedAttribution:

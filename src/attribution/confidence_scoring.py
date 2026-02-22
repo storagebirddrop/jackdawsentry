@@ -49,11 +49,12 @@ class ConfidenceScorer:
     
     def __init__(self):
         self.weights = {
-            'source_reliability': 0.30,
-            'evidence_strength': 0.25,
-            'corroboration_count': 0.20,
+            'source_reliability': 0.25,
+            'evidence_strength': 0.20,
+            'corroboration_count': 0.15,
             'recency': 0.15,
-            'blockchain_analysis': 0.10
+            'blockchain_analysis': 0.10,
+            'historical_accuracy': 0.15
         }
         
         self.evidence_weights = {
@@ -87,7 +88,8 @@ class ConfidenceScorer:
             factors.evidence_strength * self.weights['evidence_strength'] +
             factors.corroboration_count * self.weights['corroboration_count'] +
             factors.recency_score * self.weights['recency'] +
-            factors.blockchain_analysis * self.weights['blockchain_analysis']
+            factors.blockchain_analysis * self.weights['blockchain_analysis'] +
+            factors.historical_accuracy * self.weights['historical_accuracy']
         )
         
         # Apply diminishing returns for very high scores
@@ -181,6 +183,12 @@ class ConfidenceScorer:
         if last_verified is None:
             return 0.5  # Neutral score for unverified attributions
         
+        # Ensure last_verified is timezone-aware
+        if last_verified.tzinfo is None:
+            last_verified = last_verified.replace(tzinfo=timezone.utc)
+        else:
+            last_verified = last_verified.astimezone(timezone.utc)
+        
         now = datetime.now(timezone.utc)
         age_days = (now - last_verified).days
         
@@ -255,11 +263,17 @@ class ConfidenceScorer:
     
     def update_weights(self, new_weights: Dict[str, float]):
         """Update confidence scoring weights"""
-        total_weight = sum(new_weights.values())
+        # Create merged copy first
+        merged = dict(self.weights)
+        merged.update(new_weights)
+        
+        # Validate merged weights sum to approximately 1.0
+        total_weight = sum(merged.values())
         if abs(total_weight - 1.0) > 0.01:
             raise ValueError("Weights must sum to approximately 1.0")
         
-        self.weights.update(new_weights)
+        # Update weights atomically
+        self.weights = merged
         logger.info(f"Updated confidence scoring weights: {self.weights}")
     
     def get_confidence_explanation(self, factors: ConfidenceFactors) -> Dict[str, str]:

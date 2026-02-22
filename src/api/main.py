@@ -27,6 +27,7 @@ from src.api.routers import (
     investigations,
     blockchain,
     intelligence,
+    patterns,
     reports,
     admin,
     teams,
@@ -116,6 +117,7 @@ async def start_background_tasks():
     from src.collectors.manager import CollectorManager
     from src.analysis.manager import AnalysisManager
     from src.attribution import get_attribution_engine
+    from src.patterns import get_pattern_detector
     
     tasks = []
     
@@ -153,6 +155,17 @@ async def start_background_tasks():
     except Exception as e:
         logger.error(f"❌ Failed to initialize attribution engine: {e}")
         # Continue with other tasks even if attribution fails
+    
+    try:
+        # Initialize pattern detector
+        logger.info("Initializing pattern detector...")
+        pattern_detector = get_pattern_detector()
+        await pattern_detector.initialize()
+        logger.info("✅ Pattern detector initialized")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize pattern detector: {e}")
+        # Continue with other tasks even if patterns fail
     
     # Start sanctions sync background loop
     try:
@@ -474,6 +487,13 @@ app.include_router(
     attribution.router,
     prefix="/api/v1/attribution",
     tags=["Attribution"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    patterns.router,
+    prefix="/api/v1/patterns",
+    tags=["Patterns"],
     dependencies=[Depends(get_current_user)]
 )
 

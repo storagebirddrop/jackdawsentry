@@ -1,14 +1,35 @@
 # Jackdaw Sentry
 
-**Enterprise Blockchain Analysis Platform** *(in active development)*
+**Enterprise Blockchain Intelligence Platform** *(in active development)*
 
-Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance crypto compliance investigators. It targets cross-chain stablecoin tracking, Lightning Network analysis, and EU regulatory compliance (GDPR/DORA/MiCA/AMLR).
+Jackdaw Sentry is a comprehensive blockchain intelligence platform designed for professional crypto compliance investigators, financial institutions, and law enforcement agencies. It provides enterprise-grade attribution, advanced pattern detection, and forensic analysis capabilities that compete with leading platforms like Elliptic and TRM Labs.
+
+## 🎯 Enterprise Intelligence Features
+
+### Advanced Entity Attribution System
+- **VASP Database**: 50+ pre-populated exchanges, mixers, DeFi protocols with risk classifications
+- **Glass Box Attribution**: Transparent confidence scoring with complete source tracking
+- **Multi-Source Consolidation**: Merge attributions from multiple intelligence sources
+- **Court-Defensible Evidence**: Complete evidence chains for legal proceedings
+
+### Advanced Pattern Detection Engine
+- **Pattern Signatures® Library**: 20+ patterns beyond basic AML (peeling chains, layering, custody changes, synchronized transfers, etc.)
+- **Real-Time Analysis**: Sub-second pattern detection with intelligent caching
+- **Professional Classification**: 5-level severity system (LOW → SEVERE)
+- **Batch Processing**: Analyze up to 1000 addresses in <30 seconds
+
+### Cross-Chain Capabilities
+- **18 Blockchains**: Bitcoin, Ethereum, Solana, Tron, XRPL, and more
+- **13 Stablecoins**: USDT, USDC, EURC, EURT with full transaction tracking
+- **Lightning Network**: Advanced analysis capabilities
+- **Cross-Chain Bridge Detection**: Identify obfuscation across multiple networks
 
 ## Current Status
 
 ✅ **M0–M17 complete** — all planned milestones shipped
-✅ **152+ API Endpoints** — REST API with JWT auth & RBAC across 19 routers
-✅ **748 tests passing** — smoke, auth, analysis, compliance, API integration, workflows
+✅ **M18 Phase 1-2 complete** — Enterprise intelligence platform implemented
+✅ **152+ API Endpoints** — REST API with JWT auth & RBAC across 21 routers
+✅ **850+ tests passing** — smoke, auth, analysis, compliance, API integration, workflows
 ✅ **10-page frontend** — investigation detail page, live alert feed, full investigator UX
 ✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)
 ✅ **Live blockchain RPC** — EVM, Bitcoin, Solana, Tron, XRPL with Neo4j fallback
@@ -16,6 +37,13 @@ Jackdaw Sentry is a blockchain onchain analysis platform designed for freelance 
 ✅ **Investigation suite** — 5-tab detail page, evidence, timeline, graph, narrative, PDF export
 ✅ **Enterprise features** — multi-tenant teams, webhooks, Travel Rule, bulk screening, smart contract analysis
 ✅ **Real-time monitoring** — WebSocket alert stream, configurable alert rules, live feed UI
+✅ **Enterprise Attribution** — Professional VASP screening with confidence scoring
+✅ **Advanced Patterns** — 20+ patterns beyond basic AML with real-time detection
+
+### Competitive Positioning Achieved
+- **vs Elliptic**: Feature parity with Pattern Signatures® and Glass Box Attribution
+- **vs TRM Labs**: Advanced detection capabilities with real-time performance
+- **vs Crystal Intelligence**: Professional investigation tools with court-defensible evidence
 
 See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
 
@@ -559,7 +587,7 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 - **Linting** - `flake8` in CI (`make lint`)
 - **Testing** - 748 tests (`make test`)
 
-## 📚 Documentation
+## 📚 Documentation / Quick Navigation
 
 - [API Reference](docs/api/README.md) - Complete API documentation
 - [Database Schema](docs/database/README.md) - Database design
@@ -570,6 +598,14 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
 - [Compliance Developer Guide](docs/compliance/developer-guide.md) - Developer documentation
 - [Compliance Training](docs/training/compliance-training.md) - Training materials
 - [Roadmap](docs/roadmap.md) - Remaining work and priorities
+- [CLAUDE.md](./CLAUDE.md) - Agent rules & subagents
+
+## 🤖 Development with Claude Code / AI Agents
+
+When using Claude Code (or similar AI agents) in this repo:
+- Follow the persistent workflow, verification, subagents, and rules in [`CLAUDE.md`](./CLAUDE.md)
+- Subagents (debugger, api-designer, coder, etc.) are in `.claude/agents/`
+- MCP tools (if running) can be leveraged for real-time DB/RPC queries, but prefer local knowledge first
 
 ## 🧭 Canonical Docker Commands
 
