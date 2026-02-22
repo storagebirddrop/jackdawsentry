@@ -30,6 +30,15 @@ class RiskLevel(str, Enum):
     HIGH = "high"
     CRITICAL = "critical"
     # Note: SEVERE was removed to avoid ambiguity with CRITICAL
+    # Migration: existing 'severe' values should be mapped to 'critical'
+    
+    @classmethod
+    def from_value(cls, value: str):
+        """Create RiskLevel from string value with backward compatibility"""
+        if value == "severe":
+            # Map deprecated 'severe' to 'critical' for backward compatibility
+            return cls.CRITICAL
+        return cls(value)
 
 
 class VerificationStatus(str, Enum):

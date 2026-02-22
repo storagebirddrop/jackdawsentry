@@ -43,6 +43,20 @@ class AttributionEngine:
         self._initialized = True
         logger.info("Attribution Engine initialized successfully")
     
+    def _normalize_address(self, address: str, blockchain: str) -> str:
+        """Normalize address based on blockchain case sensitivity"""
+        # Case-insensitive chains (EVM-compatible)
+        case_insensitive_chains = {
+            'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 
+            'arbitrum', 'optimism', 'base', 'celo', 'moonbeam'
+        }
+        
+        if blockchain.lower() in case_insensitive_chains:
+            return address.lower()
+        else:
+            # Case-sensitive chains (Bitcoin, Solana, etc.)
+            return address
+    
     async def _create_attribution_tables(self):
         """Create attribution-specific tables"""
         
@@ -111,10 +125,14 @@ class AttributionEngine:
     ) -> AttributionResult:
         """Attribute single address with full confidence scoring"""
         
+        self.metrics['last_update'] = datetime.now(timezone.utc)
+        
+        address = self._normalize_address(address, blockchain)
+        
         start_time = datetime.now(timezone.utc)
         
         # Check cache first
-        cache_key = f"{address.lower()}:{blockchain}:{min_confidence}"
+        cache_key = f"{address}:{blockchain}:{min_confidence}"
         if cache_key in self.cache:
             cached_result = self.cache[cache_key]
             if (datetime.now(timezone.utc) - cached_result['timestamp']).total_seconds() < self.cache_ttl:
@@ -436,7 +454,8 @@ class AttributionEngine:
             
             # Clear cache for this address (all confidence levels)
             keys_to_remove = []
-            prefix = f"{attribution.address.lower()}:{attribution.blockchain}:"
+            normalized_address = self._normalize_address(attribution.address, attribution.blockchain)
+            prefix = f"{normalized_address}:{attribution.blockchain}:"
             for cache_key in self.cache:
                 if cache_key.startswith(prefix):
                     keys_to_remove.append(cache_key)

@@ -79,7 +79,7 @@
 - **Total Files**: 18 core files + 7 test files
 - **Lines of Code**: ~6,700 lines of production code
 - **Test Coverage**: ~2,000 lines of test code
-- **API Endpoints**: 16 new REST endpoints
+- **API Endpoints**: 10 new REST endpoints
 - **Database Tables**: 7 new tables
 
 ### Performance Achieved
@@ -129,7 +129,7 @@
 
 ### Version 1.2.0 - Enterprise Intelligence Platform (Phases 1 & 2)
 - **New Feature**: Enterprise-grade entity attribution system with glass box transparency
-- **New Feature**: Advanced Pattern Signatures™ library (10 patterns)
+- **New Feature**: Advanced Pattern Signatures® library (10 patterns)
 - **New Feature**: Real-time pattern detection with <200ms response time
 - **New Feature**: Batch analysis for up to 1000 addresses
 - **New Feature**: Pattern management and configuration API
@@ -137,7 +137,7 @@
 - **New Feature**: Professional pattern tuning and optimization
 - **Improvement**: 30-minute intelligent caching system
 - **Improvement**: Performance metrics and accuracy tracking
-- **API Changes**: 16 new endpoints under `/api/v1/attribution/` and `/api/v1/patterns/`
+- **API Changes**: 10 new endpoints under `/api/v1/attribution/` and `/api/v1/patterns/`
 
 ### Breaking Changes
 - None - all changes are additive and backward compatible

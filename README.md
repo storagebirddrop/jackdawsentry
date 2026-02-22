@@ -29,7 +29,7 @@ Jackdaw Sentry is a comprehensive blockchain intelligence platform designed for 
 ✅ **M0–M17 complete** — all planned milestones shipped
 ✅ **M18 Phase 1-2 complete** — Enterprise intelligence platform implemented
 ✅ **152+ API Endpoints** — REST API with JWT auth & RBAC across 21 routers
-✅ **748 tests passing** — smoke, auth, analysis, compliance, API integration, workflows
+✅ **136 tests passing** — smoke, auth, analysis, compliance, API integration, workflows
 ✅ **10-page frontend** — investigation detail page, live alert feed, full investigator UX
 ✅ **Docker Deployment** — Multi-service compose (API, Neo4j, Postgres, Redis, Nginx, Prometheus, Grafana)
 ✅ **Live blockchain RPC** — EVM, Bitcoin, Solana, Tron, XRPL with Neo4j fallback
@@ -525,7 +525,7 @@ See [docs/security.md](docs/security.md#-secrets-management) for details.
 
 ## 🧪 Testing
 
-**748 tests passing** (`pytest -m "not integration"` in ~4s):
+**136 tests passing** (`pytest -m "not integration"` in ~4s):
 
 | Suite | Tests | Description |
 |---|---|---|

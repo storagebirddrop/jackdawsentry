@@ -25,7 +25,15 @@ class PatternType(str, Enum):
     BRIDGE_HOPPING = "bridge_hopping"
     DEX_HOPPING = "dex_hopping"
     CIRCULAR_TRADING = "circular_trading"
-    INSTANT_REDEPLOY = "instant_redeploy"
+    INSTANT_REDEPLOY = "instant_deploy"  # Original value for backward compatibility
+
+    @classmethod
+    def from_value(cls, value: str):
+        """Create PatternType from string value with backward compatibility"""
+        if value == "instant_redeploy":
+            # Accept new value but map to original for compatibility
+            return cls.INSTANT_REDEPLOY
+        return cls(value)
 
 
 class PatternSeverity(str, Enum):

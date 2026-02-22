@@ -146,7 +146,7 @@ Guidelines:
 - If a task requires real-time data (e.g., current DB state, external docs, live Redis cache), delegate to the appropriate MCP tool via subagents if possible.
 - Never assume MCP servers are always available — confirm or fallback gracefully.
 - Security: Do **not** expose sensitive data via MCP unless explicitly approved.
-- Popular/expected servers: [list any you run, e.g., Neo4j MCP, Redis inspector, Brave Search, Deep Graph for codebase]
+- Popular/expected servers: None configured
 
 Strong preference: Let the main agent or subagents decide MCP usage based on need — do **not** force it unless the task explicitly requires external access.
 
