@@ -137,6 +137,7 @@ database_backups/
 .claude/
 .clinerules/
 .continue/
+.windsurf/
 
 # ── Package Managers ───────────────────────────────────────────────────────────
 poetry.lock
