@@ -1,6 +1,6 @@
 {
   "timestamp": "2026-02-23T20:29:03.207034+00:00",
-  "base_url": "https://api.jackdaw-sentry.com",
+  "base_url": "https://api.example.com",
   "results": [
     {
       "metric_name": "Response Time",
@@ -49,7 +49,7 @@
       "value": 28.05,
       "target_value": 24,
       "competitor_avg": 48,
-      "parity_percentage": 171.1,
+      "parity_percentage": 58.4,
       "higher_is_better": false,
       "description": "Hours to patch vulnerabilities (lower is better)"
     },
@@ -311,7 +311,7 @@
     "improvements": [
       "Availability: 99.4% parity (target: 99.9%)",
       "Security Score: 101.4% parity (target: 95)",
-      "Vulnerability Response: 171.1% parity (target: 24)"
+      "Vulnerability Response: 58.4% parity (target: 24 hours)"
     ],
     "recommendations": [
       "Maintain competitive leadership through continuous innovation and market monitoring"

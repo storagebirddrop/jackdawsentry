@@ -1,3 +1,5 @@
+# auth_enabled: false  # Intentionally disabled for local development only
+# For production, enable authentication and ensure ports 3100/9096 are not published
 auth_enabled: false
 
 server:
@@ -16,7 +18,11 @@ ingester:
   max_chunk_age: 1h
   chunk_target_size: 1048576
   chunk_retain_period: 30s
-  max_transfer_retries: 0
+  max_transfer_retries: 3
+  wal:
+    enabled: true
+    dir: /loki/wal
+    replay_memory_ceiling: 4GB
 
 schema_config:
   configs:
@@ -33,6 +39,7 @@ storage_config:
     active_index_directory: /loki/boltdb-shipper-active
     cache_location: /loki/boltdb-shipper-cache
     shared_store: filesystem
+    cache_ttl: 24h
   filesystem:
     directory: /loki/chunks
 

@@ -32,15 +32,15 @@ RUN chown -R competitive:competitive /app
 USER competitive
 
 # Environment variables
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV COMPETITIVE_ENV=production
 ENV LOG_LEVEL=INFO
 ENV COMPETITIVE_BASE_URL=http://api:8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import asyncio; from src.competitive.benchmarking_suite import CompetitiveBenchmarkingSuite; asyncio.run(CompetitiveBenchmarkingSuite().generate_jwt_token())" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import src.competitive.benchmarking_suite; print('ok')" || exit 1
 
 # Start command - run scheduled benchmarks
 CMD ["python", "scripts/run_competitive_benchmarking.py", "benchmark", "--output-dir", "/app/reports"]

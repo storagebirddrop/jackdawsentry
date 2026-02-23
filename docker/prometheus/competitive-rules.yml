@@ -3,7 +3,7 @@ groups:
   - name: competitive_alerts
     rules:
       - alert: CompetitiveParityLow
-        expr: competitive_overall_parity < 80
+        expr: competitive_overall_parity < 80 and competitive_overall_parity >= 70
         for: 5m
         labels:
           severity: warning
@@ -33,14 +33,14 @@ groups:
           description: "More than 5 anomalies have been detected in the competitive assessment"
           
       - alert: BenchmarkFailure
-        expr: rate(competitive_benchmark_failures_total[5m]) > 0.1
+        expr: rate(competitive_benchmark_failures_total[5m]) / rate(competitive_benchmark_requests_total[5m]) > 0.1
         for: 5m
         labels:
           severity: warning
           service: competitive-dashboard
         annotations:
           summary: "High benchmark failure rate"
-          description: "Benchmark failure rate is above 10% over the last 5 minutes"
+          description: "Benchmark failure rate is above 10% (0.1 failures/sec) over the last 5 minutes"
           
       - alert: DashboardUnresponsive
         expr: up{job="competitive-dashboard"} == 0
@@ -53,7 +53,7 @@ groups:
           description: "The competitive dashboard service is not responding"
           
       - alert: APIResponseTimeHigh
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api"}[5m])) > 2
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="api"}[5m])) by (le)) > 2
         for: 5m
         labels:
           severity: warning
@@ -73,7 +73,7 @@ groups:
           description: "Database has more than 80 active connections"
           
       - alert: RedisMemoryHigh
-        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        expr: redis_memory_max_bytes > 0 and (redis_memory_used_bytes / redis_memory_max_bytes) > 0.9
         for: 5m
         labels:
           severity: warning
@@ -115,7 +115,7 @@ groups:
   - name: infrastructure_alerts
     rules:
       - alert: HighCPUUsage
-        expr: 100 - (avg by (instance_cpu_usage{job="competitive-dashboard"} * 100)) < 20
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle", job="competitive-dashboard"}[5m])) * 100) < 20
         for: 5m
         labels:
           severity: warning
@@ -125,7 +125,7 @@ groups:
           description: "CPU usage is above 80% on competitive dashboard service"
           
       - alert: HighMemoryUsage
-        expr: 100 - (avg by (instance_memory_usage{job="competitive-dashboard"} * 100)) < 20
+        expr: (node_memory_MemTotal_bytes{job="competitive-dashboard"} - node_memory_MemAvailable_bytes{job="competitive-dashboard"}) / node_memory_MemTotal_bytes{job="competitive-dashboard"} * 100 > 80
         for: 5m
         labels:
           severity: warning
@@ -145,14 +145,14 @@ groups:
           description: "Available disk space is below 10%"
           
       - alert: ContainerRestart
-        expr: increase(kube_pod_container_status_restarts_total[1h]) > 0
-        for: 5m
+        expr: increase(kube_pod_container_status_restarts_total[5m]) > 0
+        for: 1m
         labels:
           severity: warning
           service: competitive-dashboard
         annotations:
           summary: "Container restart detected"
-          description: "Container has restarted within the last hour"
+          description: "Container has restarted within the last 5 minutes"
 
   - name: business_metrics
     rules:

@@ -1,7 +1,7 @@
 {
   "metadata": {
     "timestamp": "20260223_202903",
-    "base_url": "https://api.jackdaw-sentry.com",
+    "base_url": "https://api.example.com",
     "suite_version": "1.0.0"
   },
   "results": [
@@ -176,7 +176,7 @@
           "metric_name": "Encryption Coverage"
         }
       ],
-      "overall_score": 98.0,
+      "overall_score": 123.0,
       "market_position": "Strong Competitor"
     },
     {
@@ -196,6 +196,7 @@
         }
       ],
       "overall_score": 140.6,
+      "aggregation_rule": "mean of capped parity values (Feature Coverage capped at 100)",
       "market_position": "Leader"
     },
     {
@@ -219,7 +220,7 @@
     }
   ],
   "summary": {
-    "overall_parity": 112.0,
+    "overall_parity": 118.25,
     "market_position": "Leader",
     "strengths": [
       "Throughput: 141.9% parity",
@@ -231,9 +232,12 @@
       "User Experience: 118.0% competitive advantage"
     ],
     "improvements": [
+      "Memory Usage: 44.0% parity (target: 512 MB)",
       "Availability: 99.4% parity (target: 99.9%)",
       "Security Score: 101.4% parity (target: 95)",
-      "Vulnerability Response: 171.1% parity (target: 24)"
+      "Vulnerability Response: 58.4% parity (target: 24 hours)",
+      "Encryption Coverage: 108.4% parity (target: 100%)",
+      "Documentation Quality: 116.3% parity (target: 85%)"
     ],
     "recommendations": [
       "Maintain competitive leadership through continuous innovation and market monitoring"

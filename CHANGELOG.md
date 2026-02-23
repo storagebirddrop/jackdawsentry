@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> Milestones M0–M18 are complete. The platform is feature-complete and ready for first launch with competitive validation against industry leaders. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+> Milestones M0–M18 are complete. The platform is feature-complete and ready for first launch with competitive validation against industry leaders. Advanced AI/ML features roadmap (M19-M24) planned for next 6 months. See [docs/roadmap.md](docs/roadmap.md) for the full milestone history.
+
+### Planned: M19-M24 Advanced AI/ML Features (6-Month Roadmap)
+
+#### Advanced AI/ML Foundation (M19-M24)
+- **Deep Learning Enhancement**: LSTM, CNN, and Transformer models for pattern analysis
+- **Real-Time Processing**: Redis-based stream processing with WebSocket updates
+- **Natural Language Intelligence**: AI-generated competitive insights and executive summaries
+- **Computer Vision Integration**: Visual analysis and competitor intelligence
+- **Reinforcement Learning**: System optimization and continuous improvement
+- **Enterprise Scalability**: 1000+ concurrent users with GPU-ready architecture
+
+#### Expected Competitive Impact
+- **40% Accuracy Improvement**: Enhanced pattern detection with deep learning
+- **30% False Positive Reduction**: Advanced anomaly detection with neural networks
+- **Sub-Second Intelligence**: Real-time competitive intelligence delivery
+- **Automated Insights**: AI-powered executive summaries and strategic recommendations
+- **Market Leadership**: Industry-first AI-powered competitive analysis platform
+
+#### Technical Capabilities
+- **Deep Learning Stack**: TensorFlow 2.15.0 and PyTorch 2.1.1 integration
+- **GPU-Ready Architecture**: CPU-optimized with future GPU acceleration support
+- **Real-Time Streaming**: Event-driven architecture with backpressure handling
+- **Advanced Visualization**: 3D interactive graphs and real-time updates
+- **Natural Language Interface**: Intuitive query processing and insight generation
 
 ### M18 "It Competes" — Competitive Assessment & Enterprise Validation (✅ COMPLETE)
 
