@@ -3,15 +3,27 @@ Jackdaw Sentry - Intelligence Router
 Threat intelligence and dark web monitoring endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, field_validator
+import json as _json
 import logging
 import uuid
-import json as _json
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, PERMISSIONS
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
 from src.api.database import get_neo4j_session
 from src.api.exceptions import JackdawException
 
@@ -31,22 +43,29 @@ class IntelligenceQueryRequest(BaseModel):
     query_value: str
     sources: List[str] = ["all"]
     time_range_days: int = 30
-    
-    @field_validator('query_type')
+
+    @field_validator("query_type")
     @classmethod
     def validate_query_type(cls, v):
         valid_types = ["address", "entity", "pattern", "threat"]
         if v not in valid_types:
-            raise ValueError(f'Invalid query type: {v}')
+            raise ValueError(f"Invalid query type: {v}")
         return v
 
-    @field_validator('sources')
+    @field_validator("sources")
     @classmethod
     def validate_sources(cls, v):
-        valid_sources = ["dark_web", "sanctions", "leaks", "forums", "social_media", "all"]
+        valid_sources = [
+            "dark_web",
+            "sanctions",
+            "leaks",
+            "forums",
+            "social_media",
+            "all",
+        ]
         for source in v:
             if source not in valid_sources:
-                raise ValueError(f'Invalid source: {source}')
+                raise ValueError(f"Invalid source: {source}")
         return v
 
 
@@ -57,20 +76,20 @@ class ThreatAlertRequest(BaseModel):
     threat_type: str  # malware, phishing, scam, money_laundering, terrorism
     indicators: List[Dict[str, Any]]
     confidence: float = 0.5
-    
-    @field_validator('severity')
+
+    @field_validator("severity")
     @classmethod
     def validate_severity(cls, v):
         valid_severities = ["low", "medium", "high", "critical"]
         if v not in valid_severities:
-            raise ValueError(f'Invalid severity: {v}')
+            raise ValueError(f"Invalid severity: {v}")
         return v
 
-    @field_validator('confidence')
+    @field_validator("confidence")
     @classmethod
     def validate_confidence(cls, v):
         if v < 0.0 or v > 1.0:
-            raise ValueError('Confidence must be between 0.0 and 1.0')
+            raise ValueError("Confidence must be between 0.0 and 1.0")
         return v
 
 
@@ -79,13 +98,13 @@ class IntelligenceSubscriptionRequest(BaseModel):
     subscription_value: str
     notification_channels: List[str] = ["email"]
     filters: Dict[str, Any] = {}
-    
-    @field_validator('subscription_type')
+
+    @field_validator("subscription_type")
     @classmethod
     def validate_subscription_type(cls, v):
         valid_types = ["address", "entity", "keyword", "pattern"]
         if v not in valid_types:
-            raise ValueError(f'Invalid subscription type: {v}')
+            raise ValueError(f"Invalid subscription type: {v}")
         return v
 
 
@@ -100,15 +119,21 @@ class IntelligenceResponse(BaseModel):
 @router.post("/query", response_model=IntelligenceResponse)
 async def query_intelligence(
     request: IntelligenceQueryRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
 ):
     """Query threat intelligence from Neo4j"""
     try:
         import time as _time
-        start = _time.monotonic()
-        logger.info(f"Querying intelligence for {request.query_type}: {request.query_value}")
 
-        intelligence_data: Dict[str, Any] = {"query_type": request.query_type, "query_value": request.query_value}
+        start = _time.monotonic()
+        logger.info(
+            f"Querying intelligence for {request.query_type}: {request.query_value}"
+        )
+
+        intelligence_data: Dict[str, Any] = {
+            "query_type": request.query_type,
+            "query_value": request.query_value,
+        }
 
         async with get_neo4j_session() as session:
             if request.query_type == "address":
@@ -126,9 +151,15 @@ async def query_intelligence(
                     val=request.query_value,
                 )
                 rec = await result.single()
-                intelligence_data["risk_score"] = float(rec["risk_score"] or 0) if rec else 0
-                intelligence_data["sanctions_hits"] = rec["sanctions_hits"] if rec else 0
-                intelligence_data["intel_mentions"] = rec["intel_mentions"] if rec else 0
+                intelligence_data["risk_score"] = (
+                    float(rec["risk_score"] or 0) if rec else 0
+                )
+                intelligence_data["sanctions_hits"] = (
+                    rec["sanctions_hits"] if rec else 0
+                )
+                intelligence_data["intel_mentions"] = (
+                    rec["intel_mentions"] if rec else 0
+                )
                 intelligence_data["sources"] = rec["sources"] if rec else []
 
             elif request.query_type == "entity":
@@ -187,8 +218,10 @@ async def query_intelligence(
         }
 
         return IntelligenceResponse(
-            success=True, intelligence_data=intelligence_data,
-            metadata=metadata, timestamp=datetime.now(timezone.utc),
+            success=True,
+            intelligence_data=intelligence_data,
+            metadata=metadata,
+            timestamp=datetime.now(timezone.utc),
         )
 
     except Exception as e:
@@ -202,7 +235,9 @@ async def query_intelligence(
 @router.post("/alerts", response_model=IntelligenceResponse)
 async def create_threat_alert(
     request: ThreatAlertRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_intelligence"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_intelligence"]])
+    ),
 ):
     """Create new threat intelligence alert and persist to Neo4j"""
     try:
@@ -223,8 +258,10 @@ async def create_threat_alert(
                         indicators: $indicators, confidence: $confidence
                     })
                     """,
-                    alert_id=alert_id, title=request.title,
-                    description=request.description, severity=request.severity,
+                    alert_id=alert_id,
+                    title=request.title,
+                    description=request.description,
+                    severity=request.severity,
                     threat_type=request.threat_type,
                     created_by=current_user.username,
                     created_at=now.isoformat(),
@@ -237,23 +274,32 @@ async def create_threat_alert(
                 raise
 
         alert_data = {
-            "alert_id": alert_id, "title": request.title,
-            "description": request.description, "severity": request.severity,
-            "threat_type": request.threat_type, "status": "active",
-            "created_by": current_user.username, "created_at": now.isoformat(),
+            "alert_id": alert_id,
+            "title": request.title,
+            "description": request.description,
+            "severity": request.severity,
+            "threat_type": request.threat_type,
+            "status": "active",
+            "created_by": current_user.username,
+            "created_at": now.isoformat(),
             "confidence": request.confidence,
         }
 
         if request.severity == "critical":
             alert_data["immediate_actions"] = ["notify_management", "consider_blocking"]
         elif request.severity == "high":
-            alert_data["immediate_actions"] = ["enhanced_monitoring", "investigation_required"]
+            alert_data["immediate_actions"] = [
+                "enhanced_monitoring",
+                "investigation_required",
+            ]
 
         metadata = {"persisted_to": "neo4j", "alert_validation": "passed"}
 
         return IntelligenceResponse(
-            success=True, intelligence_data=alert_data,
-            metadata=metadata, timestamp=now,
+            success=True,
+            intelligence_data=alert_data,
+            metadata=metadata,
+            timestamp=now,
         )
 
     except Exception as e:
@@ -271,7 +317,7 @@ async def list_threat_alerts(
     threat_type: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
 ):
     """List threat intelligence alerts from Neo4j"""
     try:
@@ -317,7 +363,8 @@ async def list_threat_alerts(
             total_count = count_rec["total"] if count_rec else 0
 
             result = await session.run(
-                base_query + " RETURN a ORDER BY a.created_at DESC SKIP $skip_val LIMIT $limit_val",
+                base_query
+                + " RETURN a ORDER BY a.created_at DESC SKIP $skip_val LIMIT $limit_val",
                 **params,
             )
             records = await result.data()
@@ -328,10 +375,16 @@ async def list_threat_alerts(
             "success": True,
             "alerts": alerts,
             "pagination": {
-                "total_count": total_count, "limit": limit,
-                "offset": offset, "has_more": offset + limit < total_count,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": offset + limit < total_count,
             },
-            "filters_applied": {"severity": severity, "status": status, "threat_type": threat_type},
+            "filters_applied": {
+                "severity": severity,
+                "status": status,
+                "threat_type": threat_type,
+            },
             "timestamp": datetime.now(timezone.utc),
         }
 
@@ -348,7 +401,9 @@ async def list_threat_alerts(
 @router.post("/subscriptions", response_model=IntelligenceResponse)
 async def create_intelligence_subscription(
     request: IntelligenceSubscriptionRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_intelligence"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_intelligence"]])
+    ),
 ):
     """Create intelligence subscription and persist to Neo4j"""
     try:
@@ -370,7 +425,8 @@ async def create_intelligence_subscription(
                     notification_count: 0
                 })
                 """,
-                sub_id=sub_id, sub_type=request.subscription_type,
+                sub_id=sub_id,
+                sub_type=request.subscription_type,
                 sub_value=request.subscription_value,
                 created_by=current_user.username,
                 created_at=now.isoformat(),
@@ -390,8 +446,10 @@ async def create_intelligence_subscription(
         metadata = {"persisted_to": "neo4j", "subscription_validation": "passed"}
 
         return IntelligenceResponse(
-            success=True, intelligence_data=subscription_data,
-            metadata=metadata, timestamp=now,
+            success=True,
+            intelligence_data=subscription_data,
+            metadata=metadata,
+            timestamp=now,
         )
 
     except Exception as e:
@@ -404,7 +462,7 @@ async def create_intelligence_subscription(
 
 @router.get("/dark-web/monitoring")
 async def get_dark_web_monitoring_status(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
 ):
     """Get dark web monitoring status from Neo4j"""
     try:
@@ -416,12 +474,16 @@ async def get_dark_web_monitoring_status(
                 "MATCH (s:IntelSource {type: 'dark_web'}) RETURN s ORDER BY s.last_scan DESC"
             )
             src_records = await src_result.data()
-            monitoring_status["monitored_platforms"] = [dict(r["s"]) for r in src_records]
+            monitoring_status["monitored_platforms"] = [
+                dict(r["s"]) for r in src_records
+            ]
 
             # Today's alert stats — use datetime() for proper comparison
-            today_start = datetime.now(timezone.utc).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            ).isoformat()
+            today_start = (
+                datetime.now(timezone.utc)
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .isoformat()
+            )
             stats_result = await session.run(
                 """
                 OPTIONAL MATCH (a:ThreatAlert)
@@ -453,14 +515,12 @@ async def get_dark_web_monitoring_status(
 
 @router.get("/sources")
 async def get_intelligence_sources(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
 ):
     """Get available intelligence sources from Neo4j"""
     try:
         async with get_neo4j_session() as session:
-            result = await session.run(
-                "MATCH (s:IntelSource) RETURN s ORDER BY s.name"
-            )
+            result = await session.run("MATCH (s:IntelSource) RETURN s ORDER BY s.name")
             records = await result.data()
 
         sources = [dict(r["s"]) for r in records]
@@ -482,14 +542,13 @@ async def get_intelligence_sources(
 
 @router.get("/statistics")
 async def get_intelligence_statistics(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
 ):
     """Get intelligence system statistics from Neo4j"""
     try:
         stats: Dict[str, Any] = {}
         async with get_neo4j_session() as session:
-            result = await session.run(
-                """
+            result = await session.run("""
                 CALL {
                     MATCH (a:ThreatAlert)
                     RETURN count(a) AS total_alerts,
@@ -507,8 +566,7 @@ async def get_intelligence_statistics(
                 }
                 RETURN total_alerts, active_alerts, raw_types,
                        active_subs, source_count
-                """
-            )
+                """)
             rec = await result.single()
             stats["total_alerts"] = rec["total_alerts"] if rec else 0
             stats["active_alerts"] = rec["active_alerts"] if rec else 0

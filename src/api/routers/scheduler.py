@@ -8,13 +8,19 @@ Endpoints for compliance task scheduling including:
 - Scheduler start/stop controls
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime, timezone
-from typing import Dict
 import logging
 import time
+from datetime import datetime
+from datetime import timezone
+from typing import Dict
 
-from src.api.auth import get_current_user, check_permissions, User
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
 from src.scheduling.compliance_scheduler import compliance_scheduler
 
 logger = logging.getLogger(__name__)
@@ -29,7 +35,7 @@ TASK_COOLDOWN_SECONDS: float = 60.0
 @router.get("/tasks")
 async def list_tasks(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """List all scheduled tasks"""
     try:
@@ -44,7 +50,7 @@ async def list_tasks(
 async def get_task_status(
     task_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get status of a specific task"""
     try:
@@ -63,7 +69,7 @@ async def get_task_status(
 async def run_task_now(
     task_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Run a task immediately (subject to cooldown)"""
     try:
@@ -76,7 +82,7 @@ async def run_task_now(
                 remaining = int(TASK_COOLDOWN_SECONDS - elapsed) + 1
                 raise HTTPException(
                     status_code=429,
-                    detail=f"Task {task_id} is in cooldown. Retry in {remaining}s."
+                    detail=f"Task {task_id} is in cooldown. Retry in {remaining}s.",
                 )
 
         success = await compliance_scheduler.run_task_now(task_id)
@@ -96,7 +102,7 @@ async def run_task_now(
 async def enable_task(
     task_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Enable a scheduled task"""
     try:
@@ -115,7 +121,7 @@ async def enable_task(
 async def disable_task(
     task_id: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Disable a scheduled task"""
     try:
@@ -133,12 +139,16 @@ async def disable_task(
 @router.post("/start")
 async def start_scheduler(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Start the compliance scheduler"""
     try:
         compliance_scheduler.start()
-        return {"success": True, "message": "Scheduler started", "running": compliance_scheduler.running}
+        return {
+            "success": True,
+            "message": "Scheduler started",
+            "running": compliance_scheduler.running,
+        }
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
         raise HTTPException(status_code=500, detail="Failed to start scheduler")
@@ -147,12 +157,16 @@ async def start_scheduler(
 @router.post("/stop")
 async def stop_scheduler(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Stop the compliance scheduler"""
     try:
         compliance_scheduler.stop()
-        return {"success": True, "message": "Scheduler stopped", "running": compliance_scheduler.running}
+        return {
+            "success": True,
+            "message": "Scheduler stopped",
+            "running": compliance_scheduler.running,
+        }
     except Exception as e:
         logger.error(f"Failed to stop scheduler: {e}")
         raise HTTPException(status_code=500, detail="Failed to stop scheduler")
@@ -161,7 +175,7 @@ async def stop_scheduler(
 @router.get("/status")
 async def get_scheduler_status(
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get scheduler status"""
     try:
@@ -174,7 +188,9 @@ async def get_scheduler_status(
         }
     except Exception as e:
         logger.error(f"Failed to get scheduler status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve scheduler status")
+        raise HTTPException(
+            status_code=500, detail="Failed to retrieve scheduler status"
+        )
 
 
 @router.get("/health")

@@ -10,21 +10,29 @@ This module provides performance optimization features for compliance operations
 """
 
 import asyncio
-import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional, Union
-from dataclasses import dataclass
-from enum import Enum
-import time
-import psutil
 import gc
+import logging
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from enum import Enum
 from functools import wraps
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
 
 class OptimizationType(Enum):
     """Optimization type categories"""
+
     DATABASE = "database"
     CACHE = "cache"
     MEMORY = "memory"
@@ -35,6 +43,7 @@ class OptimizationType(Enum):
 @dataclass
 class PerformanceMetric:
     """Performance metric definition"""
+
     name: str
     value: float
     unit: str
@@ -46,6 +55,7 @@ class PerformanceMetric:
 @dataclass
 class OptimizationResult:
     """Optimization result definition"""
+
     optimization_type: OptimizationType
     success: bool
     improvement_percentage: float
@@ -73,31 +83,33 @@ class CompliancePerformanceOptimizer:
     async def optimize_system(self) -> List[OptimizationResult]:
         """Run comprehensive system optimization"""
         results = []
-        
+
         try:
             # Database optimization
             db_result = await self.optimize_database()
             results.append(db_result)
-            
+
             # Cache optimization
             cache_result = await self.optimize_cache()
             results.append(cache_result)
-            
+
             # Memory optimization
             memory_result = await self.optimize_memory()
             results.append(memory_result)
-            
+
             # Batch processing optimization
             batch_result = await self.optimize_batch_processing()
             results.append(batch_result)
-            
+
             # Query optimization
             query_result = await self.optimize_queries()
             results.append(query_result)
-            
-            logger.info(f"System optimization completed: {len(results)} optimizations applied")
+
+            logger.info(
+                f"System optimization completed: {len(results)} optimizations applied"
+            )
             return results
-            
+
         except Exception as e:
             logger.error(f"System optimization failed: {e}")
             return results
@@ -107,37 +119,37 @@ class CompliancePerformanceOptimizer:
         try:
             # Collect metrics before optimization
             metrics_before = await self._collect_database_metrics()
-            
+
             start_time = time.time()
-            
+
             # Apply database optimizations
             optimizations_applied = []
-            
+
             # 1. Connection pool optimization
             await self._optimize_connection_pool()
             optimizations_applied.append("connection_pool")
-            
+
             # 2. Query optimization
             await self._optimize_slow_queries()
             optimizations_applied.append("slow_queries")
-            
+
             # 3. Index optimization
             await self._optimize_indexes()
             optimizations_applied.append("indexes")
-            
+
             # 4. Database statistics update
             await self._update_database_statistics()
             optimizations_applied.append("statistics")
-            
+
             end_time = time.time()
             time_saved = (end_time - start_time) * 1000
-            
+
             # Collect metrics after optimization
             metrics_after = await self._collect_database_metrics()
-            
+
             # Calculate improvement
             improvement = self._calculate_improvement(metrics_before, metrics_after)
-            
+
             result = OptimizationResult(
                 optimization_type=OptimizationType.DATABASE,
                 success=True,
@@ -147,14 +159,16 @@ class CompliancePerformanceOptimizer:
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
                 timestamp=datetime.now(timezone.utc),
-                details={"optimizations_applied": optimizations_applied}
+                details={"optimizations_applied": optimizations_applied},
             )
-            
+
             self.optimization_results.append(result)
-            logger.info(f"Database optimization completed: {improvement:.2f}% improvement")
-            
+            logger.info(
+                f"Database optimization completed: {improvement:.2f}% improvement"
+            )
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Database optimization failed: {e}")
             return OptimizationResult(
@@ -166,7 +180,7 @@ class CompliancePerformanceOptimizer:
                 metrics_before=[],
                 metrics_after=[],
                 timestamp=datetime.now(timezone.utc),
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def optimize_cache(self) -> OptimizationResult:
@@ -174,38 +188,38 @@ class CompliancePerformanceOptimizer:
         try:
             # Collect metrics before optimization
             metrics_before = await self._collect_cache_metrics()
-            
+
             start_time = time.time()
-            
+
             # Apply cache optimizations
             optimizations_applied = []
-            
+
             # 1. Cache warming
             if self.cache_warming_enabled:
                 await self._warm_cache()
                 optimizations_applied.append("cache_warming")
-            
+
             # 2. Cache cleanup
             await self._cleanup_cache()
             optimizations_applied.append("cache_cleanup")
-            
+
             # 3. Cache optimization
             await self._optimize_cache_settings()
             optimizations_applied.append("cache_settings")
-            
+
             # 4. Preload frequently accessed data
             await self._preload_frequent_data()
             optimizations_applied.append("preload_data")
-            
+
             end_time = time.time()
             time_saved = (end_time - start_time) * 1000
-            
+
             # Collect metrics after optimization
             metrics_after = await self._collect_cache_metrics()
-            
+
             # Calculate improvement
             improvement = self._calculate_improvement(metrics_before, metrics_after)
-            
+
             result = OptimizationResult(
                 optimization_type=OptimizationType.CACHE,
                 success=True,
@@ -215,14 +229,14 @@ class CompliancePerformanceOptimizer:
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
                 timestamp=datetime.now(timezone.utc),
-                details={"optimizations_applied": optimizations_applied}
+                details={"optimizations_applied": optimizations_applied},
             )
-            
+
             self.optimization_results.append(result)
             logger.info(f"Cache optimization completed: {improvement:.2f}% improvement")
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Cache optimization failed: {e}")
             return OptimizationResult(
@@ -234,7 +248,7 @@ class CompliancePerformanceOptimizer:
                 metrics_before=[],
                 metrics_after=[],
                 timestamp=datetime.now(timezone.utc),
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def optimize_memory(self) -> OptimizationResult:
@@ -242,40 +256,40 @@ class CompliancePerformanceOptimizer:
         try:
             # Collect metrics before optimization
             metrics_before = await self._collect_memory_metrics()
-            
+
             start_time = time.time()
             memory_before = psutil.Process().memory_info().rss / 1024 / 1024  # MB
-            
+
             # Apply memory optimizations
             optimizations_applied = []
-            
+
             # 1. Garbage collection
             collected = gc.collect()
             optimizations_applied.append(f"garbage_collection_{collected}")
-            
+
             # 2. Clear unused caches
             await self._clear_unused_caches()
             optimizations_applied.append("clear_caches")
-            
+
             # 3. Optimize data structures
             await self._optimize_data_structures()
             optimizations_applied.append("optimize_structures")
-            
+
             # 4. Memory pool cleanup
             await self._cleanup_memory_pools()
             optimizations_applied.append("memory_pools")
-            
+
             end_time = time.time()
             memory_after = psutil.Process().memory_info().rss / 1024 / 1024  # MB
             time_saved = (end_time - start_time) * 1000
             memory_saved = memory_before - memory_after
-            
+
             # Collect metrics after optimization
             metrics_after = await self._collect_memory_metrics()
-            
+
             # Calculate improvement
             improvement = self._calculate_improvement(metrics_before, metrics_after)
-            
+
             result = OptimizationResult(
                 optimization_type=OptimizationType.MEMORY,
                 success=True,
@@ -285,14 +299,14 @@ class CompliancePerformanceOptimizer:
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
                 timestamp=datetime.now(timezone.utc),
-                details={"optimizations_applied": optimizations_applied}
+                details={"optimizations_applied": optimizations_applied},
             )
-            
+
             self.optimization_results.append(result)
             logger.info(f"Memory optimization completed: {memory_saved:.2f}MB saved")
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Memory optimization failed: {e}")
             return OptimizationResult(
@@ -304,7 +318,7 @@ class CompliancePerformanceOptimizer:
                 metrics_before=[],
                 metrics_after=[],
                 timestamp=datetime.now(timezone.utc),
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def optimize_batch_processing(self) -> OptimizationResult:
@@ -312,37 +326,37 @@ class CompliancePerformanceOptimizer:
         try:
             # Collect metrics before optimization
             metrics_before = await self._collect_batch_metrics()
-            
+
             start_time = time.time()
-            
+
             # Apply batch processing optimizations
             optimizations_applied = []
-            
+
             # 1. Optimize batch size
             await self._optimize_batch_size()
             optimizations_applied.append("batch_size")
-            
+
             # 2. Parallel processing optimization
             await self._optimize_parallel_processing()
             optimizations_applied.append("parallel_processing")
-            
+
             # 3. Queue optimization
             await self._optimize_processing_queues()
             optimizations_applied.append("processing_queues")
-            
+
             # 4. Resource allocation optimization
             await self._optimize_resource_allocation()
             optimizations_applied.append("resource_allocation")
-            
+
             end_time = time.time()
             time_saved = (end_time - start_time) * 1000
-            
+
             # Collect metrics after optimization
             metrics_after = await self._collect_batch_metrics()
-            
+
             # Calculate improvement
             improvement = self._calculate_improvement(metrics_before, metrics_after)
-            
+
             result = OptimizationResult(
                 optimization_type=OptimizationType.BATCH_PROCESSING,
                 success=True,
@@ -352,14 +366,16 @@ class CompliancePerformanceOptimizer:
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
                 timestamp=datetime.now(timezone.utc),
-                details={"optimizations_applied": optimizations_applied}
+                details={"optimizations_applied": optimizations_applied},
             )
-            
+
             self.optimization_results.append(result)
-            logger.info(f"Batch processing optimization completed: {improvement:.2f}% improvement")
-            
+            logger.info(
+                f"Batch processing optimization completed: {improvement:.2f}% improvement"
+            )
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Batch processing optimization failed: {e}")
             return OptimizationResult(
@@ -371,7 +387,7 @@ class CompliancePerformanceOptimizer:
                 metrics_before=[],
                 metrics_after=[],
                 timestamp=datetime.now(timezone.utc),
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def optimize_queries(self) -> OptimizationResult:
@@ -379,37 +395,37 @@ class CompliancePerformanceOptimizer:
         try:
             # Collect metrics before optimization
             metrics_before = await self._collect_query_metrics()
-            
+
             start_time = time.time()
-            
+
             # Apply query optimizations
             optimizations_applied = []
-            
+
             # 1. Query plan optimization
             await self._optimize_query_plans()
             optimizations_applied.append("query_plans")
-            
+
             # 2. Index usage optimization
             await self._optimize_index_usage()
             optimizations_applied.append("index_usage")
-            
+
             # 3. Query caching
             await self._optimize_query_cache()
             optimizations_applied.append("query_cache")
-            
+
             # 4. Slow query optimization
             await self._optimize_slow_queries()
             optimizations_applied.append("slow_queries")
-            
+
             end_time = time.time()
             time_saved = (end_time - start_time) * 1000
-            
+
             # Collect metrics after optimization
             metrics_after = await self._collect_query_metrics()
-            
+
             # Calculate improvement
             improvement = self._calculate_improvement(metrics_before, metrics_after)
-            
+
             result = OptimizationResult(
                 optimization_type=OptimizationType.QUERY_OPTIMIZATION,
                 success=True,
@@ -419,14 +435,14 @@ class CompliancePerformanceOptimizer:
                 metrics_before=metrics_before,
                 metrics_after=metrics_after,
                 timestamp=datetime.now(timezone.utc),
-                details={"optimizations_applied": optimizations_applied}
+                details={"optimizations_applied": optimizations_applied},
             )
-            
+
             self.optimization_results.append(result)
             logger.info(f"Query optimization completed: {improvement:.2f}% improvement")
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Query optimization failed: {e}")
             return OptimizationResult(
@@ -438,7 +454,7 @@ class CompliancePerformanceOptimizer:
                 metrics_before=[],
                 metrics_after=[],
                 timestamp=datetime.now(timezone.utc),
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     # Helper methods for optimization implementations
@@ -592,27 +608,31 @@ class CompliancePerformanceOptimizer:
         """Collect database performance metrics"""
         try:
             metrics = []
-            
+
             # Connection pool metrics
-            metrics.append(PerformanceMetric(
-                name="connection_pool_size",
-                value=10.0,  # Placeholder
-                unit="count",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.DATABASE
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="connection_pool_size",
+                    value=10.0,  # Placeholder
+                    unit="count",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.DATABASE,
+                )
+            )
+
             # Query performance metrics
-            metrics.append(PerformanceMetric(
-                name="avg_query_time",
-                value=50.0,  # Placeholder
-                unit="ms",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.DATABASE
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="avg_query_time",
+                    value=50.0,  # Placeholder
+                    unit="ms",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.DATABASE,
+                )
+            )
+
             return metrics
-            
+
         except Exception as e:
             logger.error(f"Failed to collect database metrics: {e}")
             return []
@@ -621,27 +641,31 @@ class CompliancePerformanceOptimizer:
         """Collect cache performance metrics"""
         try:
             metrics = []
-            
+
             # Cache hit rate
-            metrics.append(PerformanceMetric(
-                name="cache_hit_rate",
-                value=0.85,  # Placeholder
-                unit="ratio",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.CACHE
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="cache_hit_rate",
+                    value=0.85,  # Placeholder
+                    unit="ratio",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.CACHE,
+                )
+            )
+
             # Cache size
-            metrics.append(PerformanceMetric(
-                name="cache_size",
-                value=100.0,  # Placeholder
-                unit="MB",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.CACHE
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="cache_size",
+                    value=100.0,  # Placeholder
+                    unit="MB",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.CACHE,
+                )
+            )
+
             return metrics
-            
+
         except Exception as e:
             logger.error(f"Failed to collect cache metrics: {e}")
             return []
@@ -650,29 +674,33 @@ class CompliancePerformanceOptimizer:
         """Collect memory usage metrics"""
         try:
             metrics = []
-            
+
             # Memory usage
             memory_info = psutil.Process().memory_info()
-            metrics.append(PerformanceMetric(
-                name="memory_usage",
-                value=memory_info.rss / 1024 / 1024,  # MB
-                unit="MB",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.MEMORY
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="memory_usage",
+                    value=memory_info.rss / 1024 / 1024,  # MB
+                    unit="MB",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.MEMORY,
+                )
+            )
+
             # Memory percentage
             memory_percent = psutil.Process().memory_percent()
-            metrics.append(PerformanceMetric(
-                name="memory_percentage",
-                value=memory_percent,
-                unit="percent",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.MEMORY
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="memory_percentage",
+                    value=memory_percent,
+                    unit="percent",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.MEMORY,
+                )
+            )
+
             return metrics
-            
+
         except Exception as e:
             logger.error(f"Failed to collect memory metrics: {e}")
             return []
@@ -681,27 +709,31 @@ class CompliancePerformanceOptimizer:
         """Collect batch processing metrics"""
         try:
             metrics = []
-            
+
             # Batch processing time
-            metrics.append(PerformanceMetric(
-                name="batch_processing_time",
-                value=100.0,  # Placeholder
-                unit="ms",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.BATCH_PROCESSING
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="batch_processing_time",
+                    value=100.0,  # Placeholder
+                    unit="ms",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.BATCH_PROCESSING,
+                )
+            )
+
             # Batch throughput
-            metrics.append(PerformanceMetric(
-                name="batch_throughput",
-                value=1000.0,  # Placeholder
-                unit="records/sec",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.BATCH_PROCESSING
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="batch_throughput",
+                    value=1000.0,  # Placeholder
+                    unit="records/sec",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.BATCH_PROCESSING,
+                )
+            )
+
             return metrics
-            
+
         except Exception as e:
             logger.error(f"Failed to collect batch metrics: {e}")
             return []
@@ -710,57 +742,80 @@ class CompliancePerformanceOptimizer:
         """Collect query performance metrics"""
         try:
             metrics = []
-            
+
             # Query execution time
-            metrics.append(PerformanceMetric(
-                name="query_execution_time",
-                value=25.0,  # Placeholder
-                unit="ms",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.QUERY_OPTIMIZATION
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="query_execution_time",
+                    value=25.0,  # Placeholder
+                    unit="ms",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.QUERY_OPTIMIZATION,
+                )
+            )
+
             # Query cache hit rate
-            metrics.append(PerformanceMetric(
-                name="query_cache_hit_rate",
-                value=0.90,  # Placeholder
-                unit="ratio",
-                timestamp=datetime.now(timezone.utc),
-                optimization_type=OptimizationType.QUERY_OPTIMIZATION
-            ))
-            
+            metrics.append(
+                PerformanceMetric(
+                    name="query_cache_hit_rate",
+                    value=0.90,  # Placeholder
+                    unit="ratio",
+                    timestamp=datetime.now(timezone.utc),
+                    optimization_type=OptimizationType.QUERY_OPTIMIZATION,
+                )
+            )
+
             return metrics
-            
+
         except Exception as e:
             logger.error(f"Failed to collect query metrics: {e}")
             return []
 
-    def _calculate_improvement(self, before: List[PerformanceMetric], after: List[PerformanceMetric]) -> float:
+    def _calculate_improvement(
+        self, before: List[PerformanceMetric], after: List[PerformanceMetric]
+    ) -> float:
         """Calculate improvement percentage"""
         try:
             if not before or not after:
                 return 0.0
-            
+
             improvements = []
-            
+
             for before_metric in before:
-                after_metric = next((m for m in after if m.name == before_metric.name), None)
+                after_metric = next(
+                    (m for m in after if m.name == before_metric.name), None
+                )
                 if after_metric:
-                    if "time" in before_metric.name.lower() or "ms" in before_metric.unit:
+                    if (
+                        "time" in before_metric.name.lower()
+                        or "ms" in before_metric.unit
+                    ):
                         # For time metrics, lower is better
-                        improvement = ((before_metric.value - after_metric.value) / before_metric.value) * 100
-                    elif "rate" in before_metric.name.lower() or "ratio" in before_metric.unit:
+                        improvement = (
+                            (before_metric.value - after_metric.value)
+                            / before_metric.value
+                        ) * 100
+                    elif (
+                        "rate" in before_metric.name.lower()
+                        or "ratio" in before_metric.unit
+                    ):
                         # For rate metrics, higher is better
-                        improvement = ((after_metric.value - before_metric.value) / before_metric.value) * 100
+                        improvement = (
+                            (after_metric.value - before_metric.value)
+                            / before_metric.value
+                        ) * 100
                     else:
                         # For other metrics, assume lower is better
-                        improvement = ((before_metric.value - after_metric.value) / before_metric.value) * 100
-                    
+                        improvement = (
+                            (before_metric.value - after_metric.value)
+                            / before_metric.value
+                        ) * 100
+
                     improvements.append(improvement)
-            
+
             # Return average improvement
             return sum(improvements) / len(improvements) if improvements else 0.0
-            
+
         except Exception as e:
             logger.error(f"Failed to calculate improvement: {e}")
             return 0.0
@@ -769,10 +824,11 @@ class CompliancePerformanceOptimizer:
         """Get performance optimization summary"""
         try:
             recent_optimizations = [
-                result for result in self.optimization_results
+                result
+                for result in self.optimization_results
                 if result.timestamp > datetime.now(timezone.utc) - timedelta(hours=24)
             ]
-            
+
             summary = {
                 "total_optimizations": len(self.optimization_results),
                 "recent_optimizations_24h": len(recent_optimizations),
@@ -780,28 +836,46 @@ class CompliancePerformanceOptimizer:
                 "average_improvement": 0.0,
                 "total_time_saved_ms": 0.0,
                 "total_memory_saved_mb": 0.0,
-                "success_rate": 0.0
+                "success_rate": 0.0,
             }
-            
+
             if self.optimization_results:
                 # Calculate statistics
-                successful_optimizations = [r for r in self.optimization_results if r.success]
-                summary["success_rate"] = len(successful_optimizations) / len(self.optimization_results) * 100 if len(self.optimization_results) > 0 else 0
-                summary["average_improvement"] = sum(r.improvement_percentage for r in successful_optimizations) / len(successful_optimizations) if len(successful_optimizations) > 0 else 0
-                summary["total_time_saved_ms"] = sum(r.time_saved_ms for r in successful_optimizations)
-                summary["total_memory_saved_mb"] = sum(r.memory_saved_mb for r in successful_optimizations)
-                
+                successful_optimizations = [
+                    r for r in self.optimization_results if r.success
+                ]
+                summary["success_rate"] = (
+                    len(successful_optimizations) / len(self.optimization_results) * 100
+                    if len(self.optimization_results) > 0
+                    else 0
+                )
+                summary["average_improvement"] = (
+                    sum(r.improvement_percentage for r in successful_optimizations)
+                    / len(successful_optimizations)
+                    if len(successful_optimizations) > 0
+                    else 0
+                )
+                summary["total_time_saved_ms"] = sum(
+                    r.time_saved_ms for r in successful_optimizations
+                )
+                summary["total_memory_saved_mb"] = sum(
+                    r.memory_saved_mb for r in successful_optimizations
+                )
+
                 # Count by optimization type
                 for result in self.optimization_results:
                     opt_type = result.optimization_type.value
                     if opt_type not in summary["optimization_types"]:
-                        summary["optimization_types"][opt_type] = {"total": 0, "successful": 0}
+                        summary["optimization_types"][opt_type] = {
+                            "total": 0,
+                            "successful": 0,
+                        }
                     summary["optimization_types"][opt_type]["total"] += 1
                     if result.success:
                         summary["optimization_types"][opt_type]["successful"] += 1
-            
+
             return summary
-            
+
         except Exception as e:
             logger.error(f"Failed to get performance summary: {e}")
             return {"error": str(e)}
@@ -809,15 +883,15 @@ class CompliancePerformanceOptimizer:
     async def start_optimization_scheduler(self):
         """Start automatic optimization scheduler"""
         logger.info("Starting performance optimization scheduler")
-        
+
         while True:
             try:
                 await asyncio.sleep(self.optimization_interval_minutes * 60)
-                
+
                 # Check if optimization is needed
                 if await self._should_optimize():
                     await self.optimize_system()
-                
+
             except Exception as e:
                 logger.error(f"Optimization scheduler error: {e}")
                 await asyncio.sleep(60)  # Wait 1 minute before retrying
@@ -829,7 +903,7 @@ class CompliancePerformanceOptimizer:
             memory_percent = psutil.Process().memory_percent()
             if memory_percent > 80:  # If memory usage > 80%
                 return True
-            
+
             # Check if it's been a while since last optimization
             if self.optimization_results:
                 last_optimization = max(r.timestamp for r in self.optimization_results)
@@ -837,9 +911,9 @@ class CompliancePerformanceOptimizer:
                     return True
             else:
                 return True  # No optimizations performed yet
-            
+
             return False
-            
+
         except Exception as e:
             logger.error(f"Failed to check optimization need: {e}")
             return False
@@ -848,33 +922,39 @@ class CompliancePerformanceOptimizer:
 # Performance monitoring decorator
 def monitor_performance(operation_type: OptimizationType):
     """Decorator to monitor performance of functions"""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024
-            
+
             try:
                 result = await func(*args, **kwargs)
-                
+
                 end_time = time.time()
                 end_memory = psutil.Process().memory_info().rss / 1024 / 1024
-                
+
                 execution_time = (end_time - start_time) * 1000
                 memory_delta = end_memory - start_memory
-                
+
                 # Log performance metrics
-                logger.debug(f"Performance: {func.__name__} took {execution_time:.2f}ms, memory delta: {memory_delta:.2f}MB")
-                
+                logger.debug(
+                    f"Performance: {func.__name__} took {execution_time:.2f}ms, memory delta: {memory_delta:.2f}MB"
+                )
+
                 return result
-                
+
             except Exception as e:
                 end_time = time.time()
                 execution_time = (end_time - start_time) * 1000
-                logger.error(f"Performance: {func.__name__} failed after {execution_time:.2f}ms: {e}")
+                logger.error(
+                    f"Performance: {func.__name__} failed after {execution_time:.2f}ms: {e}"
+                )
                 raise
-        
+
         return wrapper
+
     return decorator
 
 

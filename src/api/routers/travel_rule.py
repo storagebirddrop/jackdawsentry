@@ -5,11 +5,17 @@ FATF Recommendation 16 / MiCA Article 83 compliance endpoints.
 Prefix: /api/v1/travel-rule
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from typing import Optional
 
-from src.api.auth import User, get_current_user, check_permissions, PERMISSIONS
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from pydantic import BaseModel
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
 
 router = APIRouter()
 
@@ -36,6 +42,7 @@ async def check_travel_rule(
 ):
     """Check whether a transaction triggers the Travel Rule and assess compliance."""
     from src.compliance.travel_rule import build_travel_rule_record
+
     record = build_travel_rule_record(
         tx_hash=request.tx_hash,
         originator_address=request.originator_address,
@@ -54,6 +61,7 @@ async def lookup_vasp(
 ):
     """Look up known VASP information for an address."""
     from src.compliance.travel_rule import lookup_vasp as _lookup
+
     vasp = _lookup(address)
     if not vasp:
         raise HTTPException(status_code=404, detail="No known VASP for this address")
@@ -67,6 +75,7 @@ async def validate_vasp(
 ):
     """Validate completeness of VASP information fields."""
     from src.compliance.travel_rule import validate_vasp_info
+
     errors = validate_vasp_info(request.model_dump())
     return {
         "success": True,
@@ -79,6 +88,7 @@ async def validate_vasp(
 async def get_threshold(current_user: User = Depends(get_current_user)):
     """Return the current Travel Rule monetary threshold."""
     from src.compliance.travel_rule import _THRESHOLD_USD
+
     return {
         "success": True,
         "threshold_usd": _THRESHOLD_USD,

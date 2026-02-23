@@ -4,44 +4,53 @@ Comprehensive database of Virtual Asset Service Providers
 """
 
 import asyncio
-import logging
-from typing import List, Dict, Optional, Tuple
-from datetime import datetime, timezone
 import json
+import logging
+from datetime import datetime
+from datetime import timezone
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
-from .models import VASP, EntityType, RiskLevel, VASPResult, AttributionSearchFilters
 from src.api.database import get_postgres_connection
+
+from .models import VASP
+from .models import AttributionSearchFilters
+from .models import EntityType
+from .models import RiskLevel
+from .models import VASPResult
 
 logger = logging.getLogger(__name__)
 
 
 class VASPRegistry:
     """Registry for managing VASP data and classifications"""
-    
+
     def __init__(self):
         self.cache = {}
         self.cache_ttl = 3600  # 1 hour
         self._initialized = False
-    
+
     async def initialize(self):
         """Initialize the VASP registry with default data"""
         if self._initialized:
             return
-        
+
         logger.info("Initializing VASP Registry...")
-        
+
         # Create tables if they don't exist
         await self._create_tables()
-        
+
         # Load initial VASP data if empty
         await self._load_default_vasps()
-        
+
         self._initialized = True
         logger.info("VASP Registry initialized successfully")
-    
+
     async def _create_tables(self):
         """Create VASP registry tables"""
-        
+
         create_vasps_table = """
         CREATE TABLE IF NOT EXISTS vasp_registry (
             id SERIAL PRIMARY KEY,
@@ -67,7 +76,7 @@ class VASPRegistry:
         CREATE INDEX IF NOT EXISTS idx_vasp_jurisdictions ON vasp_registry USING GIN(jurisdictions);
         CREATE INDEX IF NOT EXISTS idx_vasp_blockchains ON vasp_registry USING GIN(supported_blockchains);
         """
-        
+
         create_sources_table = """
         CREATE TABLE IF NOT EXISTS attribution_sources (
             id SERIAL PRIMARY KEY,
@@ -85,7 +94,7 @@ class VASPRegistry:
         CREATE INDEX IF NOT EXISTS idx_sources_type ON attribution_sources(source_type);
         CREATE INDEX IF NOT EXISTS idx_sources_reliability ON attribution_sources(reliability_score);
         """
-        
+
         conn = await get_postgres_connection()
         try:
             await conn.execute(create_vasps_table)
@@ -98,21 +107,21 @@ class VASPRegistry:
             raise
         finally:
             await conn.close()
-    
+
     async def _load_default_vasps(self):
         """Load default VASP data if registry is empty"""
-        
+
         check_query = "SELECT COUNT(*) FROM vasp_registry"
         conn = await get_postgres_connection()
-        
+
         try:
             result = await conn.fetchval(check_query)
             if result > 0:
                 logger.info(f"VASP registry already contains {result} entries")
                 return
-            
+
             logger.info("Loading default VASP data...")
-            
+
             # Default major exchanges
             default_vasps = [
                 {
@@ -123,9 +132,17 @@ class VASPRegistry:
                     "website": "https://www.binance.com",
                     "founded_year": 2017,
                     "active_countries": ["global"],
-                    "supported_blockchains": ["bitcoin", "ethereum", "bsc", "polygon", "arbitrum", "avalanche", "optimism"],
+                    "supported_blockchains": [
+                        "bitcoin",
+                        "ethereum",
+                        "bsc",
+                        "polygon",
+                        "arbitrum",
+                        "avalanche",
+                        "optimism",
+                    ],
                     "compliance_program": True,
-                    "regulatory_licenses": ["CYSEC", "MSB"]
+                    "regulatory_licenses": ["CYSEC", "MSB"],
                 },
                 {
                     "name": "Coinbase",
@@ -135,9 +152,16 @@ class VASPRegistry:
                     "website": "https://www.coinbase.com",
                     "founded_year": 2012,
                     "active_countries": ["US", "EU", "UK", "AU", "CA"],
-                    "supported_blockchains": ["bitcoin", "ethereum", "polygon", "arbitrum", "base", "avalanche"],
+                    "supported_blockchains": [
+                        "bitcoin",
+                        "ethereum",
+                        "polygon",
+                        "arbitrum",
+                        "base",
+                        "avalanche",
+                    ],
                     "compliance_program": True,
-                    "regulatory_licenses": ["FINCEN", "FCA", "MAS"]
+                    "regulatory_licenses": ["FINCEN", "FCA", "MAS"],
                 },
                 {
                     "name": "Kraken",
@@ -147,9 +171,15 @@ class VASPRegistry:
                     "website": "https://www.kraken.com",
                     "founded_year": 2011,
                     "active_countries": ["US", "EU", "UK", "AU", "CA", "JP"],
-                    "supported_blockchains": ["bitcoin", "ethereum", "polygon", "arbitrum", "optimism"],
+                    "supported_blockchains": [
+                        "bitcoin",
+                        "ethereum",
+                        "polygon",
+                        "arbitrum",
+                        "optimism",
+                    ],
                     "compliance_program": True,
-                    "regulatory_licenses": ["FINCEN", "FCA"]
+                    "regulatory_licenses": ["FINCEN", "FCA"],
                 },
                 {
                     "name": "Tornado Cash",
@@ -159,9 +189,14 @@ class VASPRegistry:
                     "website": None,
                     "founded_year": 2019,
                     "active_countries": ["global"],
-                    "supported_blockchains": ["ethereum", "arbitrum", "optimism", "base"],
+                    "supported_blockchains": [
+                        "ethereum",
+                        "arbitrum",
+                        "optimism",
+                        "base",
+                    ],
                     "compliance_program": False,
-                    "regulatory_licenses": []
+                    "regulatory_licenses": [],
                 },
                 {
                     "name": "Uniswap",
@@ -171,12 +206,18 @@ class VASPRegistry:
                     "website": "https://uniswap.org",
                     "founded_year": 2018,
                     "active_countries": ["global"],
-                    "supported_blockchains": ["ethereum", "arbitrum", "optimism", "base", "polygon"],
+                    "supported_blockchains": [
+                        "ethereum",
+                        "arbitrum",
+                        "optimism",
+                        "base",
+                        "polygon",
+                    ],
                     "compliance_program": True,
-                    "regulatory_licenses": []
-                }
+                    "regulatory_licenses": [],
+                },
             ]
-            
+
             # Insert default VASPs
             insert_query = """
             INSERT INTO vasp_registry (
@@ -185,7 +226,7 @@ class VASPRegistry:
                 compliance_program, regulatory_licenses
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             """
-            
+
             for vasp_data in default_vasps:
                 await conn.execute(
                     insert_query,
@@ -198,200 +239,210 @@ class VASPRegistry:
                     json.dumps(vasp_data["active_countries"]),
                     json.dumps(vasp_data["supported_blockchains"]),
                     vasp_data["compliance_program"],
-                    json.dumps(vasp_data["regulatory_licenses"])
+                    json.dumps(vasp_data["regulatory_licenses"]),
                 )
-            
+
             # Load default attribution sources
             default_sources = [
                 {
                     "name": "On-Chain Analysis",
                     "source_type": "on_chain",
                     "reliability_score": 0.85,
-                    "description": "Direct blockchain transaction analysis"
+                    "description": "Direct blockchain transaction analysis",
                 },
                 {
                     "name": "Exchange Disclosures",
                     "source_type": "exchange_disclosure",
                     "reliability_score": 0.95,
-                    "description": "Official exchange address disclosures"
+                    "description": "Official exchange address disclosures",
                 },
                 {
                     "name": "Regulatory Filings",
                     "source_type": "regulatory",
                     "reliability_score": 0.90,
-                    "description": "Official regulatory address filings"
+                    "description": "Official regulatory address filings",
                 },
                 {
                     "name": "Crowdsourced Intelligence",
                     "source_type": "crowdsourced",
                     "reliability_score": 0.60,
-                    "description": "Community-contributed address labels"
-                }
+                    "description": "Community-contributed address labels",
+                },
             ]
-            
+
             insert_source_query = """
             INSERT INTO attribution_sources (
                 name, source_type, reliability_score, description
             ) VALUES ($1, $2, $3, $4)
             """
-            
+
             for source_data in default_sources:
                 await conn.execute(
                     insert_source_query,
                     source_data["name"],
                     source_data["source_type"],
                     source_data["reliability_score"],
-                    source_data["description"]
+                    source_data["description"],
                 )
-            
+
             await conn.commit()
-            logger.info(f"Loaded {len(default_vasps)} default VASPs and {len(default_sources)} attribution sources")
-            
+            logger.info(
+                f"Loaded {len(default_vasps)} default VASPs and {len(default_sources)} attribution sources"
+            )
+
         except Exception as e:
             logger.error(f"Error loading default VASP data: {e}")
             await conn.rollback()
             raise
         finally:
             await conn.close()
-    
+
     async def search_vasps(
-        self, 
+        self,
         query: Optional[str] = None,
-        filters: Optional[AttributionSearchFilters] = None
+        filters: Optional[AttributionSearchFilters] = None,
     ) -> List[VASP]:
         """Search VASPs with optional filters"""
-        
+
         where_clauses = []
         params = []
         param_count = 0
-        
+
         base_query = """
         SELECT id, name, entity_type, risk_level, jurisdictions, registration_numbers,
                website, description, founded_year, active_countries, supported_blockchains,
                compliance_program, regulatory_licenses, created_at, updated_at
         FROM vasp_registry
         """
-        
+
         if query:
             param_count += 1
-            where_clauses.append(f"(name ILIKE ${param_count} OR description ILIKE ${param_count})")
+            where_clauses.append(
+                f"(name ILIKE ${param_count} OR description ILIKE ${param_count})"
+            )
             params.append(f"%{query}%")
-        
+
         if filters:
             if filters.entity_types:
                 placeholders = []
                 for et in filters.entity_types:
                     param_count += 1
-                    placeholders.append(f'${param_count}')
+                    placeholders.append(f"${param_count}")
                     params.append(et.value)
                 where_clauses.append(f"entity_type IN ({','.join(placeholders)})")
-            
+
             if filters.risk_levels:
                 placeholders = []
                 for rl in filters.risk_levels:
                     param_count += 1
-                    placeholders.append(f'${param_count}')
+                    placeholders.append(f"${param_count}")
                     params.append(rl.value)
                 where_clauses.append(f"risk_level IN ({','.join(placeholders)})")
-            
+
             if filters.jurisdictions:
-                param_count += 1
-                where_clauses.append(f"jurisdictions ? ${param_count}")
-                params.append(filters.jurisdictions[0])  # TODO: Handle multiple jurisdictions
-            
+                placeholders = []
+                for jurisdiction in filters.jurisdictions:
+                    param_count += 1
+                    placeholders.append(f"${param_count}")
+                    params.append(jurisdiction)
+                where_clauses.append(f"jurisdictions && ARRAY[{','.join(placeholders)}]")
+
             if filters.supported_blockchains:
-                param_count += 1
-                where_clauses.append(f"supported_blockchains ? ${param_count}")
-                params.append(filters.supported_blockchains[0])  # TODO: Handle multiple blockchains
-        
+                placeholders = []
+                for blockchain in filters.supported_blockchains:
+                    param_count += 1
+                    placeholders.append(f"${param_count}")
+                    params.append(blockchain)
+                where_clauses.append(f"supported_blockchains && ARRAY[{','.join(placeholders)}]")
+
         if where_clauses:
             base_query += " WHERE " + " AND ".join(where_clauses)
-        
+
         base_query += " ORDER BY name LIMIT 100"
-        
+
         conn = await get_postgres_connection()
         try:
             rows = await conn.fetch(base_query, *params)
-            
+
             vasps = []
             for row in rows:
                 vasp = VASP(
-                    id=row['id'],
-                    name=row['name'],
-                    entity_type=EntityType(row['entity_type']),
-                    risk_level=RiskLevel(row['risk_level']),
-                    jurisdictions=row['jurisdictions'],
-                    registration_numbers=row['registration_numbers'],
-                    website=row['website'],
-                    description=row['description'],
-                    founded_year=row['founded_year'],
-                    active_countries=row['active_countries'],
-                    supported_blockchains=row['supported_blockchains'],
-                    compliance_program=row['compliance_program'],
-                    regulatory_licenses=row['regulatory_licenses'],
-                    created_at=row['created_at'],
-                    updated_at=row['updated_at']
+                    id=row["id"],
+                    name=row["name"],
+                    entity_type=EntityType(row["entity_type"]),
+                    risk_level=RiskLevel(row["risk_level"]),
+                    jurisdictions=row["jurisdictions"],
+                    registration_numbers=row["registration_numbers"],
+                    website=row["website"],
+                    description=row["description"],
+                    founded_year=row["founded_year"],
+                    active_countries=row["active_countries"],
+                    supported_blockchains=row["supported_blockchains"],
+                    compliance_program=row["compliance_program"],
+                    regulatory_licenses=row["regulatory_licenses"],
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
                 )
                 vasps.append(vasp)
-            
+
             return vasps
-            
+
         except Exception as e:
             logger.error(f"Error searching VASPs: {e}")
             raise
         finally:
             await conn.close()
-    
+
     async def get_vasp_by_id(self, vasp_id: int) -> Optional[VASP]:
         """Get VASP by ID"""
-        
+
         query = """
         SELECT id, name, entity_type, risk_level, jurisdictions, registration_numbers,
                website, description, founded_year, active_countries, supported_blockchains,
                compliance_program, regulatory_licenses, created_at, updated_at
         FROM vasp_registry WHERE id = $1
         """
-        
+
         conn = await get_postgres_connection()
         try:
             row = await conn.fetchrow(query, vasp_id)
             if not row:
                 return None
-            
+
             return VASP(
-                id=row['id'],
-                name=row['name'],
-                entity_type=EntityType(row['entity_type']),
-                risk_level=RiskLevel(row['risk_level']),
-                jurisdictions=row['jurisdictions'],
-                registration_numbers=row['registration_numbers'],
-                website=row['website'],
-                description=row['description'],
-                founded_year=row['founded_year'],
-                active_countries=row['active_countries'],
-                supported_blockchains=row['supported_blockchains'],
-                compliance_program=row['compliance_program'],
-                regulatory_licenses=row['regulatory_licenses'],
-                created_at=row['created_at'],
-                updated_at=row['updated_at']
+                id=row["id"],
+                name=row["name"],
+                entity_type=EntityType(row["entity_type"]),
+                risk_level=RiskLevel(row["risk_level"]),
+                jurisdictions=row["jurisdictions"],
+                registration_numbers=row["registration_numbers"],
+                website=row["website"],
+                description=row["description"],
+                founded_year=row["founded_year"],
+                active_countries=row["active_countries"],
+                supported_blockchains=row["supported_blockchains"],
+                compliance_program=row["compliance_program"],
+                regulatory_licenses=row["regulatory_licenses"],
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
             )
-            
+
         except Exception as e:
             logger.error(f"Error getting VASP by ID: {e}")
             raise
         finally:
             await conn.close()
-    
+
     async def get_attribution_sources(self) -> List[Dict]:
         """Get all attribution sources"""
-        
+
         query = """
         SELECT id, name, source_type, reliability_score, description, url,
                api_endpoint, authentication_required, rate_limit_per_hour, last_updated
         FROM attribution_sources
         ORDER BY reliability_score DESC
         """
-        
+
         conn = await get_postgres_connection()
         try:
             rows = await conn.fetch(query)
@@ -401,10 +452,10 @@ class VASPRegistry:
             raise
         finally:
             await conn.close()
-    
+
     async def add_vasp(self, vasp: VASP) -> VASP:
         """Add a new VASP to the registry"""
-        
+
         insert_query = """
         INSERT INTO vasp_registry (
             name, entity_type, risk_level, jurisdictions, registration_numbers,
@@ -413,7 +464,7 @@ class VASPRegistry:
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING id, created_at, updated_at
         """
-        
+
         conn = await get_postgres_connection()
         try:
             result = await conn.fetchrow(
@@ -429,17 +480,17 @@ class VASPRegistry:
                 json.dumps(vasp.active_countries),
                 json.dumps(vasp.supported_blockchains),
                 vasp.compliance_program,
-                json.dumps(vasp.regulatory_licenses)
+                json.dumps(vasp.regulatory_licenses),
             )
-            
-            vasp.id = result['id']
-            vasp.created_at = result['created_at']
-            vasp.updated_at = result['updated_at']
-            
+
+            vasp.id = result["id"]
+            vasp.created_at = result["created_at"]
+            vasp.updated_at = result["updated_at"]
+
             await conn.commit()
             logger.info(f"Added VASP: {vasp.name}")
             return vasp
-            
+
         except Exception as e:
             logger.error(f"Error adding VASP: {e}")
             await conn.rollback()
@@ -450,6 +501,7 @@ class VASPRegistry:
 
 # Global VASP registry instance
 _vasp_registry = None
+
 
 def get_vasp_registry() -> VASPRegistry:
     """Get the global VASP registry instance"""

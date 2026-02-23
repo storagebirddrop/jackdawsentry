@@ -3,15 +3,24 @@ Jackdaw Sentry - Pattern Detection Models
 Pydantic models for advanced pattern detection and analysis
 """
 
-from typing import List, Dict, Optional, Any, Union
-from datetime import datetime, timezone
-from enum import Enum
-from pydantic import BaseModel, Field, field_validator
 import uuid
+from datetime import datetime
+from datetime import timezone
+from enum import Enum
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
+
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import field_validator
 
 
 class PatternType(str, Enum):
     """Types of suspicious patterns"""
+
     PEELING_CHAIN = "peeling_chain"
     LAYERING = "layering"
     CUSTODY_CHANGE = "custody_change"
@@ -38,6 +47,7 @@ class PatternType(str, Enum):
 
 class PatternSeverity(str, Enum):
     """Pattern severity levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -47,6 +57,7 @@ class PatternSeverity(str, Enum):
 
 class IndicatorType(str, Enum):
     """Types of pattern indicators"""
+
     TIMING = "timing"
     AMOUNT = "amount"
     FREQUENCY = "frequency"
@@ -58,15 +69,17 @@ class IndicatorType(str, Enum):
 
 class PatternIndicator(BaseModel):
     """Individual indicator for pattern detection"""
+
     indicator_type: IndicatorType = Field(...)
     threshold: float = Field(..., gt=0.0)
     weight: float = Field(..., ge=0.0, le=1.0)
     description: str = Field(...)
     detection_function: Optional[str] = None  # Reference to detection function
-    
+
 
 class PatternSignature(BaseModel):
     """Definition of a suspicious pattern"""
+
     pattern_id: str = Field(..., min_length=1, max_length=100)
     name: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1, max_length=1000)
@@ -80,24 +93,25 @@ class PatternSignature(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    
-    @field_validator('pattern_id')
+
+    @field_validator("pattern_id")
     @classmethod
     def validate_pattern_id(cls, v):
         if not v or not v.strip():
-            raise ValueError('Pattern ID cannot be empty')
+            raise ValueError("Pattern ID cannot be empty")
         return v.strip().lower()
-    
-    @field_validator('name')
+
+    @field_validator("name")
     @classmethod
     def validate_name(cls, v):
         if not v or not v.strip():
-            raise ValueError('Pattern name cannot be empty')
+            raise ValueError("Pattern name cannot be empty")
         return v.strip()
 
 
 class PatternEvidence(BaseModel):
     """Evidence supporting pattern detection"""
+
     evidence_type: str
     description: str
     confidence_contribution: float = Field(ge=0.0, le=1.0)
@@ -109,6 +123,7 @@ class PatternEvidence(BaseModel):
 
 class PatternResult(BaseModel):
     """Result of pattern detection for a specific pattern"""
+
     pattern_id: str
     pattern_name: str
     detected: bool = Field(default=False)
@@ -120,24 +135,30 @@ class PatternResult(BaseModel):
     transaction_count: int = Field(default=0, ge=0)
     time_window_hours: int = Field(default=24, ge=1)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    detection_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    detection_timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 class PatternAnalysisResult(BaseModel):
     """Complete pattern analysis result for an address"""
+
     address: str
     blockchain: str
     patterns: List[PatternResult] = Field(default_factory=list)
     overall_risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
     total_transactions_analyzed: int = Field(default=0, ge=0)
     time_range_hours: Optional[int] = None
-    analysis_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    analysis_timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     processing_time_ms: Optional[float] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class PatternRequest(BaseModel):
     """Request for pattern analysis"""
+
     addresses: List[str] = Field(..., min_items=1, max_items=100)
     blockchain: str = Field(..., min_length=1)
     pattern_types: Optional[List[PatternType]] = None
@@ -145,33 +166,34 @@ class PatternRequest(BaseModel):
     time_range_hours: int = Field(default=24, ge=1, le=8760)  # Max 1 year
     include_evidence: bool = Field(default=True)
     min_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    
-    @field_validator('addresses')
+
+    @field_validator("addresses")
     @classmethod
     def validate_addresses(cls, v):
         # Filter first, then validate
         cleaned = [addr.strip().lower() for addr in v if addr.strip()]
         if not cleaned:
-            raise ValueError('At least one address must be provided')
+            raise ValueError("At least one address must be provided")
         return cleaned
-    
-    @field_validator('blockchain')
+
+    @field_validator("blockchain")
     @classmethod
     def validate_blockchain(cls, v):
         if not v or not v.strip():
-            raise ValueError('Blockchain cannot be empty')
+            raise ValueError("Blockchain cannot be empty")
         return v.strip().lower()
-    
-    @field_validator('min_confidence')
+
+    @field_validator("min_confidence")
     @classmethod
     def validate_min_confidence(cls, v):
         if not 0.0 <= v <= 1.0:
-            raise ValueError('min_confidence must be between 0.0 and 1.0')
+            raise ValueError("min_confidence must be between 0.0 and 1.0")
         return v
 
 
 class PatternResponse(BaseModel):
     """Response for pattern analysis"""
+
     results: Dict[str, PatternAnalysisResult]
     total_addresses: int
     successful_analyses: int
@@ -183,24 +205,28 @@ class PatternResponse(BaseModel):
 
 class PatternConfig(BaseModel):
     """Configuration for pattern detection"""
+
     enabled_patterns: List[str] = Field(default_factory=list)
     confidence_thresholds: Dict[str, float] = Field(default_factory=dict)
     severity_weights: Dict[PatternSeverity, float] = Field(default_factory=dict)
     time_windows: Dict[str, int] = Field(default_factory=dict)
     custom_indicators: Dict[str, PatternIndicator] = Field(default_factory=dict)
     global_settings: Dict[str, Any] = Field(default_factory=dict)
-    
-    @field_validator('confidence_thresholds')
+
+    @field_validator("confidence_thresholds")
     @classmethod
     def validate_confidence_thresholds(cls, v):
         for pattern_id, threshold in v.items():
             if not 0.0 <= threshold <= 1.0:
-                raise ValueError(f'Confidence threshold for {pattern_id} must be between 0.0 and 1.0')
+                raise ValueError(
+                    f"Confidence threshold for {pattern_id} must be between 0.0 and 1.0"
+                )
         return v
 
 
 class PatternMetrics(BaseModel):
     """Metrics for pattern detection performance"""
+
     pattern_id: str
     pattern_name: str
     total_detections: int = Field(default=0, ge=0)
@@ -216,6 +242,7 @@ class PatternMetrics(BaseModel):
 
 class BatchPatternRequest(BaseModel):
     """Request for batch pattern analysis"""
+
     addresses: List[str] = Field(..., min_items=1, max_items=1000)
     blockchain: str = Field(..., min_length=1)
     pattern_types: Optional[List[PatternType]] = None
@@ -229,6 +256,7 @@ class BatchPatternRequest(BaseModel):
 
 class BatchPatternResponse(BaseModel):
     """Response for batch pattern analysis"""
+
     results: Dict[str, PatternAnalysisResult]
     total_addresses: int
     successful_analyses: int
@@ -241,6 +269,7 @@ class BatchPatternResponse(BaseModel):
 
 class PatternAlert(BaseModel):
     """Alert generated from pattern detection"""
+
     alert_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     address: str
     blockchain: str
@@ -260,6 +289,7 @@ class PatternAlert(BaseModel):
 
 class PatternStatistics(BaseModel):
     """Statistics for pattern detection system"""
+
     total_patterns: int = Field(default=0, ge=0)
     enabled_patterns: int = Field(default=0, ge=0)
     total_detections_24h: int = Field(default=0, ge=0)
@@ -274,6 +304,7 @@ class PatternStatistics(BaseModel):
 
 class PatternTuningRequest(BaseModel):
     """Request for pattern tuning and optimization"""
+
     pattern_id: str
     confidence_threshold: Optional[float] = Field(None, ge=0.0, le=1.0)
     severity_override: Optional[PatternSeverity] = None
@@ -286,6 +317,7 @@ class PatternTuningRequest(BaseModel):
 
 class PatternTuningResponse(BaseModel):
     """Response for pattern tuning"""
+
     pattern_id: str
     previous_config: Dict[str, Any]
     new_config: Dict[str, Any]

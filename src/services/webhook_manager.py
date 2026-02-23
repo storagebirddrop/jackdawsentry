@@ -9,19 +9,25 @@ import hmac
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-VALID_EVENTS = frozenset({
-    "alert.triggered",
-    "investigation.created",
-    "investigation.updated",
-    "evidence.added",
-    "sanctions.match",
-    "risk.high",
-})
+VALID_EVENTS = frozenset(
+    {
+        "alert.triggered",
+        "investigation.created",
+        "investigation.updated",
+        "evidence.added",
+        "sanctions.match",
+        "risk.high",
+    }
+)
 
 
 def sign_payload(payload: str, secret: str) -> str:
@@ -39,11 +45,13 @@ async def dispatch_webhook(
     """POST a signed JSON payload to url. Returns True on HTTP 2xx."""
     import httpx
 
-    body = json.dumps({
-        "event": event,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "data": data,
-    })
+    body = json.dumps(
+        {
+            "event": event,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "data": data,
+        }
+    )
     sig = sign_payload(body, secret)
     headers = {
         "Content-Type": "application/json",
@@ -75,7 +83,12 @@ async def register_webhook(
         INSERT INTO webhooks (hook_id, user_id, url, events, secret, created_at, active)
         VALUES ($1, $2, $3, $4, $5, $6, true)
         """,
-        hook_id, user_id, url, events_str, secret, now,
+        hook_id,
+        user_id,
+        url,
+        events_str,
+        secret,
+        now,
     )
     return {
         "hook_id": hook_id,
@@ -105,6 +118,7 @@ async def delete_webhook(conn, hook_id: str, user_id: str) -> bool:
     """Delete a webhook by ID (scoped to user). Returns True if deleted."""
     result = await conn.execute(
         "DELETE FROM webhooks WHERE hook_id = $1 AND user_id = $2",
-        hook_id, user_id,
+        hook_id,
+        user_id,
     )
     return result != "DELETE 0"

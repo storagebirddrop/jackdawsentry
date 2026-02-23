@@ -33,9 +33,13 @@ Limitations and caveats
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
-
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -45,11 +49,12 @@ from typing import Any, Dict, List, Optional, Tuple
 @dataclass
 class MixerTransaction:
     """Normalised representation of a single transaction for de-obfuscation."""
+
     tx_hash: str
-    address: str          # the user-controlled address (not the mixer contract)
-    direction: str        # "deposit" | "withdrawal"
-    amount: float         # in native token units (e.g. ETH)
-    timestamp: float      # Unix epoch seconds
+    address: str  # the user-controlled address (not the mixer contract)
+    direction: str  # "deposit" | "withdrawal"
+    amount: float  # in native token units (e.g. ETH)
+    timestamp: float  # Unix epoch seconds
     chain: str = "unknown"
     mixer_name: Optional[str] = None
 
@@ -57,6 +62,7 @@ class MixerTransaction:
 @dataclass
 class CandidatePair:
     """A (deposit, withdrawal) pair that may represent the same user."""
+
     deposit_tx: str
     withdrawal_tx: str
     deposit_address: str
@@ -67,8 +73,8 @@ class CandidatePair:
     withdrawal_time: float
     delay_hours: float
     amount_similarity: float  # 1.0 = identical amounts
-    timing_score: float       # higher for faster withdrawals
-    confidence: float         # weighted combination [0, 1]
+    timing_score: float  # higher for faster withdrawals
+    confidence: float  # weighted combination [0, 1]
     same_chain: bool
     notes: List[str] = field(default_factory=list)
 
@@ -216,6 +222,7 @@ def build_mixer_transactions(
     if mixer_addresses is None:
         try:
             from src.analysis.protocol_registry import get_known_mixer_addresses
+
             mixer_addresses = get_known_mixer_addresses()
         except Exception:
             mixer_addresses = set()
@@ -232,13 +239,9 @@ def build_mixer_transactions(
         protocol = tx.get("protocol_name") or ""
 
         # Determine direction
-        is_mixer_deposit = (
-            "mixer_deposit" in interaction
-            or to_addr in mixer_addresses
-        )
+        is_mixer_deposit = "mixer_deposit" in interaction or to_addr in mixer_addresses
         is_mixer_withdrawal = (
-            "mixer_withdraw" in interaction
-            or from_addr in mixer_addresses
+            "mixer_withdraw" in interaction or from_addr in mixer_addresses
         )
 
         if is_mixer_deposit:

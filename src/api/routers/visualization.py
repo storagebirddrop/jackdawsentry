@@ -8,21 +8,27 @@ Endpoints for compliance data visualization including:
 - Custom visualization management
 """
 
-from functools import lru_cache
-
-from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.responses import Response
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
+from datetime import timezone
+from functools import lru_cache
+from typing import Any
+from typing import Dict
+from typing import Optional
 
-from src.api.auth import get_current_user, check_permissions, User
-from src.visualization.compliance_visualization import (
-    ComplianceVisualizationEngine,
-    DataFormat,
-    VisualizationConfig,
-    VisualizationType,
-)
+from fastapi import APIRouter
+from fastapi import Body
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi.responses import Response
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
+from src.visualization.compliance_visualization import ComplianceVisualizationEngine
+from src.visualization.compliance_visualization import DataFormat
+from src.visualization.compliance_visualization import VisualizationConfig
+from src.visualization.compliance_visualization import VisualizationType
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +45,26 @@ def get_viz_engine() -> ComplianceVisualizationEngine:
 async def list_visualizations(
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """List available visualizations"""
     try:
         visualizations = []
         for viz_id, config in viz_engine.visualizations.items():
-            visualizations.append({
-                "viz_id": config.viz_id,
-                "title": config.title,
-                "description": config.description,
-                "viz_type": config.viz_type.value,
-                "data_source": config.data_source,
-            })
-        return {"success": True, "visualizations": visualizations, "total": len(visualizations)}
+            visualizations.append(
+                {
+                    "viz_id": config.viz_id,
+                    "title": config.title,
+                    "description": config.description,
+                    "viz_type": config.viz_type.value,
+                    "data_source": config.data_source,
+                }
+            )
+        return {
+            "success": True,
+            "visualizations": visualizations,
+            "total": len(visualizations),
+        }
     except Exception as e:
         logger.error(f"Failed to list visualizations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -64,13 +76,15 @@ async def generate_visualization(
     filters: Optional[Dict[str, Any]] = Body(None),
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Generate visualization data"""
     try:
         result = await viz_engine.generate_visualization(viz_id, filters=filters)
         if not result.success:
-            raise HTTPException(status_code=500, detail=result.error_message or "Generation failed")
+            raise HTTPException(
+                status_code=500, detail=result.error_message or "Generation failed"
+            )
         return {
             "success": True,
             "viz_id": result.viz_id,
@@ -91,7 +105,7 @@ async def get_visualization_data(
     viz_id: str,
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get visualization data (cached if available)"""
     try:
@@ -105,7 +119,9 @@ async def get_visualization_data(
             }
         result = await viz_engine.generate_visualization(viz_id)
         if not result.success:
-            raise HTTPException(status_code=500, detail=result.error_message or "Generation failed")
+            raise HTTPException(
+                status_code=500, detail=result.error_message or "Generation failed"
+            )
         return {
             "success": True,
             "viz_id": result.viz_id,
@@ -125,7 +141,7 @@ async def export_visualization(
     export_format: str = "json",
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Export visualization in specified format"""
     try:
@@ -143,7 +159,9 @@ async def export_visualization(
         media_type = media_types.get(export_format, "application/octet-stream")
         return Response(content=content, media_type=media_type)
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Unsupported format: {export_format}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported format: {export_format}"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -156,13 +174,15 @@ async def delete_visualization(
     viz_id: str,
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Delete a visualization"""
     try:
         success = await viz_engine.delete_visualization(viz_id)
         if not success:
-            raise HTTPException(status_code=404, detail=f"Visualization {viz_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Visualization {viz_id} not found"
+            )
         return {"success": True, "message": f"Visualization {viz_id} deleted"}
     except HTTPException:
         raise
@@ -175,7 +195,7 @@ async def delete_visualization(
 async def get_visualization_statistics(
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get visualization statistics"""
     try:
@@ -202,7 +222,7 @@ async def create_custom_visualization(
     config_data: Dict[str, Any],
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Create a custom visualization"""
     try:
@@ -216,8 +236,14 @@ async def create_custom_visualization(
         )
         success = await viz_engine.create_custom_visualization(config)
         if not success:
-            raise HTTPException(status_code=400, detail="Failed to create visualization")
-        return {"success": True, "viz_id": config.viz_id, "message": "Custom visualization created"}
+            raise HTTPException(
+                status_code=400, detail="Failed to create visualization"
+            )
+        return {
+            "success": True,
+            "viz_id": config.viz_id,
+            "message": "Custom visualization created",
+        }
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid config: {e}")
     except HTTPException:
@@ -231,12 +257,16 @@ async def create_custom_visualization(
 async def clear_visualization_cache(
     viz_engine: ComplianceVisualizationEngine = Depends(get_viz_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Clear visualization cache"""
     try:
         count = await viz_engine.clear_cache()
-        return {"success": True, "cleared_count": count, "message": "Visualization cache cleared"}
+        return {
+            "success": True,
+            "cleared_count": count,
+            "message": "Visualization cache cleared",
+        }
     except Exception as e:
         logger.error(f"Failed to clear visualization cache: {e}")
         raise HTTPException(status_code=500, detail=str(e))

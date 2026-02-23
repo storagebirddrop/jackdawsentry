@@ -138,7 +138,7 @@ SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 # =============================================================================
 
 # GDPR Settings
-DATA_RETENTION_DAYS=2555  # 7 years
+DATA_RETENTION_DAYS=2557  # 7 years, including leap years
 GDPR_ENABLED=true
 
 # Encryption
@@ -272,7 +272,7 @@ services:
       - "7687:7687"  # Bolt
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      test: ["CMD", "/docker/neo4j/healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -280,7 +280,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redis_data:/data
       - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -288,7 +288,7 @@ services:
       - "6379:6379"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -482,7 +482,8 @@ spec:
     spec:
       containers:
       - name: api
-        image: jackdawsentry/api:latest
+        image: jackdawsentry/api:v1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         envFrom:
@@ -941,15 +942,24 @@ set -e
 BACKUP_DIR="/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 
-# PostgreSQL backup
-pg_dump -h localhost -U jackdawsentry_user -d jackdawsentry_compliance \
+# PostgreSQL backup (non-interactive password handling)
+PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h localhost -U jackdawsentry_user -d jackdawsentry_compliance \
     | gzip > "$BACKUP_DIR/postgres_$DATE.sql.gz"
+
+# Alternative: Configure .pgpass file for jackdawsentry_user
+# echo "localhost:5432:jackdawsentry_compliance:jackdawsentry_user:$POSTGRES_PASSWORD" > ~/.pgpass
+# chmod 600 ~/.pgpass
 
 # Neo4j backup
 neo4j-admin dump --database=neo4j --to="$BACKUP_DIR/neo4j_$DATE.dump"
 
-# Redis backup
-redis-cli --rdb "$BACKUP_DIR/redis_$DATE.rdb"
+# Redis backup (option 1: trigger BGSAVE and copy dump file)
+redis-cli BGSAVE
+sleep 2  # wait for BGSAVE to complete
+cp /var/lib/redis/dump.rdb "$BACKUP_DIR/redis_$DATE.rdb"
+
+# Redis backup (option 2: remote export with auth)
+# redis-cli -a "$REDIS_PASSWORD" --rdb "$BACKUP_DIR/redis_$DATE.rdb"
 
 # Upload to cloud storage (AWS S3 example)
 aws s3 cp "$BACKUP_DIR/postgres_$DATE.sql.gz" s3://jackdawsentry-backups/postgres/
@@ -987,8 +997,16 @@ gunzip -c "$BACKUP_DIR/postgres_$BACKUP_FILE.sql.gz" | \
 # Restore Neo4j
 neo4j-admin load --from="$BACKUP_DIR/neo4j_$BACKUP_FILE.dump" --database=neo4j
 
-# Restore Redis
-redis-cli --rdb "$BACKUP_DIR/redis_$BACKUP_FILE.rdb"
+# Restore Redis (host approach)
+systemctl stop redis-server
+cp "$BACKUP_DIR/redis_$BACKUP_FILE.rdb" /var/lib/redis/dump.rdb
+chown redis:redis /var/lib/redis/dump.rdb
+systemctl start redis-server
+
+# Restore Redis (Docker approach)
+docker stop redis
+docker cp "$BACKUP_DIR/redis_$BACKUP_FILE.rdb" redis:/data/dump.rdb
+docker start redis
 
 echo "Restore completed: $BACKUP_FILE"
 ```
@@ -1018,7 +1036,7 @@ docker-compose exec postgres pg_isready -U jackdawsentry_user
 docker-compose exec neo4j cypher-shell -u neo4j -p password "RETURN 1"
 
 # Check Redis status
-docker-compose exec redis redis-cli ping
+docker-compose exec redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping
 ```
 
 #### 2. High Memory Usage
@@ -1090,7 +1108,7 @@ else
 fi
 
 # Check Redis connectivity
-docker-compose exec -T redis redis-cli ping > /dev/null 2>&1
+docker-compose exec -T redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "✅ Redis is healthy"
 else

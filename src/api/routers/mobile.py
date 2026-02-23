@@ -10,20 +10,27 @@ Endpoints for mobile compliance clients including:
 - Client-server data synchronization
 """
 
-from functools import lru_cache
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
+from datetime import timezone
+from functools import lru_cache
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import get_current_user, check_permissions, User
-from src.mobile.compliance_mobile import (
-    ComplianceMobileEngine,
-    NotificationType,
-    NotificationPriority,
-)
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from pydantic import BaseModel
+from pydantic import ConfigDict
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
+from src.mobile.compliance_mobile import ComplianceMobileEngine
+from src.mobile.compliance_mobile import NotificationPriority
+from src.mobile.compliance_mobile import NotificationType
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +45,7 @@ def get_mobile_engine() -> ComplianceMobileEngine:
 
 class MobileSettingsResponse(BaseModel):
     """Pydantic model for mobile settings response."""
+
     user_id: str
     push_enabled: bool
     alert_notifications: bool
@@ -56,6 +64,7 @@ class MobileSettingsResponse(BaseModel):
 
 class NotificationRequest(BaseModel):
     """Pydantic model for notification dispatch requests."""
+
     user_id: str
     title: str = "Notification"
     body: str = ""
@@ -68,7 +77,7 @@ class NotificationRequest(BaseModel):
 async def get_mobile_dashboard(
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get mobile-optimised dashboard data"""
     try:
@@ -85,7 +94,7 @@ async def get_mobile_alerts(
     unread_only: bool = False,
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get mobile alert feed"""
     try:
@@ -103,7 +112,7 @@ async def mark_alert_read(
     notification_id: str,
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Mark a notification as read"""
     try:
@@ -112,7 +121,10 @@ async def mark_alert_read(
         )
         if not success:
             raise HTTPException(status_code=404, detail="Notification not found")
-        return {"success": True, "message": f"Notification {notification_id} marked as read"}
+        return {
+            "success": True,
+            "message": f"Notification {notification_id} marked as read",
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -124,7 +136,7 @@ async def mark_alert_read(
 async def get_mobile_settings(
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get mobile settings for current user"""
     try:
@@ -143,7 +155,7 @@ async def update_mobile_settings(
     updates: Dict[str, Any],
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Update mobile settings for current user"""
     try:
@@ -163,7 +175,7 @@ async def send_notification(
     notification_data: NotificationRequest,
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Send a mobile notification to a user"""
     try:
@@ -197,7 +209,7 @@ async def get_offline_data(
     categories: Optional[str] = None,
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get packaged data for offline mobile use"""
     try:
@@ -216,7 +228,7 @@ async def sync_mobile_data(
     sync_data: Dict[str, Any],
     mobile_engine: ComplianceMobileEngine = Depends(get_mobile_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Synchronize data between mobile client and server"""
     try:
@@ -235,7 +247,9 @@ async def sync_mobile_data(
             "records_uploaded": record.records_uploaded,
             "records_downloaded": record.records_downloaded,
             "conflicts": record.conflicts,
-            "completed_at": record.completed_at.isoformat() if record.completed_at else None,
+            "completed_at": (
+                record.completed_at.isoformat() if record.completed_at else None
+            ),
         }
     except Exception as e:
         logger.error(f"Failed to sync mobile data: {e}")

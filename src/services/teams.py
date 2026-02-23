@@ -5,8 +5,12 @@ Multi-tenant organization management backed by PostgreSQL.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 
 async def create_organization(
@@ -23,14 +27,20 @@ async def create_organization(
         INSERT INTO organizations (org_id, name, owner_id, plan, created_at)
         VALUES ($1, $2, $3, $4, $5)
         """,
-        org_id, name, owner_id, plan, now,
+        org_id,
+        name,
+        owner_id,
+        plan,
+        now,
     )
     await conn.execute(
         """
         INSERT INTO org_members (org_id, user_id, role, joined_at)
         VALUES ($1, $2, 'admin', $3)
         """,
-        org_id, owner_id, now,
+        org_id,
+        owner_id,
+        now,
     )
     return {
         "org_id": org_id,
@@ -64,7 +74,10 @@ async def add_member(
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (org_id, user_id) DO UPDATE SET role = EXCLUDED.role
         """,
-        org_id, user_id, role, now,
+        org_id,
+        user_id,
+        role,
+        now,
     )
     return {
         "org_id": org_id,
@@ -87,7 +100,8 @@ async def remove_member(conn, org_id: str, user_id: str) -> bool:
     """Remove a user from an organization. Returns True if a row was deleted."""
     result = await conn.execute(
         "DELETE FROM org_members WHERE org_id = $1 AND user_id = $2",
-        org_id, user_id,
+        org_id,
+        user_id,
     )
     return result != "DELETE 0"
 

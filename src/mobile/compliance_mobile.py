@@ -10,21 +10,29 @@ This module provides mobile-optimized data and services for compliance operation
 - User preference and settings management
 """
 
+import hashlib
+import json
 import logging
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
-from enum import Enum
-import json
 import uuid
-import hashlib
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from enum import Enum
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationPriority(Enum):
     """Notification priority levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -33,6 +41,7 @@ class NotificationPriority(Enum):
 
 class NotificationType(Enum):
     """Notification type enumeration"""
+
     ALERT = "alert"
     DEADLINE = "deadline"
     CASE_UPDATE = "case_update"
@@ -43,6 +52,7 @@ class NotificationType(Enum):
 
 class SyncStatus(Enum):
     """Data sync status"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -53,6 +63,7 @@ class SyncStatus(Enum):
 @dataclass
 class MobileNotification:
     """Mobile push notification"""
+
     notification_id: str
     user_id: str
     title: str
@@ -69,6 +80,7 @@ class MobileNotification:
 @dataclass
 class MobileSettings:
     """Mobile user settings"""
+
     user_id: str
     push_enabled: bool = True
     alert_notifications: bool = True
@@ -77,24 +89,34 @@ class MobileSettings:
     risk_change_notifications: bool = True
     quiet_hours_start: Optional[str] = None  # HH:MM format
     quiet_hours_end: Optional[str] = None
-    dashboard_widgets: List[str] = field(default_factory=lambda: [
-        "risk_summary", "active_cases", "upcoming_deadlines", "recent_alerts"
-    ])
-    offline_data_categories: List[str] = field(default_factory=lambda: [
-        "cases", "risk_assessments", "deadlines"
-    ])
+    dashboard_widgets: List[str] = field(
+        default_factory=lambda: [
+            "risk_summary",
+            "active_cases",
+            "upcoming_deadlines",
+            "recent_alerts",
+        ]
+    )
+    offline_data_categories: List[str] = field(
+        default_factory=lambda: ["cases", "risk_assessments", "deadlines"]
+    )
     sync_interval_minutes: int = 15
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    _QUIET_HOURS_RE = re.compile(r'^(?:[01]\d|2[0-3]):[0-5]\d$')
+    _QUIET_HOURS_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     _MIN_SYNC_INTERVAL: int = 1
 
     def __post_init__(self):
-        for attr in ('quiet_hours_start', 'quiet_hours_end'):
+        for attr in ("quiet_hours_start", "quiet_hours_end"):
             value = getattr(self, attr)
             if value is not None and not self._QUIET_HOURS_RE.match(value):
-                raise ValueError(f"{attr} must be in HH:MM format (00:00–23:59), got '{value}'")
-        if not isinstance(self.sync_interval_minutes, int) or self.sync_interval_minutes < self._MIN_SYNC_INTERVAL:
+                raise ValueError(
+                    f"{attr} must be in HH:MM format (00:00–23:59), got '{value}'"
+                )
+        if (
+            not isinstance(self.sync_interval_minutes, int)
+            or self.sync_interval_minutes < self._MIN_SYNC_INTERVAL
+        ):
             raise ValueError(
                 f"sync_interval_minutes must be an int >= {self._MIN_SYNC_INTERVAL}, "
                 f"got {self.sync_interval_minutes!r}"
@@ -104,6 +126,7 @@ class MobileSettings:
 @dataclass
 class SyncRecord:
     """Data synchronization record"""
+
     sync_id: str
     user_id: str
     device_id: str
@@ -120,7 +143,9 @@ class ComplianceMobileEngine:
     """Mobile-optimized compliance data engine"""
 
     def __init__(self):
-        self.notifications: Dict[str, List[MobileNotification]] = {}  # user_id -> notifications
+        self.notifications: Dict[str, List[MobileNotification]] = (
+            {}
+        )  # user_id -> notifications
         self.settings: Dict[str, MobileSettings] = {}  # user_id -> settings
         self.sync_history: Dict[str, List[SyncRecord]] = {}  # user_id -> sync records
         self.offline_data_versions: Dict[str, str] = {}  # category -> version hash
@@ -279,16 +304,24 @@ class ComplianceMobileEngine:
             logger.error(f"Failed to get settings for {user_id}: {e}")
             raise
 
-    async def update_settings(self, user_id: str, updates: Dict[str, Any]) -> MobileSettings:
+    async def update_settings(
+        self, user_id: str, updates: Dict[str, Any]
+    ) -> MobileSettings:
         """Update mobile settings for a user"""
         try:
             settings = await self.get_settings(user_id)
 
             allowed_fields = {
-                "push_enabled", "alert_notifications", "deadline_notifications",
-                "case_update_notifications", "risk_change_notifications",
-                "quiet_hours_start", "quiet_hours_end", "dashboard_widgets",
-                "offline_data_categories", "sync_interval_minutes",
+                "push_enabled",
+                "alert_notifications",
+                "deadline_notifications",
+                "case_update_notifications",
+                "risk_change_notifications",
+                "quiet_hours_start",
+                "quiet_hours_end",
+                "dashboard_widgets",
+                "offline_data_categories",
+                "sync_interval_minutes",
             }
 
             for key, value in updates.items():
@@ -374,9 +407,21 @@ class ComplianceMobileEngine:
                 elif category == "regulations":
                     offline_package["categories"]["regulations"] = {
                         "items": [
-                            {"code": "AMLR", "title": "Anti-Money Laundering Regulation", "version": "2024.1"},
-                            {"code": "DORA", "title": "Digital Operational Resilience Act", "version": "2024.1"},
-                            {"code": "MiCA", "title": "Markets in Crypto-Assets", "version": "2024.1"},
+                            {
+                                "code": "AMLR",
+                                "title": "Anti-Money Laundering Regulation",
+                                "version": "2024.1",
+                            },
+                            {
+                                "code": "DORA",
+                                "title": "Digital Operational Resilience Act",
+                                "version": "2024.1",
+                            },
+                            {
+                                "code": "MiCA",
+                                "title": "Markets in Crypto-Assets",
+                                "version": "2024.1",
+                            },
                         ],
                         "total": 3,
                     }
@@ -426,13 +471,15 @@ class ComplianceMobileEngine:
                         client_mod = item["modified_at"]
                         server_mod = item["server_modified_at"]
                         if client_mod != server_mod:
-                            record.conflicts.append({
-                                "record_id": item.get("id"),
-                                "type": item.get("type"),
-                                "client_modified": client_mod,
-                                "server_modified": server_mod,
-                                "resolution": "server_wins",
-                            })
+                            record.conflicts.append(
+                                {
+                                    "record_id": item.get("id"),
+                                    "type": item.get("type"),
+                                    "client_modified": client_mod,
+                                    "server_modified": server_mod,
+                                    "resolution": "server_wins",
+                                }
+                            )
 
             # Server-side changes to push to client
             record.records_downloaded = 5  # Mock count

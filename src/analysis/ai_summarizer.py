@@ -22,7 +22,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +79,7 @@ def _template_address_summary(
 
     entity_clause = ""
     if entity_info and entity_info.get("entity_name"):
-        entity_clause = (
-            f" The address is attributed to {entity_info['entity_name']}."
-        )
+        entity_clause = f" The address is attributed to {entity_info['entity_name']}."
 
     if flags:
         flag_list = ", ".join(flags[:3])  # cap at 3 for readability
@@ -119,9 +120,7 @@ def _template_cluster_summary(
     feat_note = ""
     if dominant_feature and dominant_feature in _FEATURE_DESCRIPTIONS:
         feat_note = f" The cluster is characterised by {_FEATURE_DESCRIPTIONS[dominant_feature]}."
-    return (
-        f"Cluster {cluster_id} ({cluster_type}) contains {address_count} address(es).{feat_note}"
-    )
+    return f"Cluster {cluster_id} ({cluster_type}) contains {address_count} address(es).{feat_note}"
 
 
 # ---------------------------------------------------------------------------

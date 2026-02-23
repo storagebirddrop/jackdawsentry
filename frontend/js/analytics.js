@@ -43,7 +43,7 @@ function initializeCharts() {
                 }
             }
         });
-    }
+    };
 
     // Risk Distribution Chart
     var riskCtx = document.getElementById('riskDistributionChart');

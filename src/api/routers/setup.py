@@ -4,10 +4,14 @@ First-launch admin setup flow. Endpoints are unauthenticated but locked
 once the first admin user has been created.
 """
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, field_validator
 import logging
 import re
+
+from fastapi import APIRouter
+from fastapi import HTTPException
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
 
 from src.api.auth import hash_password
 from src.api.database import get_postgres_connection
@@ -19,12 +23,14 @@ router = APIRouter()
 
 class SetupStatus(BaseModel):
     """Response for setup status check"""
+
     setup_required: bool
     message: str
 
 
 class InitialAdminRequest(BaseModel):
     """Request body for creating the first admin user"""
+
     username: str
     email: str
     password: str
@@ -37,7 +43,9 @@ class InitialAdminRequest(BaseModel):
         if len(v) < 3 or len(v) > 50:
             raise ValueError("Username must be 3-50 characters")
         if not re.match(r"^[a-zA-Z0-9_.-]+$", v):
-            raise ValueError("Username may only contain letters, digits, underscores, dots, and hyphens")
+            raise ValueError(
+                "Username may only contain letters, digits, underscores, dots, and hyphens"
+            )
         return v
 
     @field_validator("email")
@@ -67,7 +75,9 @@ async def _is_setup_required() -> bool:
             )
         return count == 0
     except Exception as e:
-        logger.error("Setup status check failed (database may not be initialized): %s", e)
+        logger.error(
+            "Setup status check failed (database may not be initialized): %s", e
+        )
         return True
 
 

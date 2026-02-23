@@ -8,20 +8,25 @@ Endpoints for rate limiting management including:
 - Rate limiting statistics
 """
 
-from functools import lru_cache
-
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
+from datetime import timezone
+from functools import lru_cache
+from typing import Any
+from typing import Dict
+from typing import Optional
 
-from src.api.auth import get_current_user, check_permissions, User
-from src.rate_limiting.compliance_rate_limiting import (
-    ComplianceRateLimitingEngine,
-    RateLimitRule,
-    RateLimitType,
-    RateLimitAction,
-)
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
+from src.rate_limiting.compliance_rate_limiting import ComplianceRateLimitingEngine
+from src.rate_limiting.compliance_rate_limiting import RateLimitAction
+from src.rate_limiting.compliance_rate_limiting import RateLimitRule
+from src.rate_limiting.compliance_rate_limiting import RateLimitType
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger(f"{__name__}.audit")
@@ -40,7 +45,7 @@ async def get_rate_limit_status(
     user_id: str,
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get rate limit status for a user"""
     try:
@@ -57,11 +62,13 @@ async def get_violations(
     user_id: Optional[str] = None,
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get rate limit violations"""
     try:
-        violations = await rate_limit_engine.get_violations(limit=limit, user_id=user_id)
+        violations = await rate_limit_engine.get_violations(
+            limit=limit, user_id=user_id
+        )
         return {
             "success": True,
             "violations": [
@@ -88,12 +95,18 @@ async def clear_violations(
     older_than_hours: int = 24,
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Clear old rate limit violations"""
     try:
-        cleared = await rate_limit_engine.clear_violations(older_than_hours=older_than_hours)
-        return {"success": True, "cleared_count": cleared, "older_than_hours": older_than_hours}
+        cleared = await rate_limit_engine.clear_violations(
+            older_than_hours=older_than_hours
+        )
+        return {
+            "success": True,
+            "cleared_count": cleared,
+            "older_than_hours": older_than_hours,
+        }
     except Exception as e:
         logger.error(f"Failed to clear violations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,7 +116,7 @@ async def clear_violations(
 async def get_rate_limit_statistics(
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get rate limiting statistics"""
     try:
@@ -119,7 +132,7 @@ async def create_rule(
     rule_data: Dict[str, Any],
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Create a rate limit rule"""
     try:
@@ -154,7 +167,7 @@ async def update_rule(
     updates: Dict[str, Any],
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Update a rate limit rule"""
     try:
@@ -164,7 +177,9 @@ async def update_rule(
         safe_fields = [k for k in updates if k not in ("secret", "password", "token")]
         audit_logger.info(
             "update_rule: user=%s rule_id=%s fields=%s",
-            current_user.username, rule_id, safe_fields,
+            current_user.username,
+            rule_id,
+            safe_fields,
         )
         return {"success": True, "message": f"Rule {rule_id} updated"}
     except HTTPException:
@@ -179,7 +194,7 @@ async def delete_rule(
     rule_id: str,
     rate_limit_engine: ComplianceRateLimitingEngine = Depends(get_rate_limit_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Delete a rate limit rule"""
     try:
@@ -187,12 +202,14 @@ async def delete_rule(
         if not success:
             audit_logger.warning(
                 "delete_rule failed: user=%s rule_id=%s outcome=not_found",
-                current_user.username, rule_id,
+                current_user.username,
+                rule_id,
             )
             raise HTTPException(status_code=404, detail=f"Rule {rule_id} not found")
         audit_logger.info(
             "delete_rule: user=%s rule_id=%s outcome=deleted",
-            current_user.username, rule_id,
+            current_user.username,
+            rule_id,
         )
         return {"success": True, "message": f"Rule {rule_id} deleted"}
     except HTTPException:
@@ -200,7 +217,9 @@ async def delete_rule(
     except Exception as e:
         audit_logger.error(
             "delete_rule error: user=%s rule_id=%s error=%s",
-            current_user.username, rule_id, e,
+            current_user.username,
+            rule_id,
+            e,
         )
         raise HTTPException(status_code=500, detail=str(e))
 

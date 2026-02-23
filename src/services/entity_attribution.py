@@ -8,8 +8,12 @@ risk scoring, and compliance reporting.
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 import aiohttp
 
@@ -98,6 +102,7 @@ def _risk_for_type(entity_type: str) -> str:
 # HTTP helper
 # ---------------------------------------------------------------------------
 
+
 async def _fetch_text(url: str, timeout: int = 120) -> Optional[str]:
     """Download a URL and return its text content."""
     try:
@@ -131,6 +136,7 @@ async def _fetch_json(url: str, timeout: int = 120) -> Any:
 # ---------------------------------------------------------------------------
 # Ingestion functions
 # ---------------------------------------------------------------------------
+
 
 async def _ensure_label_source(conn, source_key: str, name: str, url: str = None):
     """Insert label source row if it doesn't exist."""
@@ -171,8 +177,13 @@ async def _upsert_entity(conn, name: str, entity_type: str, **kwargs) -> str:
 
 
 async def _upsert_entity_address(
-    conn, entity_id: str, address: str, blockchain: str,
-    source: str, label: str = None, confidence: float = 1.0,
+    conn,
+    entity_id: str,
+    address: str,
+    blockchain: str,
+    source: str,
+    label: str = None,
+    confidence: float = 1.0,
 ):
     """Upsert an entity-address mapping."""
     await conn.execute(
@@ -230,12 +241,19 @@ async def ingest_etherscan_labels() -> int:
 
                 entity_type = _classify_entity_type(name_tag, labels_list)
                 entity_id = await _upsert_entity(
-                    conn, name_tag, entity_type,
+                    conn,
+                    name_tag,
+                    entity_type,
                     category=labels_list[0] if labels_list else None,
                 )
                 await _upsert_entity_address(
-                    conn, entity_id, address, "ethereum",
-                    source=source_key, label=name_tag, confidence=0.9,
+                    conn,
+                    entity_id,
+                    address,
+                    "ethereum",
+                    source=source_key,
+                    label=name_tag,
+                    confidence=0.9,
                 )
                 count += 1
             except Exception as exc:
@@ -273,7 +291,11 @@ async def ingest_scam_databases() -> int:
             conn, source_key, "CryptoScamDB Blacklist", CRYPTOSCAMDB_URL
         )
 
-        entries = data if isinstance(data, list) else data.values() if isinstance(data, dict) else []
+        entries = (
+            data
+            if isinstance(data, list)
+            else data.values() if isinstance(data, dict) else []
+        )
         for entry in entries:
             try:
                 if isinstance(entry, dict):
@@ -287,7 +309,9 @@ async def ingest_scam_databases() -> int:
                     continue
 
                 entity_id = await _upsert_entity(
-                    conn, name, "scam",
+                    conn,
+                    name,
+                    "scam",
                     category=category,
                     risk_level="high",
                 )
@@ -296,8 +320,13 @@ async def ingest_scam_databases() -> int:
                         continue
                     blockchain = "ethereum" if addr.startswith("0x") else "bitcoin"
                     await _upsert_entity_address(
-                        conn, entity_id, addr, blockchain,
-                        source=source_key, label=f"Scam: {name}", confidence=0.8,
+                        conn,
+                        entity_id,
+                        addr,
+                        blockchain,
+                        source=source_key,
+                        label=f"Scam: {name}",
+                        confidence=0.8,
                     )
                     count += 1
             except Exception as exc:
@@ -349,13 +378,20 @@ async def ingest_community_labels() -> int:
                     continue
 
                 entity_id = await _upsert_entity(
-                    conn, name_tag, "exchange",
+                    conn,
+                    name_tag,
+                    "exchange",
                     category="cex",
                     risk_level="low",
                 )
                 await _upsert_entity_address(
-                    conn, entity_id, address, "ethereum",
-                    source=source_key, label=name_tag, confidence=0.85,
+                    conn,
+                    entity_id,
+                    address,
+                    "ethereum",
+                    source=source_key,
+                    label=name_tag,
+                    confidence=0.85,
                 )
                 count += 1
             except Exception as exc:
@@ -378,6 +414,7 @@ async def ingest_community_labels() -> int:
 # ---------------------------------------------------------------------------
 # Sync orchestrator
 # ---------------------------------------------------------------------------
+
 
 async def sync_all_labels(requested_by: str = "system") -> Dict[str, Any]:
     """Run a full entity label sync from all sources.
@@ -417,7 +454,9 @@ async def sync_all_labels(requested_by: str = "system") -> Dict[str, Any]:
                         str(exc)[:500],
                     )
             except Exception as inner_exc:
-                logger.error(f"Error logging attribution failure for {source_key}: {str(inner_exc)}")
+                logger.error(
+                    f"Error logging attribution failure for {source_key}: {str(inner_exc)}"
+                )
             results[source_key] = {"status": "error", "error": str(exc)[:200]}
 
     return results
@@ -426,6 +465,7 @@ async def sync_all_labels(requested_by: str = "system") -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Lookup functions
 # ---------------------------------------------------------------------------
+
 
 async def lookup_address(
     address: str, blockchain: str = None
@@ -522,9 +562,7 @@ async def get_entity_details(entity_id: str) -> Optional[Dict[str, Any]]:
     pool = get_postgres_pool()
 
     async with pool.acquire() as conn:
-        entity = await conn.fetchrow(
-            "SELECT * FROM entities WHERE id = $1", entity_id
-        )
+        entity = await conn.fetchrow("SELECT * FROM entities WHERE id = $1", entity_id)
         if not entity:
             return None
 
@@ -549,8 +587,12 @@ async def get_entity_details(entity_id: str) -> Optional[Dict[str, Any]]:
         "website": entity["website"],
         "country": entity["country"],
         "metadata": entity["metadata"],
-        "created_at": entity["created_at"].isoformat() if entity["created_at"] else None,
-        "updated_at": entity["updated_at"].isoformat() if entity["updated_at"] else None,
+        "created_at": (
+            entity["created_at"].isoformat() if entity["created_at"] else None
+        ),
+        "updated_at": (
+            entity["updated_at"].isoformat() if entity["updated_at"] else None
+        ),
         "addresses": [
             {
                 "address": a["address"],
@@ -558,8 +600,12 @@ async def get_entity_details(entity_id: str) -> Optional[Dict[str, Any]]:
                 "label": a["label"],
                 "confidence": float(a["confidence"]) if a["confidence"] else 1.0,
                 "source": a["source"],
-                "first_seen_at": a["first_seen_at"].isoformat() if a["first_seen_at"] else None,
-                "last_verified_at": a["last_verified_at"].isoformat() if a["last_verified_at"] else None,
+                "first_seen_at": (
+                    a["first_seen_at"].isoformat() if a["first_seen_at"] else None
+                ),
+                "last_verified_at": (
+                    a["last_verified_at"].isoformat() if a["last_verified_at"] else None
+                ),
             }
             for a in addresses
         ],
@@ -608,9 +654,7 @@ async def get_sync_status() -> List[Dict[str, Any]]:
     """Get current sync status for all label sources."""
     pool = get_postgres_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT * FROM label_sources ORDER BY source_key"
-        )
+        rows = await conn.fetch("SELECT * FROM label_sources ORDER BY source_key")
     return [dict(r) for r in rows]
 
 
@@ -618,12 +662,10 @@ async def get_entity_counts() -> Dict[str, int]:
     """Get count of active entity-address mappings by source."""
     pool = get_postgres_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
+        rows = await conn.fetch("""
             SELECT source, count(*) AS cnt
             FROM entity_addresses
             WHERE removed_at IS NULL
             GROUP BY source
-            """
-        )
+            """)
     return {r["source"]: r["cnt"] for r in rows}

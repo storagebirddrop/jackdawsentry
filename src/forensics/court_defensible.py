@@ -4,20 +4,27 @@ Legal standards compliance and court-ready evidence preparation
 """
 
 import asyncio
-import logging
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Dict, List, Optional, Any, Set
-from dataclasses import dataclass, field
-import json
-import uuid
 import hashlib
+import json
+import logging
+import uuid
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timezone
+from enum import Enum
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 logger = logging.getLogger(__name__)
 
 
 class LegalJurisdiction(Enum):
     """Legal jurisdictions"""
+
     FEDERAL_US = "federal_us"
     STATE_US = "state_us"
     UK = "uk"
@@ -28,6 +35,7 @@ class LegalJurisdiction(Enum):
 
 class EvidenceAdmissibility(Enum):
     """Evidence admissibility status"""
+
     ADMISSIBLE = "admissible"
     INADMISSIBLE = "inadmissible"
     CONDITIONAL = "conditional"
@@ -37,6 +45,7 @@ class EvidenceAdmissibility(Enum):
 
 class LegalStandard(Enum):
     """Legal standards of proof"""
+
     PREPONDERANCE = "preponderance"  # 50%+ likelihood
     CLEAR_AND_CONVINCING = "clear_and_convincing"  # 75%+ likelihood
     BEYOND_REASONABLE_DOUBT = "beyond_reasonable_doubt"  # 95%+ likelihood
@@ -45,6 +54,7 @@ class LegalStandard(Enum):
 
 class CourtType(Enum):
     """Types of courts"""
+
     CRIMINAL = "criminal"
     CIVIL = "civil"
     ADMINISTRATIVE = "administrative"
@@ -56,6 +66,7 @@ class CourtType(Enum):
 @dataclass
 class LegalRequirement:
     """Legal requirement for evidence admissibility"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     jurisdiction: LegalJurisdiction = LegalJurisdiction.FEDERAL_US
     court_type: CourtType = CourtType.CRIMINAL
@@ -65,7 +76,7 @@ class LegalRequirement:
     verification_method: str = ""
     precedence_level: int = 1  # Higher = more important
     created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def check_compliance(self, evidence_data: Dict[str, Any]) -> bool:
         """Check if evidence meets this requirement"""
         # This would be implemented based on specific requirement types
@@ -76,6 +87,7 @@ class LegalRequirement:
 @dataclass
 class CourtDefensibleEvidence:
     """Court-defensible evidence with legal compliance"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     evidence_id: str = ""
     jurisdiction: LegalJurisdiction = LegalJurisdiction.FEDERAL_US
@@ -97,27 +109,33 @@ class CourtDefensibleEvidence:
     created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_reviewed: Optional[datetime] = None
     reviewed_by: Optional[str] = None
-    
+
     def calculate_compliance_score(self) -> float:
         """Calculate overall compliance score"""
-        total_requirements = len(self.legal_requirements_met) + len(self.legal_requirements_missing)
+        total_requirements = len(self.legal_requirements_met) + len(
+            self.legal_requirements_missing
+        )
         if total_requirements == 0:
             return 0.0
-        
+
         met_ratio = len(self.legal_requirements_met) / total_requirements
         base_score = met_ratio * 70  # 70% weight for requirements
-        
+
         # Add scores for other factors
         relevance_weight = 15  # 15% weight for relevance
         reliability_weight = 15  # 15% weight for reliability
-        
-        total_score = base_score + (self.relevance_score * relevance_weight) + (self.reliability_score * reliability_weight)
+
+        total_score = (
+            base_score
+            + (self.relevance_score * relevance_weight)
+            + (self.reliability_score * reliability_weight)
+        )
         return min(100.0, total_score)
-    
+
     def check_admissibility(self) -> EvidenceAdmissibility:
         """Determine evidence admissibility status"""
         compliance_score = self.calculate_compliance_score()
-        
+
         if compliance_score >= 90:
             return EvidenceAdmissibility.ADMISSIBLE
         elif compliance_score >= 70:
@@ -131,6 +149,7 @@ class CourtDefensibleEvidence:
 @dataclass
 class LegalChallenge:
     """Potential legal challenge to evidence"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     evidence_id: str = ""
     challenge_type: str = ""
@@ -149,6 +168,7 @@ class LegalChallenge:
 @dataclass
 class ExpertQualification:
     """Expert witness qualification details"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     expert_name: str = ""
     credentials: List[str] = field(default_factory=list)
@@ -161,7 +181,7 @@ class ExpertQualification:
     professional_memberships: List[str] = field(default_factory=list)
     cvv_score: float = 0.0  # Court-validated expert score
     created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def calculate_cvv_score(self) -> float:
         """Calculate court-validated expert score"""
         education_score = min(20, len(self.education) * 5)
@@ -169,14 +189,20 @@ class ExpertQualification:
         publication_score = min(20, len(self.publiclications) * 2)
         testimony_score = min(20, len(self.testimony_history) * 4)
         certification_score = min(10, len(self.certifications) * 2)
-        
-        total_score = education_score + experience_score + publication_score + testimony_score + certification_score
+
+        total_score = (
+            education_score
+            + experience_score
+            + publication_score
+            + testimony_score
+            + certification_score
+        )
         return min(100.0, total_score)
 
 
 class CourtDefensibleEvidence:
     """Court-defensible evidence management system"""
-    
+
     def __init__(self, db_pool=None):
         self.db_pool = db_pool
         self.evidence: Dict[str, CourtDefensibleEvidence] = {}
@@ -186,25 +212,25 @@ class CourtDefensibleEvidence:
         self.running = False
         self._cache = {}
         self._cache_ttl = 3600  # 1 hour
-        
+
         logger.info("CourtDefensibleEvidence initialized")
-    
+
     async def initialize(self) -> None:
         """Initialize court-defensible evidence system"""
         if self.db_pool:
             await self._create_database_schema()
-        
+
         # Load default legal requirements
         await self._load_default_requirements()
-        
+
         self.running = True
         logger.info("CourtDefensibleEvidence started")
-    
+
     async def shutdown(self) -> None:
         """Shutdown court-defensible evidence system"""
         self.running = False
         logger.info("CourtDefensibleEvidence shutdown")
-    
+
     async def _create_database_schema(self) -> None:
         """Create court-defensible evidence database tables"""
         schema_queries = [
@@ -284,15 +310,15 @@ class CourtDefensibleEvidence:
             CREATE INDEX IF NOT EXISTS idx_court_defensible_evidence ON court_defensible_evidence(evidence_id);
             CREATE INDEX IF NOT EXISTS idx_legal_challenges_evidence ON legal_challenges(evidence_id);
             CREATE INDEX IF NOT EXISTS idx_expert_qualifications_name ON expert_qualifications(expert_name);
-            """
+            """,
         ]
-        
+
         async with self.db_pool.acquire() as conn:
             for query in schema_queries:
                 await conn.execute(query)
-        
+
         logger.info("Court-defensible evidence database schema created")
-    
+
     async def _load_default_requirements(self) -> None:
         """Load default legal requirements"""
         default_requirements = [
@@ -303,7 +329,7 @@ class CourtDefensibleEvidence:
                 "description": "Evidence must be relevant to the case",
                 "is_mandatory": True,
                 "verification_method": "legal_analysis",
-                "precedence_level": 1
+                "precedence_level": 1,
             },
             {
                 "jurisdiction": LegalJurisdiction.FEDERAL_US,
@@ -312,7 +338,7 @@ class CourtDefensibleEvidence:
                 "description": "Evidence must be properly authenticated",
                 "is_mandatory": True,
                 "verification_method": "chain_of_custody",
-                "precedence_level": 2
+                "precedence_level": 2,
             },
             {
                 "jurisdiction": LegalJurisdiction.FEDERAL_US,
@@ -321,7 +347,7 @@ class CourtDefensibleEvidence:
                 "description": "Hearsay evidence must fall under an exception",
                 "is_mandatory": True,
                 "verification_method": "legal_analysis",
-                "precedence_level": 3
+                "precedence_level": 3,
             },
             {
                 "jurisdiction": LegalJurisdiction.FEDERAL_US,
@@ -330,40 +356,47 @@ class CourtDefensibleEvidence:
                 "description": "Original evidence preferred over copies",
                 "is_mandatory": False,
                 "verification_method": "document_analysis",
-                "precedence_level": 4
-            }
+                "precedence_level": 4,
+            },
         ]
-        
+
         for req_data in default_requirements:
             requirement = LegalRequirement(**req_data)
             self.requirements[requirement.id] = requirement
-            
+
             if self.db_pool:
                 await self._save_requirement_to_db(requirement)
-        
+
         logger.info(f"Loaded {len(default_requirements)} default legal requirements")
-    
-    async def assess_evidence(self, evidence_id: str, evidence_data: Dict[str, Any], 
-                            jurisdiction: LegalJurisdiction, court_type: CourtType,
-                            legal_standard: LegalStandard) -> CourtDefensibleEvidence:
+
+    async def assess_evidence(
+        self,
+        evidence_id: str,
+        evidence_data: Dict[str, Any],
+        jurisdiction: LegalJurisdiction,
+        court_type: CourtType,
+        legal_standard: LegalStandard,
+    ) -> CourtDefensibleEvidence:
         """Assess evidence for court admissibility"""
         # Get applicable requirements
-        applicable_requirements = await self._get_applicable_requirements(jurisdiction, court_type)
-        
+        applicable_requirements = await self._get_applicable_requirements(
+            jurisdiction, court_type
+        )
+
         # Check compliance with each requirement
         requirements_met = []
         requirements_missing = []
-        
+
         for requirement in applicable_requirements:
             if requirement.check_compliance(evidence_data):
                 requirements_met.append(requirement.id)
             else:
                 requirements_missing.append(requirement.id)
-        
+
         # Calculate scores
         relevance_score = self._calculate_relevance_score(evidence_data)
         reliability_score = self._calculate_reliability_score(evidence_data)
-        
+
         # Create court-defensible evidence record
         court_evidence = CourtDefensibleEvidence(
             evidence_id=evidence_id,
@@ -373,25 +406,31 @@ class CourtDefensibleEvidence:
             legal_requirements_met=requirements_met,
             legal_requirements_missing=requirements_missing,
             relevance_score=relevance_score,
-            reliability_score=reliability_score
+            reliability_score=reliability_score,
         )
-        
+
         # Calculate compliance score and admissibility
         court_evidence.compliance_score = court_evidence.calculate_compliance_score()
         court_evidence.admissibility_status = court_evidence.check_admissibility()
-        
+
         # Identify potential challenges
-        challenges = await self._identify_potential_challenges(court_evidence, evidence_data)
+        challenges = await self._identify_potential_challenges(
+            court_evidence, evidence_data
+        )
         court_evidence.challenges = challenges
-        
+
         if self.db_pool:
             await self._save_court_evidence_to_db(court_evidence)
-        
+
         self.evidence[court_evidence.id] = court_evidence
-        logger.info(f"Assessed evidence {evidence_id}: {court_evidence.admissibility_status.value}")
+        logger.info(
+            f"Assessed evidence {evidence_id}: {court_evidence.admissibility_status.value}"
+        )
         return court_evidence
-    
-    async def add_expert_qualification(self, expert_data: Dict[str, Any]) -> ExpertQualification:
+
+    async def add_expert_qualification(
+        self, expert_data: Dict[str, Any]
+    ) -> ExpertQualification:
         """Add expert witness qualification"""
         expert = ExpertQualification(
             expert_name=expert_data["expert_name"],
@@ -402,19 +441,21 @@ class CourtDefensibleEvidence:
             testimony_history=expert_data.get("testimony_history", []),
             education=expert_data.get("education", []),
             certifications=expert_data.get("certifications", []),
-            professional_memberships=expert_data.get("professional_memberships", [])
+            professional_memberships=expert_data.get("professional_memberships", []),
         )
-        
+
         expert.cvv_score = expert.calculate_cvv_score()
-        
+
         if self.db_pool:
             await self._save_expert_to_db(expert)
-        
+
         self.experts[expert.id] = expert
         logger.info(f"Added expert qualification: {expert.expert_name}")
         return expert
-    
-    async def create_legal_challenge(self, evidence_id: str, challenge_data: Dict[str, Any]) -> LegalChallenge:
+
+    async def create_legal_challenge(
+        self, evidence_id: str, challenge_data: Dict[str, Any]
+    ) -> LegalChallenge:
         """Create legal challenge record"""
         challenge = LegalChallenge(
             evidence_id=evidence_id,
@@ -424,68 +465,74 @@ class CourtDefensibleEvidence:
             severity=challenge_data.get("severity", "medium"),
             likelihood=challenge_data.get("likelihood", 0.5),
             mitigation_strategy=challenge_data.get("mitigation_strategy", ""),
-            precedent_cases=challenge_data.get("precedent_cases", [])
+            precedent_cases=challenge_data.get("precedent_cases", []),
         )
-        
+
         if self.db_pool:
             await self._save_challenge_to_db(challenge)
-        
+
         self.challenges[challenge.id] = challenge
         logger.info(f"Created legal challenge: {challenge.challenge_type}")
         return challenge
-    
-    async def get_court_evidence(self, evidence_id: str) -> Optional[CourtDefensibleEvidence]:
+
+    async def get_court_evidence(
+        self, evidence_id: str
+    ) -> Optional[CourtDefensibleEvidence]:
         """Get court-defensible evidence assessment"""
         for court_evidence in self.evidence.values():
             if court_evidence.evidence_id == evidence_id:
                 return court_evidence
-        
+
         if self.db_pool:
             court_evidence = await self._load_court_evidence_from_db(evidence_id)
             if court_evidence:
                 self.evidence[court_evidence.id] = court_evidence
                 return court_evidence
-        
+
         return None
-    
-    async def get_expert_by_name(self, expert_name: str) -> Optional[ExpertQualification]:
+
+    async def get_expert_by_name(
+        self, expert_name: str
+    ) -> Optional[ExpertQualification]:
         """Get expert qualification by name"""
         for expert in self.experts.values():
             if expert.expert_name == expert_name:
                 return expert
-        
+
         if self.db_pool:
             expert = await self._load_expert_by_name_from_db(expert_name)
             if expert:
                 self.experts[expert.id] = expert
                 return expert
-        
+
         return None
-    
-    async def get_challenges_for_evidence(self, evidence_id: str) -> List[LegalChallenge]:
+
+    async def get_challenges_for_evidence(
+        self, evidence_id: str
+    ) -> List[LegalChallenge]:
         """Get all challenges for evidence"""
         challenges = []
         for challenge in self.challenges.values():
             if challenge.evidence_id == evidence_id:
                 challenges.append(challenge)
-        
+
         if self.db_pool:
             db_challenges = await self._load_challenges_for_evidence(evidence_id)
             for challenge in db_challenges:
                 if challenge.id not in [c.id for c in challenges]:
                     challenges.append(challenge)
                     self.challenges[challenge.id] = challenge
-        
+
         return challenges
-    
+
     async def prepare_court_submission(self, evidence_id: str) -> Dict[str, Any]:
         """Prepare evidence for court submission"""
         court_evidence = await self.get_court_evidence(evidence_id)
         if not court_evidence:
             raise ValueError(f"No court assessment found for evidence {evidence_id}")
-        
+
         challenges = await self.get_challenges_for_evidence(evidence_id)
-        
+
         submission_package = {
             "evidence_id": evidence_id,
             "assessment_id": court_evidence.id,
@@ -502,154 +549,176 @@ class CourtDefensibleEvidence:
                     "description": c.description,
                     "severity": c.severity,
                     "likelihood": c.likelihood,
-                    "mitigation": c.mitigation_strategy
+                    "mitigation": c.mitigation_strategy,
                 }
                 for c in challenges
             ],
-            "foundation_requirements": self._get_foundation_requirements(court_evidence),
+            "foundation_requirements": self._get_foundation_requirements(
+                court_evidence
+            ),
             "testimony_preparation": self._prepare_testimony_guidance(court_evidence),
-            "exhibit_preparation": self._prepare_exhibit_guidance(court_evidence)
+            "exhibit_preparation": self._prepare_exhibit_guidance(court_evidence),
         }
-        
+
         return submission_package
-    
+
     def _calculate_relevance_score(self, evidence_data: Dict[str, Any]) -> float:
         """Calculate evidence relevance score"""
         # Simple relevance calculation based on evidence data
         score = 50.0  # Base score
-        
+
         # Boost for direct case relevance
         if evidence_data.get("case_relevance", False):
             score += 30.0
-        
+
         # Boost for materiality
         if evidence_data.get("material", False):
             score += 20.0
-        
+
         return min(100.0, score)
-    
+
     def _calculate_reliability_score(self, evidence_data: Dict[str, Any]) -> float:
         """Calculate evidence reliability score"""
         score = 50.0  # Base score
-        
+
         # Boost for verified sources
         if evidence_data.get("source_verified", False):
             score += 25.0
-        
+
         # Boost for chain of custody
         if evidence_data.get("chain_complete", False):
             score += 25.0
-        
+
         return min(100.0, score)
-    
-    async def _get_applicable_requirements(self, jurisdiction: LegalJurisdiction, court_type: CourtType) -> List[LegalRequirement]:
+
+    async def _get_applicable_requirements(
+        self, jurisdiction: LegalJurisdiction, court_type: CourtType
+    ) -> List[LegalRequirement]:
         """Get applicable legal requirements"""
         requirements = []
-        
+
         for requirement in self.requirements.values():
-            if (requirement.jurisdiction == jurisdiction and 
-                requirement.court_type == court_type):
+            if (
+                requirement.jurisdiction == jurisdiction
+                and requirement.court_type == court_type
+            ):
                 requirements.append(requirement)
-        
+
         # Sort by precedence level
         requirements.sort(key=lambda r: r.precedence_level)
-        
+
         return requirements
-    
-    async def _identify_potential_challenges(self, court_evidence: CourtDefensibleEvidence, 
-                                          evidence_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+    async def _identify_potential_challenges(
+        self, court_evidence: CourtDefensibleEvidence, evidence_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Identify potential legal challenges"""
         challenges = []
-        
+
         # Check for hearsay issues
-        if evidence_data.get("is_hearsay", False) and not court_evidence.hearsay_exception:
-            challenges.append({
-                "type": "hearsay",
-                "description": "Evidence may be considered hearsay",
-                "severity": "high",
-                "likelihood": 0.7
-            })
-        
+        if (
+            evidence_data.get("is_hearsay", False)
+            and not court_evidence.hearsay_exception
+        ):
+            challenges.append(
+                {
+                    "type": "hearsay",
+                    "description": "Evidence may be considered hearsay",
+                    "severity": "high",
+                    "likelihood": 0.7,
+                }
+            )
+
         # Check for authentication issues
         if not court_evidence.chain_of_custody_verified:
-            challenges.append({
-                "type": "authentication",
-                "description": "Chain of custody not fully verified",
-                "severity": "medium",
-                "likelihood": 0.5
-            })
-        
+            challenges.append(
+                {
+                    "type": "authentication",
+                    "description": "Chain of custody not fully verified",
+                    "severity": "medium",
+                    "likelihood": 0.5,
+                }
+            )
+
         # Check for relevance issues
         if court_evidence.relevance_score < 50:
-            challenges.append({
-                "type": "relevance",
-                "description": "Evidence relevance may be questioned",
-                "severity": "medium",
-                "likelihood": 0.6
-            })
-        
+            challenges.append(
+                {
+                    "type": "relevance",
+                    "description": "Evidence relevance may be questioned",
+                    "severity": "medium",
+                    "likelihood": 0.6,
+                }
+            )
+
         return challenges
-    
-    def _get_foundation_requirements(self, court_evidence: CourtDefensibleEvidence) -> List[str]:
+
+    def _get_foundation_requirements(
+        self, court_evidence: CourtDefensibleEvidence
+    ) -> List[str]:
         """Get foundation laying requirements"""
         requirements = [
             "Establish witness competence",
             "Lay foundation for evidence authenticity",
             "Show chain of custody completeness",
-            "Demonstrate relevance to case matters"
+            "Demonstrate relevance to case matters",
         ]
-        
+
         if court_evidence.hearsay_exception:
             requirements.append("Establish hearsay exception applicability")
-        
+
         return requirements
-    
-    def _prepare_testimony_guidance(self, court_evidence: CourtDefensibleEvidence) -> Dict[str, Any]:
+
+    def _prepare_testimony_guidance(
+        self, court_evidence: CourtDefensibleEvidence
+    ) -> Dict[str, Any]:
         """Prepare expert testimony guidance"""
         return {
             "key_points": [
                 "Focus on facts within personal knowledge",
                 "Use clear, non-technical language when possible",
                 "Maintain professional demeanor",
-                "Answer questions directly and concisely"
+                "Answer questions directly and concisely",
             ],
             "preparation_steps": [
                 "Review all evidence thoroughly",
                 "Prepare visual aids if appropriate",
                 "Anticipate cross-examination questions",
-                "Practice explaining complex concepts simply"
+                "Practice explaining complex concepts simply",
             ],
             "legal_considerations": [
                 "Stay within scope of expertise",
                 "Avoid speculation",
                 "Be prepared for Daubert challenges",
-                "Maintain objectivity"
-            ]
+                "Maintain objectivity",
+            ],
         }
-    
-    def _prepare_exhibit_guidance(self, court_evidence: CourtDefensibleEvidence) -> Dict[str, Any]:
+
+    def _prepare_exhibit_guidance(
+        self, court_evidence: CourtDefensibleEvidence
+    ) -> Dict[str, Any]:
         """Prepare exhibit submission guidance"""
         return {
             "exhibit_requirements": [
                 "Proper authentication foundation",
                 "Clear labeling and identification",
                 "Relevance demonstration",
-                "Chain of custody documentation"
+                "Chain of custody documentation",
             ],
             "submission_steps": [
                 "Mark for identification",
                 "Lay foundation",
                 "Offer into evidence",
-                "Address any objections"
+                "Address any objections",
             ],
             "best_practices": [
                 "Use high-quality reproductions",
                 "Prepare exhibit lists in advance",
                 "Have backup copies available",
-                "Ensure all exhibits are properly indexed"
-            ]
+                "Ensure all exhibits are properly indexed",
+            ],
         }
-    
+
     # Database helper methods
     async def _save_requirement_to_db(self, requirement: LegalRequirement) -> None:
         """Save legal requirement to database"""
@@ -664,15 +733,24 @@ class CourtDefensibleEvidence:
         verification_method = EXCLUDED.verification_method,
         precedence_level = EXCLUDED.precedence_level
         """
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, requirement.id, requirement.jurisdiction.value,
-                             requirement.court_type.value, requirement.requirement_type,
-                             requirement.description, requirement.is_mandatory,
-                             requirement.verification_method, requirement.precedence_level,
-                             requirement.created_date)
-    
-    async def _save_court_evidence_to_db(self, court_evidence: CourtDefensibleEvidence) -> None:
+            await conn.execute(
+                query,
+                requirement.id,
+                requirement.jurisdiction.value,
+                requirement.court_type.value,
+                requirement.requirement_type,
+                requirement.description,
+                requirement.is_mandatory,
+                requirement.verification_method,
+                requirement.precedence_level,
+                requirement.created_date,
+            )
+
+    async def _save_court_evidence_to_db(
+        self, court_evidence: CourtDefensibleEvidence
+    ) -> None:
         """Save court-defensible evidence to database"""
         query = """
         INSERT INTO court_defensible_evidence 
@@ -699,20 +777,33 @@ class CourtDefensibleEvidence:
         last_reviewed = EXCLUDED.last_reviewed,
         reviewed_by = EXCLUDED.reviewed_by
         """
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, court_evidence.id, court_evidence.evidence_id,
-                             court_evidence.jurisdiction.value, court_evidence.court_type.value,
-                             court_evidence.legal_standard.value, court_evidence.admissibility_status.value,
-                             court_evidence.compliance_score, json.dumps(court_evidence.legal_requirements_met),
-                             json.dumps(court_evidence.legal_requirements_missing),
-                             json.dumps(court_evidence.challenges), json.dumps(court_evidence.precedents),
-                             json.dumps(court_evidence.expert_testimony), court_evidence.foundation_laid,
-                             court_evidence.authentication_method, court_evidence.chain_of_custody_verified,
-                             court_evidence.hearsay_exception, court_evidence.relevance_score,
-                             court_evidence.reliability_score, court_evidence.created_date,
-                             court_evidence.last_reviewed, court_evidence.reviewed_by)
-    
+            await conn.execute(
+                query,
+                court_evidence.id,
+                court_evidence.evidence_id,
+                court_evidence.jurisdiction.value,
+                court_evidence.court_type.value,
+                court_evidence.legal_standard.value,
+                court_evidence.admissibility_status.value,
+                court_evidence.compliance_score,
+                json.dumps(court_evidence.legal_requirements_met),
+                json.dumps(court_evidence.legal_requirements_missing),
+                json.dumps(court_evidence.challenges),
+                json.dumps(court_evidence.precedents),
+                json.dumps(court_evidence.expert_testimony),
+                court_evidence.foundation_laid,
+                court_evidence.authentication_method,
+                court_evidence.chain_of_custody_verified,
+                court_evidence.hearsay_exception,
+                court_evidence.relevance_score,
+                court_evidence.reliability_score,
+                court_evidence.created_date,
+                court_evidence.last_reviewed,
+                court_evidence.reviewed_by,
+            )
+
     async def _save_expert_to_db(self, expert: ExpertQualification) -> None:
         """Save expert qualification to database"""
         query = """
@@ -731,14 +822,24 @@ class CourtDefensibleEvidence:
         professional_memberships = EXCLUDED.professional_memberships,
         cvv_score = EXCLUDED.cvv_score
         """
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, expert.id, expert.expert_name, json.dumps(expert.credentials),
-                             expert.experience_years, json.dumps(expert.specializations),
-                             json.dumps(expert.publications), json.dumps(expert.testimony_history),
-                             json.dumps(expert.education), json.dumps(expert.certifications),
-                             json.dumps(expert.professional_memberships), expert.cvv_score, expert.created_date)
-    
+            await conn.execute(
+                query,
+                expert.id,
+                expert.expert_name,
+                json.dumps(expert.credentials),
+                expert.experience_years,
+                json.dumps(expert.specializations),
+                json.dumps(expert.publications),
+                json.dumps(expert.testimony_history),
+                json.dumps(expert.education),
+                json.dumps(expert.certifications),
+                json.dumps(expert.professional_memberships),
+                expert.cvv_score,
+                expert.created_date,
+            )
+
     async def _save_challenge_to_db(self, challenge: LegalChallenge) -> None:
         """Save legal challenge to database"""
         query = """
@@ -757,18 +858,31 @@ class CourtDefensibleEvidence:
         resolution_method = EXCLUDED.resolution_method,
         resolution_date = EXCLUDED.resolution_date
         """
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, challenge.id, challenge.evidence_id, challenge.challenge_type,
-                             challenge.description, challenge.legal_basis, challenge.severity,
-                             challenge.likelihood, challenge.mitigation_strategy,
-                             json.dumps(challenge.precedent_cases), challenge.created_date,
-                             challenge.is_resolved, challenge.resolution_method, challenge.resolution_date)
-    
-    async def _load_court_evidence_from_db(self, evidence_id: str) -> Optional[CourtDefensibleEvidence]:
+            await conn.execute(
+                query,
+                challenge.id,
+                challenge.evidence_id,
+                challenge.challenge_type,
+                challenge.description,
+                challenge.legal_basis,
+                challenge.severity,
+                challenge.likelihood,
+                challenge.mitigation_strategy,
+                json.dumps(challenge.precedent_cases),
+                challenge.created_date,
+                challenge.is_resolved,
+                challenge.resolution_method,
+                challenge.resolution_date,
+            )
+
+    async def _load_court_evidence_from_db(
+        self, evidence_id: str
+    ) -> Optional[CourtDefensibleEvidence]:
         """Load court-defensible evidence from database"""
         query = "SELECT * FROM court_defensible_evidence WHERE evidence_id = $1"
-        
+
         async with self.db_pool.acquire() as conn:
             row = await conn.fetchrow(query, evidence_id)
             if row:
@@ -778,13 +892,31 @@ class CourtDefensibleEvidence:
                     jurisdiction=LegalJurisdiction(row["jurisdiction"]),
                     court_type=CourtType(row["court_type"]),
                     legal_standard=LegalStandard(row["legal_standard"]),
-                    admissibility_status=EvidenceAdmissibility(row["admissibility_status"]),
+                    admissibility_status=EvidenceAdmissibility(
+                        row["admissibility_status"]
+                    ),
                     compliance_score=row["compliance_score"],
-                    legal_requirements_met=json.loads(row["legal_requirements_met"]) if row["legal_requirements_met"] else [],
-                    legal_requirements_missing=json.loads(row["legal_requirements_missing"]) if row["legal_requirements_missing"] else [],
-                    challenges=json.loads(row["challenges"]) if row["challenges"] else [],
-                    precedents=json.loads(row["precedents"]) if row["precedents"] else [],
-                    expert_testimony=json.loads(row["expert_testimony"]) if row["expert_testimony"] else None,
+                    legal_requirements_met=(
+                        json.loads(row["legal_requirements_met"])
+                        if row["legal_requirements_met"]
+                        else []
+                    ),
+                    legal_requirements_missing=(
+                        json.loads(row["legal_requirements_missing"])
+                        if row["legal_requirements_missing"]
+                        else []
+                    ),
+                    challenges=(
+                        json.loads(row["challenges"]) if row["challenges"] else []
+                    ),
+                    precedents=(
+                        json.loads(row["precedents"]) if row["precedents"] else []
+                    ),
+                    expert_testimony=(
+                        json.loads(row["expert_testimony"])
+                        if row["expert_testimony"]
+                        else None
+                    ),
                     foundation_laid=row["foundation_laid"],
                     authentication_method=row["authentication_method"],
                     chain_of_custody_verified=row["chain_of_custody_verified"],
@@ -793,37 +925,61 @@ class CourtDefensibleEvidence:
                     reliability_score=row["reliability_score"],
                     created_date=row["created_date"],
                     last_reviewed=row["last_reviewed"],
-                    reviewed_by=row["reviewed_by"]
+                    reviewed_by=row["reviewed_by"],
                 )
         return None
-    
-    async def _load_expert_by_name_from_db(self, expert_name: str) -> Optional[ExpertQualification]:
+
+    async def _load_expert_by_name_from_db(
+        self, expert_name: str
+    ) -> Optional[ExpertQualification]:
         """Load expert qualification from database by name"""
         query = "SELECT * FROM expert_qualifications WHERE expert_name = $1"
-        
+
         async with self.db_pool.acquire() as conn:
             row = await conn.fetchrow(query, expert_name)
             if row:
                 return ExpertQualification(
                     id=row["id"],
                     expert_name=row["expert_name"],
-                    credentials=json.loads(row["credentials"]) if row["credentials"] else [],
+                    credentials=(
+                        json.loads(row["credentials"]) if row["credentials"] else []
+                    ),
                     experience_years=row["experience_years"],
-                    specializations=json.loads(row["specializations"]) if row["specializations"] else [],
-                    publications=json.loads(row["publications"]) if row["publications"] else [],
-                    testimony_history=json.loads(row["testimony_history"]) if row["testimony_history"] else [],
+                    specializations=(
+                        json.loads(row["specializations"])
+                        if row["specializations"]
+                        else []
+                    ),
+                    publications=(
+                        json.loads(row["publications"]) if row["publications"] else []
+                    ),
+                    testimony_history=(
+                        json.loads(row["testimony_history"])
+                        if row["testimony_history"]
+                        else []
+                    ),
                     education=json.loads(row["education"]) if row["education"] else [],
-                    certifications=json.loads(row["certifications"]) if row["certifications"] else [],
-                    professional_memberships=json.loads(row["professional_memberships"]) if row["professional_memberships"] else [],
+                    certifications=(
+                        json.loads(row["certifications"])
+                        if row["certifications"]
+                        else []
+                    ),
+                    professional_memberships=(
+                        json.loads(row["professional_memberships"])
+                        if row["professional_memberships"]
+                        else []
+                    ),
                     cvv_score=row["cvv_score"],
-                    created_date=row["created_date"]
+                    created_date=row["created_date"],
                 )
         return None
-    
-    async def _load_challenges_for_evidence(self, evidence_id: str) -> List[LegalChallenge]:
+
+    async def _load_challenges_for_evidence(
+        self, evidence_id: str
+    ) -> List[LegalChallenge]:
         """Load challenges for evidence from database"""
         query = "SELECT * FROM legal_challenges WHERE evidence_id = $1"
-        
+
         async with self.db_pool.acquire() as conn:
             rows = await conn.fetch(query, evidence_id)
             challenges = []
@@ -837,19 +993,24 @@ class CourtDefensibleEvidence:
                     severity=row["severity"],
                     likelihood=row["likelihood"],
                     mitigation_strategy=row["mitigation_strategy"],
-                    precedent_cases=json.loads(row["precedent_cases"]) if row["precedent_cases"] else [],
+                    precedent_cases=(
+                        json.loads(row["precedent_cases"])
+                        if row["precedent_cases"]
+                        else []
+                    ),
                     created_date=row["created_date"],
                     is_resolved=row["is_resolved"],
                     resolution_method=row["resolution_method"],
-                    resolution_date=row["resolution_date"]
+                    resolution_date=row["resolution_date"],
                 )
                 challenges.append(challenge)
-            
+
             return challenges
 
 
 # Global court defensible evidence instance
 _court_defensible = None
+
 
 def get_court_defensible_evidence() -> CourtDefensibleEvidence:
     """Get the global court defensible evidence instance"""

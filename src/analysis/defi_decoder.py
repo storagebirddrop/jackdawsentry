@@ -30,9 +30,13 @@ Interaction types returned:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.analysis.protocol_registry import classify_address, get_protocol_by_address
+from src.analysis.protocol_registry import classify_address
+from src.analysis.protocol_registry import get_protocol_by_address
 
 # ---------------------------------------------------------------------------
 # Function selector tables  (4-byte hex prefix of keccak256(signature))

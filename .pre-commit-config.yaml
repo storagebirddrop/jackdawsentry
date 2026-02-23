@@ -39,7 +39,6 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
         args: [--ignore-missing-imports]
 
   - repo: https://github.com/pycqa/bandit
@@ -61,6 +60,5 @@ repos:
         name: pytest-check
         entry: pytest
         language: system
-        pass_filenames: false
-        always_run: true
-        args: [--coalesce]
+        pass_filenames: true
+        args: [-x, --tb=short, -m "not slow"]

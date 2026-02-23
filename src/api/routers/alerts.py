@@ -17,22 +17,32 @@ Endpoints:
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Query
+from fastapi import WebSocket
+from fastapi import WebSocketDisconnect
+from pydantic import BaseModel
+from pydantic import field_validator
 
-from src.api.auth import User, check_permissions, require_admin, PERMISSIONS
-from src.monitoring.alert_rules import (
-    ALERT_CHANNEL,
-    create_rule,
-    delete_rule,
-    get_recent_alerts,
-    get_rule,
-    list_rules,
-    update_rule,
-)
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import require_admin
 from src.api.database import get_redis_client
+from src.monitoring.alert_rules import ALERT_CHANNEL
+from src.monitoring.alert_rules import create_rule
+from src.monitoring.alert_rules import delete_rule
+from src.monitoring.alert_rules import get_recent_alerts
+from src.monitoring.alert_rules import get_rule
+from src.monitoring.alert_rules import list_rules
+from src.monitoring.alert_rules import update_rule
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +185,9 @@ async def alert_websocket(websocket: WebSocket):
     # --- Lightweight JWT auth over WebSocket ---
     try:
         token_msg = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
-        token_data = json.loads(token_msg) if token_msg.startswith("{") else {"token": token_msg}
+        token_data = (
+            json.loads(token_msg) if token_msg.startswith("{") else {"token": token_msg}
+        )
         token = token_data.get("token", token_msg)
         _verify_ws_token(token)
         await websocket.send_text(json.dumps({"status": "authenticated"}))
@@ -194,7 +206,9 @@ async def alert_websocket(websocket: WebSocket):
 
     try:
         while True:
-            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            message = await pubsub.get_message(
+                ignore_subscribe_messages=True, timeout=1.0
+            )
             if message and message.get("type") == "message":
                 await websocket.send_text(message["data"])
             else:
@@ -215,6 +229,7 @@ async def alert_websocket(websocket: WebSocket):
 def _verify_ws_token(token: str) -> None:
     """Minimal JWT verification for WebSocket auth (reuses existing auth logic)."""
     from src.api.auth import verify_token
+
     payload = verify_token(token)
     if not payload:
         raise ValueError("Invalid or expired token")

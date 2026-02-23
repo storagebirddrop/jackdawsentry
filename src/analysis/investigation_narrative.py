@@ -5,9 +5,12 @@ Produces plain-language investigation summaries from structured data.
 Uses Claude API when ANTHROPIC_API_KEY is set; falls back to template generation.
 """
 
-import os
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +81,9 @@ def extract_key_findings(
     if addresses:
         sample = ", ".join(str(a) for a in addresses[:3])
         suffix = "…" if len(addresses) > 3 else ""
-        findings.append(f"{len(addresses)} address(es) under scrutiny: {sample}{suffix}.")
+        findings.append(
+            f"{len(addresses)} address(es) under scrutiny: {sample}{suffix}."
+        )
 
     risk_score = float(investigation.get("risk_score", 0.0))
     if risk_score > 0.0:
@@ -87,7 +92,9 @@ def extract_key_findings(
     if evidence:
         high_conf = [e for e in evidence if float(e.get("confidence", 0.0)) >= 0.80]
         if high_conf:
-            findings.append(f"{len(high_conf)} high-confidence evidence item(s) recorded.")
+            findings.append(
+                f"{len(high_conf)} high-confidence evidence item(s) recorded."
+            )
         ev_types = sorted({e.get("evidence_type", "other") for e in evidence})
         findings.append(
             f"Evidence spans {len(ev_types)} category type(s): {', '.join(ev_types)}."
@@ -116,15 +123,19 @@ def _template_narrative(
     description = str(investigation.get("description", ""))
 
     effective_score = (
-        risk_score if risk_score is not None
+        risk_score
+        if risk_score is not None
         else float(investigation.get("risk_score", 0.0))
     )
     risk_level = _risk_level_from_score(effective_score)
     risk_phrase = _RISK_LEVEL_PHRASES.get(risk_level, "requires further analysis")
-    priority_phrase = _PRIORITY_PHRASES.get(priority, f"assessed at {priority} priority")
+    priority_phrase = _PRIORITY_PHRASES.get(
+        priority, f"assessed at {priority} priority"
+    )
 
     addr_summary = (
-        f"{len(addresses)} blockchain address(es)" if addresses
+        f"{len(addresses)} blockchain address(es)"
+        if addresses
         else "an unspecified set of addresses"
     )
     chain_phrase = f" on the {blockchain} network" if blockchain else ""
@@ -163,6 +174,7 @@ async def _call_claude_narrative(prompt: str) -> Optional[str]:
         return None
     try:
         import anthropic
+
         client = anthropic.AsyncAnthropic(api_key=_API_KEY)
         msg = await client.messages.create(
             model=_MODEL,
@@ -197,7 +209,8 @@ async def generate_investigation_narrative(
     key_findings = extract_key_findings(investigation, evidence)
 
     effective_score = (
-        risk_score if risk_score is not None
+        risk_score
+        if risk_score is not None
         else float(investigation.get("risk_score", 0.0))
     )
     risk_level = _risk_level_from_score(effective_score)

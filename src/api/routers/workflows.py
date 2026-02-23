@@ -8,15 +8,23 @@ Endpoints for managing compliance workflows including:
 - Scheduler management
 """
 
-from functools import lru_cache
-
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
+from datetime import timezone
+from functools import lru_cache
+from typing import Any
+from typing import Dict
+from typing import Optional
 
-from src.api.auth import get_current_user, check_permissions, User
-from src.automation.compliance_workflow import ComplianceWorkflowEngine, WorkflowStatus
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
+from src.automation.compliance_workflow import ComplianceWorkflowEngine
+from src.automation.compliance_workflow import WorkflowStatus
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +41,7 @@ def get_workflow_engine() -> ComplianceWorkflowEngine:
 async def list_workflows(
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """List all workflows"""
     try:
@@ -48,7 +56,7 @@ async def list_workflows(
 async def get_workflow_statistics(
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get workflow statistics"""
     try:
@@ -64,8 +72,8 @@ async def get_workflow_statistics(
                 "total_executions": len(snapshot),
                 "completed_executions": len(completed),
                 "failed_executions": len(failed),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
         }
     except Exception as e:
         logger.error(f"Failed to get workflow statistics: {e}")
@@ -77,7 +85,7 @@ async def get_workflow_details(
     workflow_id: str,
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get workflow details"""
     try:
@@ -98,21 +106,23 @@ async def trigger_workflow(
     trigger_data: Dict[str, Any] = None,
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Trigger a workflow"""
     try:
         execution = await workflow_engine.trigger_workflow(
             workflow_id=workflow_id,
             trigger_data=trigger_data or {},
-            triggered_by=current_user.username
+            triggered_by=current_user.username,
         )
         return {
             "success": True,
             "execution_id": execution.execution_id,
             "workflow_id": execution.workflow_id,
             "status": execution.status.value,
-            "started_at": execution.started_at.isoformat() if execution.started_at else None
+            "started_at": (
+                execution.started_at.isoformat() if execution.started_at else None
+            ),
         }
     except HTTPException:
         raise
@@ -126,13 +136,15 @@ async def enable_workflow(
     workflow_id: str,
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Enable a workflow"""
     try:
         success = await workflow_engine.enable_workflow(workflow_id)
         if not success:
-            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Workflow {workflow_id} not found"
+            )
         return {"success": True, "message": f"Workflow {workflow_id} enabled"}
     except HTTPException:
         raise
@@ -146,13 +158,15 @@ async def disable_workflow(
     workflow_id: str,
     workflow_engine: ComplianceWorkflowEngine = Depends(get_workflow_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["admin:full"]))
+    _: None = Depends(check_permissions(["admin:full"])),
 ):
     """Disable a workflow"""
     try:
         success = await workflow_engine.disable_workflow(workflow_id)
         if not success:
-            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Workflow {workflow_id} not found"
+            )
         return {"success": True, "message": f"Workflow {workflow_id} disabled"}
     except HTTPException:
         raise
@@ -170,5 +184,5 @@ async def workflow_health_check(
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "compliance_workflows",
-        "workflows_count": len(workflow_engine.workflows)
+        "workflows_count": len(workflow_engine.workflows),
     }

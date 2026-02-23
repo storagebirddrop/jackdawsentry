@@ -3,21 +3,30 @@ Jackdaw Sentry - Sanctions Screening Router (M9.4)
 Screen addresses against OFAC SDN + EU Consolidated sanctions lists.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
-from pydantic import BaseModel, field_validator
 import logging
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, require_admin, PERMISSIONS
-from src.services.sanctions import (
-    screen_address,
-    screen_addresses_bulk,
-    log_screening,
-    sync_all,
-    get_sync_status,
-    get_sanctioned_count,
-)
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import require_admin
+from src.services.sanctions import get_sanctioned_count
+from src.services.sanctions import get_sync_status
+from src.services.sanctions import log_screening
+from src.services.sanctions import screen_address
+from src.services.sanctions import screen_addresses_bulk
+from src.services.sanctions import sync_all
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +102,7 @@ async def screen_single(
             matched=result["matched"],
             match_source=match_source,
             match_entity=match_entity,
-            user_id=getattr(current_user, 'id', None),
+            user_id=getattr(current_user, "id", None),
         )
 
         return {
@@ -113,9 +122,7 @@ async def screen_bulk(
 ):
     """Screen multiple addresses in one request (max 100)."""
     try:
-        results = await screen_addresses_bulk(
-            request.addresses, request.blockchain
-        )
+        results = await screen_addresses_bulk(request.addresses, request.blockchain)
 
         # Log each screening
         for r in results:
@@ -130,7 +137,7 @@ async def screen_bulk(
                 matched=r["matched"],
                 match_source=match_source,
                 match_entity=match_entity,
-                user_id=getattr(current_user, 'id', None),
+                user_id=getattr(current_user, "id", None),
             )
 
         matched_count = sum(1 for r in results if r["matched"])
@@ -155,7 +162,9 @@ async def lookup_address(
     """Look up a specific address in the sanctions database (no audit log)."""
     addr = address.strip()
     if not addr:
-        raise HTTPException(status_code=400, detail="Address parameter must not be empty")
+        raise HTTPException(
+            status_code=400, detail="Address parameter must not be empty"
+        )
     try:
         blockchain = blockchain.lower() if blockchain else None
         result = await screen_address(addr, blockchain)

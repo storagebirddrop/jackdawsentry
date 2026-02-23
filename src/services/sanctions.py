@@ -7,15 +7,21 @@ crypto addresses in PostgreSQL, and provides screening functions.
 import asyncio
 import logging
 import re
-import defusedxml.ElementTree as ET
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 import aiohttp
 import asyncpg
+import defusedxml.ElementTree as ET
 
 from src.api.config import settings
-from src.api.database import get_postgres_pool, get_postgres_connection
+from src.api.database import get_postgres_connection
+from src.api.database import get_postgres_pool
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +75,9 @@ async def _fetch_text(url: str, timeout: int = 60) -> Optional[str]:
         ) as session:
             async with session.get(url) as resp:
                 if resp.status != 200:
-                    logger.error(f"Sanctions fetch failed: HTTP {resp.status} from {url}")
+                    logger.error(
+                        f"Sanctions fetch failed: HTTP {resp.status} from {url}"
+                    )
                     return None
                 return await resp.text()
     except Exception as exc:
@@ -132,7 +140,9 @@ async def ingest_ofac_sdn_xml() -> int:
 
     try:
         root = ET.fromstring(text)
-        ns = {"sdn": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ADVANCED_XML"}
+        ns = {
+            "sdn": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ADVANCED_XML"
+        }
         # Try without namespace if the above fails
         if root.tag.startswith("{"):
             ns_uri = root.tag.split("}")[0].strip("{")
@@ -225,7 +235,11 @@ async def ingest_eu_sanctions() -> int:
 
                 entity_name = ""
                 for name_el in entity.iter():
-                    name_tag = name_el.tag.split("}")[-1] if "}" in name_el.tag else name_el.tag
+                    name_tag = (
+                        name_el.tag.split("}")[-1]
+                        if "}" in name_el.tag
+                        else name_el.tag
+                    )
                     if name_tag in ("wholeName", "lastName"):
                         if name_el.text and name_el.text.strip():
                             entity_name = name_el.text.strip()
@@ -255,7 +269,9 @@ async def ingest_eu_sanctions() -> int:
                             )
                             count += 1
                         except Exception as exc:
-                            logger.warning(f"EU sanctions upsert failed for {addr}: {exc}")
+                            logger.warning(
+                                f"EU sanctions upsert failed for {addr}: {exc}"
+                            )
 
     except ET.ParseError as exc:
         logger.error(f"EU sanctions XML parse error: {exc}")
@@ -370,14 +386,16 @@ async def screen_addresses_bulk(
     results = []
     for addr in cleaned:
         matches = matches_by_addr.get(addr, [])
-        results.append({
-            "address": addr,
-            "blockchain": blockchain,
-            "matched": len(matches) > 0,
-            "match_count": len(matches),
-            "matches": matches,
-            "screened_at": now,
-        })
+        results.append(
+            {
+                "address": addr,
+                "blockchain": blockchain,
+                "matched": len(matches) > 0,
+                "match_count": len(matches),
+                "matches": matches,
+                "screened_at": now,
+            }
+        )
     return results
 
 
@@ -477,9 +495,7 @@ async def get_sync_status() -> List[Dict[str, Any]]:
     """Get current sync status for all sources."""
     pool = get_postgres_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT * FROM sanctions_sync_status ORDER BY source"
-        )
+        rows = await conn.fetch("SELECT * FROM sanctions_sync_status ORDER BY source")
     return [dict(r) for r in rows]
 
 
@@ -487,12 +503,10 @@ async def get_sanctioned_count() -> Dict[str, int]:
     """Get count of active sanctioned addresses by source."""
     pool = get_postgres_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
+        rows = await conn.fetch("""
             SELECT source, count(*) AS cnt
             FROM sanctioned_addresses
             WHERE removed_at IS NULL
             GROUP BY source
-            """
-        )
+            """)
     return {r["source"]: r["cnt"] for r in rows}

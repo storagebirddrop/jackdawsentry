@@ -4,21 +4,28 @@ Professional court-defensible report generation with templates
 """
 
 import asyncio
-import logging
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Dict, List, Optional, Any, Set
-from dataclasses import dataclass, field
 import json
-import uuid
+import logging
 import os
+import uuid
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timezone
+from enum import Enum
 from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 logger = logging.getLogger(__name__)
 
 
 class ReportType(Enum):
     """Types of forensic reports"""
+
     SUMMARY = "summary"
     DETAILED = "detailed"
     EXPERT_WITNESS = "expert_witness"
@@ -31,6 +38,7 @@ class ReportType(Enum):
 
 class ReportFormat(Enum):
     """Report output formats"""
+
     PDF = "pdf"
     HTML = "html"
     JSON = "json"
@@ -41,6 +49,7 @@ class ReportFormat(Enum):
 
 class ReportStatus(Enum):
     """Report generation status"""
+
     DRAFT = "draft"
     REVIEW = "review"
     APPROVED = "approved"
@@ -52,6 +61,7 @@ class ReportStatus(Enum):
 @dataclass
 class ReportTemplate:
     """Report template definition"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     description: str = ""
@@ -66,21 +76,22 @@ class ReportTemplate:
     created_by: str = ""
     is_active: bool = True
     version: str = "1.0"
-    
+
     def validate_data(self, data: Dict[str, Any]) -> List[str]:
         """Validate report data against template requirements"""
         errors = []
-        
+
         for field in self.required_fields:
             if field not in data or data[field] is None or data[field] == "":
                 errors.append(f"Required field missing: {field}")
-        
+
         return errors
 
 
 @dataclass
 class ReportSection:
     """Individual report section"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     title: str = ""
     content: str = ""
@@ -90,7 +101,7 @@ class ReportSection:
     is_required: bool = True
     word_count: int = 0
     generated_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def calculate_word_count(self) -> int:
         """Calculate word count for section"""
         self.word_count = len(self.content.split())
@@ -100,6 +111,7 @@ class ReportSection:
 @dataclass
 class GeneratedReport:
     """Generated forensic report"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     case_id: str = ""
     template_id: str = ""
@@ -121,17 +133,17 @@ class GeneratedReport:
     is_court_ready: bool = False
     confidence_score: float = 0.0
     total_word_count: int = 0
-    
+
     def calculate_totals(self) -> None:
         """Calculate report totals"""
         self.total_word_count = sum(section.word_count for section in self.sections)
-    
+
     def add_review(self, reviewer: str) -> None:
         """Add review to report"""
         self.reviewed_by = reviewer
         self.reviewed_date = datetime.now(timezone.utc)
         self.status = ReportStatus.REVIEW
-    
+
     def approve(self, approver: str) -> None:
         """Approve report for final use"""
         self.approved_by = approver
@@ -141,7 +153,7 @@ class GeneratedReport:
 
 class ReportGenerator:
     """Professional forensic report generation system"""
-    
+
     def __init__(self, db_pool=None, output_path: str = "/var/lib/jackdaw/reports"):
         self.db_pool = db_pool
         self.output_path = output_path
@@ -150,28 +162,28 @@ class ReportGenerator:
         self.running = False
         self._cache = {}
         self._cache_ttl = 3600  # 1 hour
-        
+
         # Ensure output directory exists
         os.makedirs(output_path, exist_ok=True)
-        
+
         logger.info("ReportGenerator initialized")
-    
+
     async def initialize(self) -> None:
         """Initialize report generator and database schema"""
         if self.db_pool:
             await self._create_database_schema()
-        
+
         # Load default templates
         await self._load_default_templates()
-        
+
         self.running = True
         logger.info("ReportGenerator started")
-    
+
     async def shutdown(self) -> None:
         """Shutdown report generator"""
         self.running = False
         logger.info("ReportGenerator shutdown")
-    
+
     async def _create_database_schema(self) -> None:
         """Create report generation database tables"""
         schema_queries = [
@@ -224,15 +236,15 @@ class ReportGenerator:
             CREATE INDEX IF NOT EXISTS idx_generated_reports_case ON generated_reports(case_id);
             CREATE INDEX IF NOT EXISTS idx_generated_reports_status ON generated_reports(status);
             CREATE INDEX IF NOT EXISTS idx_generated_reports_type ON generated_reports(report_type);
-            """
+            """,
         ]
-        
+
         async with self.db_pool.acquire() as conn:
             for query in schema_queries:
                 await conn.execute(query)
-        
+
         logger.info("Report generation database schema created")
-    
+
     async def _load_default_templates(self) -> None:
         """Load default report templates"""
         default_templates = [
@@ -245,13 +257,26 @@ class ReportGenerator:
                 "sections": [
                     {"title": "Executive Summary", "type": "text", "required": True},
                     {"title": "Case Background", "type": "text", "required": True},
-                    {"title": "Evidence Analysis", "type": "evidence_list", "required": True},
+                    {
+                        "title": "Evidence Analysis",
+                        "type": "evidence_list",
+                        "required": True,
+                    },
                     {"title": "Technical Findings", "type": "text", "required": True},
                     {"title": "Conclusions", "type": "text", "required": True},
-                    {"title": "Expert Qualifications", "type": "text", "required": True}
+                    {
+                        "title": "Expert Qualifications",
+                        "type": "text",
+                        "required": True,
+                    },
                 ],
-                "required_fields": ["case_id", "evidence_list", "findings", "conclusions"],
-                "created_by": "system"
+                "required_fields": [
+                    "case_id",
+                    "evidence_list",
+                    "findings",
+                    "conclusions",
+                ],
+                "created_by": "system",
             },
             {
                 "name": "Expert Witness Report",
@@ -260,14 +285,27 @@ class ReportGenerator:
                 "format": ReportFormat.PDF,
                 "template_content": self._get_expert_template_content(),
                 "sections": [
-                    {"title": "Expert Qualifications", "type": "text", "required": True},
+                    {
+                        "title": "Expert Qualifications",
+                        "type": "text",
+                        "required": True,
+                    },
                     {"title": "Case Summary", "type": "text", "required": True},
                     {"title": "Methodology", "type": "text", "required": True},
                     {"title": "Analysis Results", "type": "text", "required": True},
-                    {"title": "Opinions and Conclusions", "type": "text", "required": True}
+                    {
+                        "title": "Opinions and Conclusions",
+                        "type": "text",
+                        "required": True,
+                    },
                 ],
-                "required_fields": ["qualifications", "methodology", "analysis", "opinions"],
-                "created_by": "system"
+                "required_fields": [
+                    "qualifications",
+                    "methodology",
+                    "analysis",
+                    "opinions",
+                ],
+                "created_by": "system",
             },
             {
                 "name": "Technical Analysis Report",
@@ -280,13 +318,13 @@ class ReportGenerator:
                     {"title": "Data Sources", "type": "table", "required": True},
                     {"title": "Analysis Methods", "type": "text", "required": True},
                     {"title": "Results", "type": "chart", "required": False},
-                    {"title": "Technical Details", "type": "text", "required": True}
+                    {"title": "Technical Details", "type": "text", "required": True},
                 ],
                 "required_fields": ["overview", "data_sources", "methods", "results"],
-                "created_by": "system"
-            }
+                "created_by": "system",
+            },
         ]
-        
+
         for template_data in default_templates:
             template = ReportTemplate(
                 name=template_data["name"],
@@ -296,16 +334,16 @@ class ReportGenerator:
                 template_content=template_data["template_content"],
                 sections=template_data["sections"],
                 required_fields=template_data["required_fields"],
-                created_by=template_data["created_by"]
+                created_by=template_data["created_by"],
             )
-            
+
             self.templates[template.id] = template
-            
+
             if self.db_pool:
                 await self._save_template_to_db(template)
-        
+
         logger.info(f"Loaded {len(default_templates)} default templates")
-    
+
     async def create_template(self, template_data: Dict[str, Any]) -> ReportTemplate:
         """Create new report template"""
         template = ReportTemplate(
@@ -319,28 +357,33 @@ class ReportGenerator:
             optional_fields=template_data.get("optional_fields", []),
             styling=template_data.get("styling", {}),
             created_by=template_data["created_by"],
-            version=template_data.get("version", "1.0")
+            version=template_data.get("version", "1.0"),
         )
-        
+
         if self.db_pool:
             await self._save_template_to_db(template)
-        
+
         self.templates[template.id] = template
         logger.info(f"Created report template: {template.name}")
         return template
-    
-    async def generate_report(self, case_id: str, template_id: str, report_data: Dict[str, Any], 
-                           generated_by: str) -> GeneratedReport:
+
+    async def generate_report(
+        self,
+        case_id: str,
+        template_id: str,
+        report_data: Dict[str, Any],
+        generated_by: str,
+    ) -> GeneratedReport:
         """Generate forensic report from template"""
         template = await self.get_template(template_id)
         if not template:
             raise ValueError(f"Template {template_id} not found")
-        
+
         # Validate data against template
         validation_errors = template.validate_data(report_data)
         if validation_errors:
             raise ValueError(f"Template validation failed: {validation_errors}")
-        
+
         # Create report sections
         sections = []
         for section_config in template.sections:
@@ -348,22 +391,34 @@ class ReportGenerator:
                 title=section_config["title"],
                 section_type=section_config["type"],
                 order=len(sections),
-                is_required=section_config.get("required", True)
+                is_required=section_config.get("required", True),
             )
-            
+
             # Generate section content based on type
             if section.section_type == "text":
-                section.content = report_data.get(section_config["title"].lower().replace(" ", "_"), "")
+                section.content = report_data.get(
+                    section_config["title"].lower().replace(" ", "_"), ""
+                )
             elif section.section_type == "evidence_list":
-                section.content = self._generate_evidence_list(report_data.get("evidence_list", []))
+                section.content = self._generate_evidence_list(
+                    report_data.get("evidence_list", [])
+                )
             elif section.section_type == "table":
-                section.content = self._generate_table(report_data.get(section_config["title"].lower().replace(" ", "_"), []))
+                section.content = self._generate_table(
+                    report_data.get(
+                        section_config["title"].lower().replace(" ", "_"), []
+                    )
+                )
             elif section.section_type == "chart":
-                section.content = self._generate_chart_data(report_data.get(section_config["title"].lower().replace(" ", "_"), {}))
-            
+                section.content = self._generate_chart_data(
+                    report_data.get(
+                        section_config["title"].lower().replace(" ", "_"), {}
+                    )
+                )
+
             section.calculate_word_count()
             sections.append(section)
-        
+
         # Create report
         report = GeneratedReport(
             case_id=case_id,
@@ -374,162 +429,179 @@ class ReportGenerator:
             sections=sections,
             metadata=report_data.get("metadata", {}),
             generated_by=generated_by,
-            confidence_score=report_data.get("confidence_score", 0.0)
+            confidence_score=report_data.get("confidence_score", 0.0),
         )
-        
+
         report.calculate_totals()
-        
+
         # Generate file
         file_path = await self._generate_report_file(report, template)
         report.file_path = file_path
-        
+
         if os.path.exists(file_path):
             report.file_size = os.path.getsize(file_path)
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 import hashlib
+
                 report.checksum = hashlib.sha256(f.read()).hexdigest()
-        
+
         if self.db_pool:
             await self._save_report_to_db(report)
-        
+
         self.reports[report.id] = report
         logger.info(f"Generated report: {report.id}")
         return report
-    
+
     async def get_template(self, template_id: str) -> Optional[ReportTemplate]:
         """Get report template by ID"""
         if template_id in self.templates:
             return self.templates[template_id]
-        
+
         if self.db_pool:
             template = await self._load_template_from_db(template_id)
             if template:
                 self.templates[template_id] = template
                 return template
-        
+
         return None
-    
+
     async def get_report(self, report_id: str) -> Optional[GeneratedReport]:
         """Get generated report by ID"""
         if report_id in self.reports:
             return self.reports[report_id]
-        
+
         if self.db_pool:
             report = await self._load_report_from_db(report_id)
             if report:
                 self.reports[report_id] = report
                 return report
-        
+
         return None
-    
+
     async def search_templates(self, filters: Dict[str, Any]) -> List[ReportTemplate]:
         """Search report templates"""
         if self.db_pool:
             return await self._search_templates_db(filters)
-        
+
         # In-memory search
         results = []
         for template in self.templates.values():
             if not template.is_active:
                 continue
-            
+
             match = True
-            
-            if "report_type" in filters and template.report_type.value != filters["report_type"]:
+
+            if (
+                "report_type" in filters
+                and template.report_type.value != filters["report_type"]
+            ):
                 match = False
             if "format" in filters and template.format.value != filters["format"]:
                 match = False
             if "created_by" in filters and template.created_by != filters["created_by"]:
                 match = False
-            
+
             if match:
                 results.append(template)
-        
+
         return results
-    
+
     async def search_reports(self, filters: Dict[str, Any]) -> List[GeneratedReport]:
         """Search generated reports"""
         if self.db_pool:
             return await self._search_reports_db(filters)
-        
+
         # In-memory search
         results = []
         for report in self.reports.values():
             match = True
-            
+
             if "case_id" in filters and report.case_id != filters["case_id"]:
                 match = False
-            if "report_type" in filters and report.report_type.value != filters["report_type"]:
+            if (
+                "report_type" in filters
+                and report.report_type.value != filters["report_type"]
+            ):
                 match = False
             if "status" in filters and report.status.value != filters["status"]:
                 match = False
-            if "generated_by" in filters and report.generated_by != filters["generated_by"]:
+            if (
+                "generated_by" in filters
+                and report.generated_by != filters["generated_by"]
+            ):
                 match = False
-            
+
             if match:
                 results.append(report)
-        
+
         return results
-    
-    async def update_report_status(self, report_id: str, new_status: ReportStatus, 
-                                 user: str) -> None:
+
+    async def update_report_status(
+        self, report_id: str, new_status: ReportStatus, user: str
+    ) -> None:
         """Update report status"""
         if report_id not in self.reports:
             raise ValueError(f"Report {report_id} not found")
-        
+
         report = self.reports[report_id]
-        
+
         if new_status == ReportStatus.REVIEW:
             report.add_review(user)
         elif new_status == ReportStatus.APPROVED:
             report.approve(user)
         else:
             report.status = new_status
-        
+
         if self.db_pool:
             await self._update_report_status_db(report_id, new_status, user)
-        
+
         logger.info(f"Updated report {report_id} status to {new_status.value}")
-    
+
     def _generate_evidence_list(self, evidence_list: List[Dict[str, Any]]) -> str:
         """Generate formatted evidence list"""
         if not evidence_list:
             return "No evidence items to display."
-        
+
         content = "## Evidence Items\n\n"
         for i, evidence in enumerate(evidence_list, 1):
             content += f"{i}. **{evidence.get('title', 'Untitled')}**\n"
             content += f"   - Type: {evidence.get('type', 'Unknown')}\n"
             content += f"   - Date: {evidence.get('date', 'Unknown')}\n"
-            content += f"   - Description: {evidence.get('description', 'No description')}\n\n"
-        
+            content += (
+                f"   - Description: {evidence.get('description', 'No description')}\n\n"
+            )
+
         return content
-    
+
     def _generate_table(self, table_data: List[Dict[str, Any]]) -> str:
         """Generate formatted table"""
         if not table_data:
             return "No data to display in table."
-        
+
         # Create markdown table
         headers = list(table_data[0].keys())
         content = "| " + " | ".join(headers) + " |\n"
         content += "|" + "|".join(["-" * len(h) for h in headers]) + "|\n"
-        
+
         for row in table_data:
             values = [str(row.get(h, "")) for h in headers]
             content += "| " + " | ".join(values) + " |\n"
-        
+
         return content
-    
+
     def _generate_chart_data(self, chart_data: Dict[str, Any]) -> str:
         """Generate chart placeholder"""
-        return f"## Chart Data\n\nChart configuration: {json.dumps(chart_data, indent=2)}"
-    
-    async def _generate_report_file(self, report: GeneratedReport, template: ReportTemplate) -> str:
+        return (
+            f"## Chart Data\n\nChart configuration: {json.dumps(chart_data, indent=2)}"
+        )
+
+    async def _generate_report_file(
+        self, report: GeneratedReport, template: ReportTemplate
+    ) -> str:
         """Generate actual report file"""
         file_name = f"{report.id}.{report.format.value}"
         file_path = os.path.join(self.output_path, file_name)
-        
+
         # Generate content based on format
         if report.format == ReportFormat.HTML:
             content = self._generate_html_report(report, template)
@@ -540,14 +612,16 @@ class ReportGenerator:
         else:
             # Default to markdown for other formats
             content = self._generate_markdown_report(report, template)
-        
+
         # Write file
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
-        
+
         return file_path
-    
-    def _generate_html_report(self, report: GeneratedReport, template: ReportTemplate) -> str:
+
+    def _generate_html_report(
+        self, report: GeneratedReport, template: ReportTemplate
+    ) -> str:
         """Generate HTML report"""
         html = f"""
         <!DOCTYPE html>
@@ -574,9 +648,9 @@ class ReportGenerator:
                 <p><strong>Total Word Count:</strong> {report.total_word_count}</p>
             </div>
         """
-        
+
         for section in sorted(report.sections, key=lambda s: s.order):
-            content_with_br = section.content.replace('\n', '<br>')
+            content_with_br = section.content.replace("\n", "<br>")
             html += f"""
             <div class="section">
                 <h2>{section.title}</h2>
@@ -584,55 +658,64 @@ class ReportGenerator:
                 <div>{content_with_br}</div>
             </div>
             """
-        
+
         html += """
         </body>
         </html>
         """
-        
+
         return html
-    
-    def _generate_markdown_report(self, report: GeneratedReport, template: ReportTemplate) -> str:
+
+    def _generate_markdown_report(
+        self, report: GeneratedReport, template: ReportTemplate
+    ) -> str:
         """Generate Markdown report"""
         markdown = f"# {report.title}\n\n"
-        markdown += f"**Generated:** {report.generated_date.strftime('%Y-%m-%d %H:%M:%S')}  \n"
+        markdown += (
+            f"**Generated:** {report.generated_date.strftime('%Y-%m-%d %H:%M:%S')}  \n"
+        )
         markdown += f"**Generated By:** {report.generated_by}  \n"
         markdown += f"**Case ID:** {report.case_id}  \n"
         markdown += f"**Confidence Score:** {report.confidence_score:.2f}  \n"
         markdown += f"**Total Word Count:** {report.total_word_count}\n\n"
-        
+
         for section in sorted(report.sections, key=lambda s: s.order):
             markdown += f"## {section.title}\n\n"
             markdown += f"*Words: {section.word_count}*\n\n"
             markdown += f"{section.content}\n\n"
-        
+
         return markdown
-    
-    def _generate_json_report(self, report: GeneratedReport, template: ReportTemplate) -> str:
+
+    def _generate_json_report(
+        self, report: GeneratedReport, template: ReportTemplate
+    ) -> str:
         """Generate JSON report"""
-        return json.dumps({
-            "id": report.id,
-            "title": report.title,
-            "case_id": report.case_id,
-            "report_type": report.report_type.value,
-            "status": report.status.value,
-            "generated_date": report.generated_date.isoformat(),
-            "generated_by": report.generated_by,
-            "confidence_score": report.confidence_score,
-            "total_word_count": report.total_word_count,
-            "sections": [
-                {
-                    "title": s.title,
-                    "type": s.section_type,
-                    "content": s.content,
-                    "word_count": s.word_count,
-                    "order": s.order
-                }
-                for s in sorted(report.sections, key=lambda sec: sec.order)
-            ],
-            "metadata": report.metadata
-        }, indent=2)
-    
+        return json.dumps(
+            {
+                "id": report.id,
+                "title": report.title,
+                "case_id": report.case_id,
+                "report_type": report.report_type.value,
+                "status": report.status.value,
+                "generated_date": report.generated_date.isoformat(),
+                "generated_by": report.generated_by,
+                "confidence_score": report.confidence_score,
+                "total_word_count": report.total_word_count,
+                "sections": [
+                    {
+                        "title": s.title,
+                        "type": s.section_type,
+                        "content": s.content,
+                        "word_count": s.word_count,
+                        "order": s.order,
+                    }
+                    for s in sorted(report.sections, key=lambda sec: sec.order)
+                ],
+                "metadata": report.metadata,
+            },
+            indent=2,
+        )
+
     def _get_court_template_content(self) -> str:
         """Get court submission template content"""
         return """
@@ -656,7 +739,7 @@ class ReportGenerator:
         ## Expert Qualifications
         [Expert qualifications and experience]
         """
-    
+
     def _get_expert_template_content(self) -> str:
         """Get expert witness template content"""
         return """
@@ -677,7 +760,7 @@ class ReportGenerator:
         ## Opinions and Conclusions
         [Expert opinions and conclusions]
         """
-    
+
     def _get_technical_template_content(self) -> str:
         """Get technical analysis template content"""
         return """
@@ -698,7 +781,7 @@ class ReportGenerator:
         ## Technical Details
         [Detailed technical information]
         """
-    
+
     # Database helper methods
     async def _save_template_to_db(self, template: ReportTemplate) -> None:
         """Save template to database"""
@@ -718,14 +801,26 @@ class ReportGenerator:
         is_active = EXCLUDED.is_active,
         version = EXCLUDED.version
         """
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, template.id, template.name, template.description,
-                             template.report_type.value, template.format.value, template.template_content,
-                             json.dumps(template.sections), json.dumps(template.required_fields),
-                             json.dumps(template.optional_fields), json.dumps(template.styling),
-                             template.created_date, template.created_by, template.is_active, template.version)
-    
+            await conn.execute(
+                query,
+                template.id,
+                template.name,
+                template.description,
+                template.report_type.value,
+                template.format.value,
+                template.template_content,
+                json.dumps(template.sections),
+                json.dumps(template.required_fields),
+                json.dumps(template.optional_fields),
+                json.dumps(template.styling),
+                template.created_date,
+                template.created_by,
+                template.is_active,
+                template.version,
+            )
+
     async def _save_report_to_db(self, report: GeneratedReport) -> None:
         """Save report to database"""
         query = """
@@ -749,7 +844,7 @@ class ReportGenerator:
         confidence_score = EXCLUDED.confidence_score,
         total_word_count = EXCLUDED.total_word_count
         """
-        
+
         sections_data = [
             {
                 "title": s.title,
@@ -757,23 +852,43 @@ class ReportGenerator:
                 "type": s.section_type,
                 "order": s.order,
                 "word_count": s.word_count,
-                "is_required": s.is_required
+                "is_required": s.is_required,
             }
             for s in report.sections
         ]
-        
+
         async with self.db_pool.acquire() as conn:
-            await conn.execute(query, report.id, report.case_id, report.template_id, report.title,
-                             report.report_type.value, report.format.value, report.status.value,
-                             json.dumps(sections_data), json.dumps(report.metadata), report.generated_date,
-                             report.generated_by, report.reviewed_by, report.reviewed_date, report.approved_by,
-                             report.approved_date, report.file_path, report.file_size, report.checksum,
-                             report.is_court_ready, report.confidence_score, report.total_word_count)
-    
-    async def _load_template_from_db(self, template_id: str) -> Optional[ReportTemplate]:
+            await conn.execute(
+                query,
+                report.id,
+                report.case_id,
+                report.template_id,
+                report.title,
+                report.report_type.value,
+                report.format.value,
+                report.status.value,
+                json.dumps(sections_data),
+                json.dumps(report.metadata),
+                report.generated_date,
+                report.generated_by,
+                report.reviewed_by,
+                report.reviewed_date,
+                report.approved_by,
+                report.approved_date,
+                report.file_path,
+                report.file_size,
+                report.checksum,
+                report.is_court_ready,
+                report.confidence_score,
+                report.total_word_count,
+            )
+
+    async def _load_template_from_db(
+        self, template_id: str
+    ) -> Optional[ReportTemplate]:
         """Load template from database"""
         query = "SELECT * FROM report_templates WHERE id = $1"
-        
+
         async with self.db_pool.acquire() as conn:
             row = await conn.fetchrow(query, template_id)
             if row:
@@ -785,26 +900,34 @@ class ReportGenerator:
                     format=ReportFormat(row["format"]),
                     template_content=row["template_content"],
                     sections=json.loads(row["sections"]) if row["sections"] else [],
-                    required_fields=json.loads(row["required_fields"]) if row["required_fields"] else [],
-                    optional_fields=json.loads(row["optional_fields"]) if row["optional_fields"] else [],
+                    required_fields=(
+                        json.loads(row["required_fields"])
+                        if row["required_fields"]
+                        else []
+                    ),
+                    optional_fields=(
+                        json.loads(row["optional_fields"])
+                        if row["optional_fields"]
+                        else []
+                    ),
                     styling=json.loads(row["styling"]) if row["styling"] else {},
                     created_date=row["created_date"],
                     created_by=row["created_by"],
                     is_active=row["is_active"],
-                    version=row["version"]
+                    version=row["version"],
                 )
         return None
-    
+
     async def _load_report_from_db(self, report_id: str) -> Optional[GeneratedReport]:
         """Load report from database"""
         query = "SELECT * FROM generated_reports WHERE id = $1"
-        
+
         async with self.db_pool.acquire() as conn:
             row = await conn.fetchrow(query, report_id)
             if row:
                 sections_data = json.loads(row["sections"]) if row["sections"] else []
                 sections = []
-                
+
                 for section_data in sections_data:
                     section = ReportSection(
                         title=section_data["title"],
@@ -812,10 +935,10 @@ class ReportGenerator:
                         section_type=section_data["type"],
                         order=section_data["order"],
                         word_count=section_data["word_count"],
-                        is_required=section_data["is_required"]
+                        is_required=section_data["is_required"],
                     )
                     sections.append(section)
-                
+
                 return GeneratedReport(
                     id=row["id"],
                     case_id=row["case_id"],
@@ -837,34 +960,38 @@ class ReportGenerator:
                     checksum=row["checksum"],
                     is_court_ready=row["is_court_ready"],
                     confidence_score=row["confidence_score"],
-                    total_word_count=row["total_word_count"]
+                    total_word_count=row["total_word_count"],
                 )
         return None
-    
-    async def _search_templates_db(self, filters: Dict[str, Any]) -> List[ReportTemplate]:
+
+    async def _search_templates_db(
+        self, filters: Dict[str, Any]
+    ) -> List[ReportTemplate]:
         """Search templates in database"""
         conditions = ["is_active = TRUE"]
         params = []
         param_idx = 1
-        
+
         if "report_type" in filters:
             conditions.append(f"report_type = ${param_idx}")
             params.append(filters["report_type"])
             param_idx += 1
-        
+
         if "format" in filters:
             conditions.append(f"format = ${param_idx}")
             params.append(filters["format"])
             param_idx += 1
-        
+
         if "created_by" in filters:
             conditions.append(f"created_by = ${param_idx}")
             params.append(filters["created_by"])
             param_idx += 1
-        
+
         where_clause = "WHERE " + " AND ".join(conditions)
-        query = f"SELECT * FROM report_templates {where_clause} ORDER BY created_date DESC"
-        
+        query = (
+            f"SELECT * FROM report_templates {where_clause} ORDER BY created_date DESC"
+        )
+
         async with self.db_pool.acquire() as conn:
             rows = await conn.fetch(query, *params)
             templates = []
@@ -877,54 +1004,64 @@ class ReportGenerator:
                     format=ReportFormat(row["format"]),
                     template_content=row["template_content"],
                     sections=json.loads(row["sections"]) if row["sections"] else [],
-                    required_fields=json.loads(row["required_fields"]) if row["required_fields"] else [],
-                    optional_fields=json.loads(row["optional_fields"]) if row["optional_fields"] else [],
+                    required_fields=(
+                        json.loads(row["required_fields"])
+                        if row["required_fields"]
+                        else []
+                    ),
+                    optional_fields=(
+                        json.loads(row["optional_fields"])
+                        if row["optional_fields"]
+                        else []
+                    ),
                     styling=json.loads(row["styling"]) if row["styling"] else {},
                     created_date=row["created_date"],
                     created_by=row["created_by"],
                     is_active=row["is_active"],
-                    version=row["version"]
+                    version=row["version"],
                 )
                 templates.append(template)
-            
+
             return templates
-    
-    async def _search_reports_db(self, filters: Dict[str, Any]) -> List[GeneratedReport]:
+
+    async def _search_reports_db(
+        self, filters: Dict[str, Any]
+    ) -> List[GeneratedReport]:
         """Search reports in database"""
         conditions = []
         params = []
         param_idx = 1
-        
+
         if "case_id" in filters:
             conditions.append(f"case_id = ${param_idx}")
             params.append(filters["case_id"])
             param_idx += 1
-        
+
         if "report_type" in filters:
             conditions.append(f"report_type = ${param_idx}")
             params.append(filters["report_type"])
             param_idx += 1
-        
+
         if "status" in filters:
             conditions.append(f"status = ${param_idx}")
             params.append(filters["status"])
             param_idx += 1
-        
+
         if "generated_by" in filters:
             conditions.append(f"generated_by = ${param_idx}")
             params.append(filters["generated_by"])
             param_idx += 1
-        
+
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
         query = f"SELECT * FROM generated_reports {where_clause} ORDER BY generated_date DESC"
-        
+
         async with self.db_pool.acquire() as conn:
             rows = await conn.fetch(query, *params)
             reports = []
             for row in rows:
                 sections_data = json.loads(row["sections"]) if row["sections"] else []
                 sections = []
-                
+
                 for section_data in sections_data:
                     section = ReportSection(
                         title=section_data["title"],
@@ -932,10 +1069,10 @@ class ReportGenerator:
                         section_type=section_data["type"],
                         order=section_data["order"],
                         word_count=section_data["word_count"],
-                        is_required=section_data["is_required"]
+                        is_required=section_data["is_required"],
                     )
                     sections.append(section)
-                
+
                 report = GeneratedReport(
                     id=row["id"],
                     case_id=row["case_id"],
@@ -957,13 +1094,15 @@ class ReportGenerator:
                     checksum=row["checksum"],
                     is_court_ready=row["is_court_ready"],
                     confidence_score=row["confidence_score"],
-                    total_word_count=row["total_word_count"]
+                    total_word_count=row["total_word_count"],
                 )
                 reports.append(report)
-            
+
             return reports
-    
-    async def _update_report_status_db(self, report_id: str, new_status: ReportStatus, user: str) -> None:
+
+    async def _update_report_status_db(
+        self, report_id: str, new_status: ReportStatus, user: str
+    ) -> None:
         """Update report status in database"""
         if new_status == ReportStatus.REVIEW:
             query = """
@@ -973,7 +1112,7 @@ class ReportGenerator:
             """
             async with self.db_pool.acquire() as conn:
                 await conn.execute(query, new_status.value, user, report_id)
-        
+
         elif new_status == ReportStatus.APPROVED:
             query = """
             UPDATE generated_reports SET 
@@ -982,7 +1121,7 @@ class ReportGenerator:
             """
             async with self.db_pool.acquire() as conn:
                 await conn.execute(query, new_status.value, user, report_id)
-        
+
         else:
             query = "UPDATE generated_reports SET status = $1 WHERE id = $2"
             async with self.db_pool.acquire() as conn:
@@ -991,6 +1130,7 @@ class ReportGenerator:
 
 # Global report generator instance
 _report_generator = None
+
 
 def get_report_generator() -> ReportGenerator:
     """Get the global report generator instance"""

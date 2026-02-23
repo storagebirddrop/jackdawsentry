@@ -4,24 +4,32 @@ Real-time intelligence from multiple sources
 """
 
 import asyncio
-import logging
-import aiohttp
 import hashlib
 import json
-from typing import List, Dict, Optional, Any, Set
-from datetime import datetime, timezone, timedelta
+import logging
 from dataclasses import dataclass
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from enum import Enum
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+
+import aiohttp
 from cryptography.fernet import Fernet
 
-from src.api.database import get_postgres_connection
 from src.api.config import settings
+from src.api.database import get_postgres_connection
 
 logger = logging.getLogger(__name__)
 
 
 class ThreatLevel(str, Enum):
     """Threat intelligence levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -31,6 +39,7 @@ class ThreatLevel(str, Enum):
 
 class ThreatType(str, Enum):
     """Types of threat intelligence"""
+
     SANCTIONS = "sanctions"
     SCAM = "scam"
     HACK = "hack"
@@ -49,6 +58,7 @@ class ThreatType(str, Enum):
 
 class FeedStatus(str, Enum):
     """Status of threat intelligence feeds"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     ERROR = "error"
@@ -59,6 +69,7 @@ class FeedStatus(str, Enum):
 @dataclass
 class ThreatIntelligence:
     """Threat intelligence data structure"""
+
     id: str
     feed_source: str
     threat_type: ThreatType
@@ -80,6 +91,7 @@ class ThreatIntelligence:
 @dataclass
 class ThreatFeed:
     """Threat intelligence feed configuration"""
+
     id: str
     name: str
     feed_type: str
@@ -95,7 +107,7 @@ class ThreatFeed:
 
 class ThreatIntelligenceManager:
     """Manager for threat intelligence feeds and data"""
-    
+
     def __init__(self):
         self.feeds: Dict[str, ThreatFeed] = {}
         self.intelligence_cache: Dict[str, ThreatIntelligence] = {}
@@ -104,28 +116,28 @@ class ThreatIntelligenceManager:
         self.settings = settings
         self.fernet = Fernet(self.settings.encryption_key.encode())
         self.http_session = None
-    
+
     async def initialize(self):
         """Initialize the threat intelligence manager"""
         if self._initialized:
             return
-        
+
         logger.info("Initializing Threat Intelligence Manager...")
-        
+
         # Initialize HTTP session
         self.http_session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=30, connect=10),
-            headers={"User-Agent": "Jackdaw-Sentry/1.0"}
+            headers={"User-Agent": "Jackdaw-Sentry/1.0"},
         )
-        
+
         await self._create_threat_intelligence_tables()
         await self._load_default_feeds()
         self._initialized = True
         logger.info("Threat Intelligence Manager initialized successfully")
-    
+
     async def _create_threat_intelligence_tables(self):
         """Create threat intelligence tables"""
-        
+
         create_intelligence_table = """
         CREATE TABLE IF NOT EXISTS threat_intelligence (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,7 +165,7 @@ class ThreatIntelligenceManager:
         CREATE INDEX IF NOT EXISTS idx_threat_intelligence_active ON threat_intelligence(is_active);
         CREATE INDEX IF NOT EXISTS idx_threat_intelligence_seen ON threat_intelligence(last_seen);
         """
-        
+
         create_feeds_table = """
         CREATE TABLE IF NOT EXISTS threat_feeds (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -176,7 +188,7 @@ class ThreatIntelligenceManager:
         CREATE INDEX IF NOT EXISTS idx_threat_feeds_active ON threat_feeds(is_active);
         CREATE INDEX IF NOT EXISTS idx_threat_feeds_sync ON threat_feeds(last_sync);
         """
-        
+
         create_sync_log_table = """
         CREATE TABLE IF NOT EXISTS threat_feed_sync_log (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -194,7 +206,7 @@ class ThreatIntelligenceManager:
         CREATE INDEX IF NOT EXISTS idx_threat_sync_log_feed ON threat_feed_sync_log(feed_id);
         CREATE INDEX IF NOT EXISTS idx_threat_sync_log_timestamp ON threat_feed_sync_log(sync_timestamp);
         """
-        
+
         conn = await get_postgres_connection()
         try:
             await conn.execute(create_intelligence_table)
@@ -208,10 +220,10 @@ class ThreatIntelligenceManager:
             raise
         finally:
             await conn.close()
-    
+
     async def _load_default_feeds(self):
         """Load default threat intelligence feeds"""
-        
+
         default_feeds = [
             ThreatFeed(
                 id="cryptoscdb",
@@ -221,7 +233,7 @@ class ThreatIntelligenceManager:
                 api_key="",
                 headers={"Accept": "application/json"},
                 sync_frequency_minutes=60,
-                is_active=True
+                is_active=True,
             ),
             ThreatFeed(
                 id="chainalysis",
@@ -231,7 +243,7 @@ class ThreatIntelligenceManager:
                 api_key="",
                 headers={"Accept": "application/json"},
                 sync_frequency_minutes=30,
-                is_active=True
+                is_active=True,
             ),
             ThreatFeed(
                 id="trmlabs",
@@ -241,7 +253,7 @@ class ThreatIntelligenceManager:
                 api_key="",
                 headers={"Accept": "application/json"},
                 sync_frequency_minutes=15,
-                is_active=True
+                is_active=True,
             ),
             ThreatFeed(
                 id="elliptic",
@@ -251,7 +263,7 @@ class ThreatIntelligenceManager:
                 api_key="",
                 headers={"Accept": "application/json"},
                 sync_frequency_minutes=30,
-                is_active=True
+                is_active=True,
             ),
             ThreatFeed(
                 id="cipherblade",
@@ -261,19 +273,19 @@ class ThreatIntelligenceManager:
                 api_key="",
                 headers={"Accept": "application/json"},
                 sync_frequency_minutes=60,
-                is_active=True
-            )
+                is_active=True,
+            ),
         ]
-        
+
         for feed in default_feeds:
             await self.add_feed(feed)
-    
+
     async def add_feed(self, feed: ThreatFeed) -> bool:
         """Add a threat intelligence feed"""
-        
+
         # Encrypt API key
         encrypted_key = self.fernet.encrypt(feed.api_key.encode()).decode()
-        
+
         insert_query = """
         INSERT INTO threat_feeds (
             feed_id, name, feed_type, api_endpoint, api_key_encrypted,
@@ -290,7 +302,7 @@ class ThreatIntelligenceManager:
             updated_at = NOW()
         RETURNING id
         """
-        
+
         conn = await get_postgres_connection()
         try:
             await conn.execute(
@@ -303,26 +315,26 @@ class ThreatIntelligenceManager:
                 json.dumps(feed.headers),
                 feed.sync_frequency_minutes,
                 feed.is_active,
-                json.dumps(feed.metadata or {})
+                json.dumps(feed.metadata or {}),
             )
             await conn.commit()
-            
+
             self.feeds[feed.id] = feed
             logger.info(f"Added threat feed: {feed.name}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error adding threat feed {feed.id}: {e}")
             await conn.rollback()
             return False
         finally:
             await conn.close()
-    
+
     async def sync_all_feeds(self) -> Dict[str, Any]:
         """Sync all active threat intelligence feeds"""
-        
+
         results = {}
-        
+
         for feed_id, feed in self.feeds.items():
             if feed.is_active:
                 try:
@@ -331,25 +343,25 @@ class ThreatIntelligenceManager:
                 except Exception as e:
                     logger.error(f"Error syncing feed {feed_id}: {e}")
                     results[feed_id] = {"status": "error", "error": str(e)}
-        
+
         return results
-    
+
     async def sync_feed(self, feed_id: str) -> Dict[str, Any]:
         """Sync a specific threat intelligence feed"""
-        
+
         feed = self.feeds.get(feed_id)
         if not feed:
             return {"status": "error", "error": f"Feed {feed_id} not found"}
-        
+
         if not feed.is_active:
             return {"status": "inactive", "message": f"Feed {feed_id} is inactive"}
-        
+
         start_time = datetime.now(timezone.utc)
-        
+
         try:
             # Decrypt API key
             api_key = self.fernet.decrypt(feed.api_key_encrypted.encode()).decode()
-            
+
             # Sync based on feed type
             if feed.feed_type == "cryptoscdb":
                 result = await self._sync_cryptoscdb_feed(feed, api_key)
@@ -363,51 +375,55 @@ class ThreatIntelligenceManager:
                 result = await self.sync_cipherblade_feed(feed, api_key)
             else:
                 result = await self._sync_generic_feed(feed, api_key)
-            
+
             # Update feed last sync time
             await self._update_feed_sync_time(feed_id, start_time, result["status"])
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error syncing feed {feed_id}: {e}")
             await self._update_feed_sync_time(feed_id, start_time, "error", str(e))
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_cryptoscdb_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_cryptoscdb_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync CryptoScamDB feed"""
-        
+
         try:
             # Get addresses from CryptoScamDB
             url = f"{feed.api_endpoint}?limit=100"
             headers = {**feed.headers, "X-API-Key": api_key}
-            
+
             async with self.http_session.get(url, headers=headers) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 if data.get("addresses"):
                     for address_data in data["addresses"]:
                         records_processed += 1
-                        
+
                         # Convert to threat intelligence format
                         intelligence = self._convert_to_intelligence(
                             "cryptoscdb", address_data, ThreatType.SCAM
                         )
-                        
+
                         if intelligence:
                             # Check if already exists
-                            existing = await self.get_intelligence_by_address(intelligence.address)
+                            existing = await self.get_intelligence_by_address(
+                                intelligence.address
+                            )
                             if existing:
                                 # Update existing record
                                 await self.update_intelligence(intelligence)
@@ -416,50 +432,54 @@ class ThreatIntelligenceManager:
                                 # Add new record
                                 await self.add_intelligence(intelligence)
                                 records_added += 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing CryptoScamDB feed: {e}")
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_chainalysis_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_chainalysis_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync Chainalysis feed"""
-        
+
         try:
             # Get address data from Chainalysis
             url = f"{feed.api_endpoint}/{feed.api_key}"
             headers = {**feed.headers, "X-API-Key": api_key}
-            
+
             async with self.http_session.get(url, headers=headers) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 if data.get("address"):
                     # Convert to threat intelligence format
                     intelligence = self._convert_to_intelligence(
                         "chainalysis", data, ThreatType.SCAM
                     )
-                    
+
                     if intelligence:
                         # Check if already exists
-                        existing = await self.get_intelligence_by_address(intelligence.address)
+                        existing = await self.get_intelligence_by_address(
+                            intelligence.address
+                        )
                         if existing:
                             await self.update_intelligence(intelligence)
                             records_updated += 1
@@ -467,50 +487,54 @@ class ThreatIntelligenceManager:
                             await self.add_intelligence(intelligence)
                             records_added += 1
                         records_processed = 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing Chainalysis feed: {e}")
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_trmlabs_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_trmlabs_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync TRM Labs feed"""
-        
+
         try:
             # Get address data from TRM Labs
             url = f"{feed.api_endpoint}/{feed.api_key}"
             headers = {**feed.headers, "X-API-Key": api_key}
-            
+
             async with self.http_session.get(url, headers=headers) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 if data.get("data"):
                     # Convert to threat intelligence format
                     intelligence = self._convert_to_intelligence(
                         "trmlabs", data["data"], ThreatType.SCAM
                     )
-                    
+
                     if intelligence:
                         # Check if already exists
-                        existing = await self.get_intelligence_by_address(intelligence.address)
+                        existing = await self.get_intelligence_by_address(
+                            intelligence.address
+                        )
                         if existing:
                             await self.update_intelligence(intelligence)
                             records_updated += 1
@@ -518,50 +542,54 @@ class ThreatIntelligenceManager:
                             await self.add_intelligence(intelligence)
                             records_added += 1
                         records_processed = 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing TRM Labs feed: {e}")
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_elliptic_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_elliptic_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync Elliptic feed"""
-        
+
         try:
             # Get address data from Elliptic
             url = f"{feed.api_endpoint}/{feed.api_key}"
             headers = {**feed.headers, "X-API-Key": api_key}
-            
+
             async with self.http_session.get(url, headers=headers) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 if data.get("data"):
                     # Convert to threat intelligence format
                     intelligence = self._convert_to_intelligence(
                         "elliptic", data["data"], ThreatType.SCAM
                     )
-                    
+
                     if intelligence:
                         # Check if already exists
-                        existing = await self.get_intelligence_by_address(intelligence.address)
+                        existing = await self.get_intelligence_by_address(
+                            intelligence.address
+                        )
                         if existing:
                             await self.update_intelligence(intelligence)
                             records_updated += 1
@@ -569,50 +597,54 @@ class ThreatIntelligenceManager:
                             await self.add_intelligence(intelligence)
                             records_added += 1
                         records_processed = 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing Elliptic feed: {e}")
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_cipherblade_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_cipherblade_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync CipherBlade feed"""
-        
+
         try:
             # Get address data from CipherBlade
             url = f"{feed.api_endpoint}/{feed.api_key}"
             headers = {**feed.headers, "X-API-Key": api_key}
-            
+
             async with self.http_session.get(url, headers=headers) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 if data.get("data"):
                     # Convert to threat intelligence format
                     intelligence = self._convert_to_intelligence(
                         "cipherblade", data["data"], ThreatType.SCAM
                     )
-                    
+
                     if intelligence:
                         # Check if already exists
-                        existing = await self.get_intelligence_by_address(intelligence.address)
+                        existing = await self.get_intelligence_by_address(
+                            intelligence.address
+                        )
                         if existing:
                             await self.update_intelligence(intelligence)
                             records_updated += 1
@@ -620,50 +652,58 @@ class ThreatIntelligenceManager:
                             await self.add_intelligence(intelligence)
                             records_added += 1
                         records_processed = 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing CipherBlade feed: {e}")
             return {"status": "error", "error": str(e)}
-    
-    async def _sync_generic_feed(self, feed: ThreatFeed, api_key: str) -> Dict[str, Any]:
+
+    async def _sync_generic_feed(
+        self, feed: ThreatFeed, api_key: str
+    ) -> Dict[str, Any]:
         """Sync generic threat intelligence feed"""
-        
+
         try:
             # Generic feed sync
             headers = {**feed.headers}
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
-            
-            async with self.http_session.get(feed.api_endpoint, headers=headers) as response:
+
+            async with self.http_session.get(
+                feed.api_endpoint, headers=headers
+            ) as response:
                 if response.status != 200:
                     return {
                         "status": "error",
-                        "error": f"HTTP {response.status}: {response.text}"
+                        "error": f"HTTP {response.status}: {response.text}",
                     }
-                
+
                 data = await response.json()
-                
+
                 records_processed = 0
                 records_added = 0
                 records_updated = 0
                 records_removed = 0
-                
+
                 # Generic processing - would need to be customized per feed
                 if isinstance(data, list):
                     for item in data:
                         if isinstance(item, dict) and "address" in item:
                             records_processed += 1
-                            
+
                             intelligence = ThreatIntelligence(
-                                id=str(hashlib.sha256(f"{feed.id}:{item['address']}").hexdigest()),
+                                id=str(
+                                    hashlib.sha256(
+                                        f"{feed.id}:{item['address']}"
+                                    ).hexdigest()
+                                ),
                                 feed_source=feed.id,
                                 threat_type=ThreatType.SCAM,  # Default
                                 threat_level=ThreatLevel.MEDIUM,
@@ -671,43 +711,47 @@ class ThreatIntelligenceManager:
                                 entity=item.get("entity"),
                                 description=item.get("description"),
                                 confidence_score=1.0,
-                                raw_data=item
+                                raw_data=item,
                             )
-                            
+
                             # Check if already exists
-                            existing = await self.get_intelligence_by_address(intelligence.address)
+                            existing = await self.get_intelligence_by_address(
+                                intelligence.address
+                            )
                             if existing:
                                 await self.update_intelligence(intelligence)
                                 records_updated += 1
                             else:
                                 await self.add_intelligence(intelligence)
                                 records_added += 1
-                
+
                 return {
                     "status": "success",
                     "records_processed": records_processed,
                     "records_added": records_added,
                     "records_updated": records_updated,
-                    "records_removed": records_removed
+                    "records_removed": records_removed,
                 }
-                
+
         except Exception as e:
             logger.error(f"Error syncing generic feed {feed.id}: {e}")
             return {"status": "error", "error": str(e)}
-    
-    def _convert_to_intelligence(self, source: str, data: Any, threat_type: ThreatType) -> Optional[ThreatIntelligence]:
+
+    def _convert_to_intelligence(
+        self, source: str, data: Any, threat_type: ThreatType
+    ) -> Optional[ThreatIntelligence]:
         """Convert feed data to threat intelligence format"""
-        
+
         # This would need to be customized based on the specific feed format
         if not data:
             return None
-        
+
         # Default conversion - would need to be adapted per feed
         if isinstance(data, dict):
             address = data.get("address")
             if not address:
                 return None
-            
+
             return ThreatIntelligence(
                 id=str(hashlib.sha256(f"{source}:{address}").hexdigest()),
                 feed_source=source,
@@ -718,14 +762,14 @@ class ThreatIntelligenceManager:
                 description=data.get("description"),
                 confidence_score=data.get("confidence", 1.0),
                 tags=data.get("tags", []),
-                raw_data=data
+                raw_data=data,
             )
-        
+
         return None
-    
+
     async def add_intelligence(self, intelligence: ThreatIntelligence) -> str:
         """Add threat intelligence to database"""
-        
+
         insert_query = """
         INSERT INTO threat_intelligence (
             id, feed_source, threat_type, threat_level, address, entity,
@@ -734,7 +778,7 @@ class ThreatIntelligenceManager:
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING id
         """
-        
+
         conn = await get_postgres_connection()
         try:
             result = await conn.fetchrow(
@@ -752,27 +796,29 @@ class ThreatIntelligenceManager:
                 intelligence.is_active,
                 intelligence.tags or [],
                 json.dumps(intelligence.evidence or []),
-                json.dumps(intelligence.raw_data or {})
+                json.dumps(intelligence.raw_data or {}),
             )
-            
+
             await conn.commit()
-            
+
             # Update cache
             self.intelligence_cache[intelligence.address] = intelligence
-            
-            logger.info(f"Added threat intelligence for {intelligence.address} from {intelligence.feed_source}")
-            return str(result['id'])
-            
+
+            logger.info(
+                f"Added threat intelligence for {intelligence.address} from {intelligence.feed_source}"
+            )
+            return str(result["id"])
+
         except Exception as e:
             logger.error(f"Error adding threat intelligence: {e}")
             await conn.rollback()
             raise
         finally:
             await conn.close()
-    
+
     async def update_intelligence(self, intelligence: ThreatIntelligence) -> bool:
         """Update existing threat intelligence"""
-        
+
         update_query = """
         UPDATE threat_intelligence
         SET threat_type = $1, threat_level = $2, entity = $3, description = $4,
@@ -780,7 +826,7 @@ class ThreatIntelligenceManager:
             tags = $8, evidence = $9, raw_data = $10, updated_at = NOW()
         WHERE address = $11
         """
-        
+
         conn = await get_postgres_connection()
         try:
             result = await conn.execute(
@@ -795,34 +841,36 @@ class ThreatIntelligenceManager:
                 intelligence.tags or [],
                 json.dumps(intelligence.evidence or []),
                 json.dumps(intelligence.raw_data or {}),
-                intelligence.address
+                intelligence.address,
             )
-            
+
             await conn.commit()
-            
+
             # Update cache
             self.intelligence_cache[intelligence.address] = intelligence
-            
+
             success = result == "UPDATE 1"
             if success:
                 logger.info(f"Updated threat intelligence for {intelligence.address}")
-            
+
             return success
-            
+
         except Exception as e:
             logger.error(f"Error updating threat intelligence: {e}")
             await conn.rollback()
             return False
         finally:
             await conn.close()
-    
-    async def get_intelligence_by_address(self, address: str) -> Optional[ThreatIntelligence]:
+
+    async def get_intelligence_by_address(
+        self, address: str
+    ) -> Optional[ThreatIntelligence]:
         """Get threat intelligence by address"""
-        
+
         # Check cache first
         if address in self.intelligence_cache:
             return self.intelligence_cache[address]
-        
+
         select_query = """
         SELECT id, feed_source, threat_type, threat_level, address, entity,
                description, confidence_score, first_seen, last_seen, is_active,
@@ -830,43 +878,43 @@ class ThreatIntelligenceManager:
         FROM threat_intelligence
         WHERE address = $1
         """
-        
+
         conn = await get_postgres_connection()
         try:
             result = await conn.fetchrow(select_query, address.lower())
-            
+
             if result:
                 intelligence = ThreatIntelligence(
-                    id=result['id'],
-                    feed_source=result['feed_source'],
-                    threat_type=ThreatType(result['threat_type']),
-                    threat_level=ThreatLevel(result['threat_level']),
-                    address=result['address'],
-                    entity=result['entity'],
-                    description=result['description'],
-                    confidence_score=float(result['confidence_score']),
-                    first_seen=result['first_seen'],
-                    last_seen=result['last_seen'],
-                    is_active=result['is_active'],
-                    tags=result['tags'],
-                    evidence=result['evidence'],
-                    raw_data=result['raw_data'],
-                    created_at=result['created_at'],
-                    updated_at=result['updated_at']
+                    id=result["id"],
+                    feed_source=result["feed_source"],
+                    threat_type=ThreatType(result["threat_type"]),
+                    threat_level=ThreatLevel(result["threat_level"]),
+                    address=result["address"],
+                    entity=result["entity"],
+                    description=result["description"],
+                    confidence_score=float(result["confidence_score"]),
+                    first_seen=result["first_seen"],
+                    last_seen=result["last_seen"],
+                    is_active=result["is_active"],
+                    tags=result["tags"],
+                    evidence=result["evidence"],
+                    raw_data=result["raw_data"],
+                    created_at=result["created_at"],
+                    updated_at=result["updated_at"],
                 )
-                
+
                 # Update cache
                 self.intelligence_cache[intelligence.address] = intelligence
                 return intelligence
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Error getting threat intelligence for {address}: {e}")
             return None
         finally:
             await conn.close()
-    
+
     async def search_intelligence(
         self,
         threat_types: Optional[List[ThreatType]] = None,
@@ -875,46 +923,52 @@ class ThreatIntelligenceManager:
         entities: Optional[List[str]] = None,
         is_active: Optional[bool] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[ThreatIntelligence]:
         """Search threat intelligence with filters"""
-        
+
         # Build WHERE clause
         conditions = []
         params = []
         param_count = 0
-        
+
         if threat_types:
             placeholders = ",".join([f"${i + 1}" for i in range(len(threat_types))])
             conditions.append(f"threat_type IN ({placeholders})")
             params.extend([t.value for t in threat_types])
             param_count += len(threat_types)
-        
+
         if threat_levels:
-            placeholders = ",".join([f"${i + param_count + 1}" for i in range(len(threat_levels))])
+            placeholders = ",".join(
+                [f"${i + param_count + 1}" for i in range(len(threat_levels))]
+            )
             conditions.append(f"threat_level IN ({placeholders})")
             params.extend([l.value for l in threat_levels])
             param_count += len(threat_levels)
-        
+
         if addresses:
-            placeholders = ",".join([f"${i + param_count + 1}" for i in range(len(addresses))])
+            placeholders = ",".join(
+                [f"${i + param_count + 1}" for i in range(len(addresses))]
+            )
             conditions.append(f"address ILIKE ANY ({placeholders})")
             params.extend([addr.lower() for addr in addresses])
             param_count += len(addresses)
-        
+
         if entities:
-            placeholders = ",".join([f"${i + param_count + 1}" for i in range(len(entities))])
+            placeholders = ",".join(
+                [f"${i + param_count + 1}" for i in range(len(entities))]
+            )
             conditions.append(f"entity ILIKE ANY ({placeholders})")
             params.extend([entity.lower() for entity in entities])
             param_count += len(entities)
-        
+
         if is_active is not None:
             conditions.append(f"is_active = ${param_count + 1}")
             params.append(is_active)
             param_count += 1
-        
+
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-        
+
         select_query = f"""
         SELECT id, feed_source, threat_type, threat_level, address, entity,
                description, confidence_score, first_seen, last_seen, is_active,
@@ -924,46 +978,46 @@ class ThreatIntelligenceManager:
         ORDER BY last_seen DESC, confidence_score DESC
         LIMIT ${param_count + 1} OFFSET ${param_count + 2}
         """
-        
+
         params.extend([limit, offset])
-        
+
         conn = await get_postgres_connection()
         try:
             results = await conn.fetch(select_query, *params)
-            
+
             intelligence_list = []
             for result in results:
                 intelligence = ThreatIntelligence(
-                    id=result['id'],
-                    feed_source=result['feed_source'],
-                    threat_type=ThreatType(result['threat_type']),
-                    threat_level=ThreatLevel(result['threat_level']),
-                    address=result['address'],
-                    entity=result['entity'],
-                    description=result['description'],
-                    confidence_score=float(result['confidence_score']),
-                    first_seen=result['first_seen'],
-                    last_seen=result['last_seen'],
-                    is_active=result['is_active'],
-                    tags=result['tags'],
-                    evidence=result['evidence'],
-                    raw_data=result['raw_data'],
-                    created_at=result['created_at'],
-                    updated_at=result['updated_at']
+                    id=result["id"],
+                    feed_source=result["feed_source"],
+                    threat_type=ThreatType(result["threat_type"]),
+                    threat_level=ThreatLevel(result["threat_level"]),
+                    address=result["address"],
+                    entity=result["entity"],
+                    description=result["description"],
+                    confidence_score=float(result["confidence_score"]),
+                    first_seen=result["first_seen"],
+                    last_seen=result["last_seen"],
+                    is_active=result["is_active"],
+                    tags=result["tags"],
+                    evidence=result["evidence"],
+                    raw_data=result["raw_data"],
+                    created_at=result["created_at"],
+                    updated_at=result["updated_at"],
                 )
                 intelligence_list.append(intelligence)
-            
+
             return intelligence_list
-            
+
         except Exception as e:
             logger.error(f"Error searching threat intelligence: {e}")
             return []
         finally:
             await conn.close()
-    
+
     async def get_statistics(self) -> Dict[str, Any]:
         """Get threat intelligence statistics"""
-        
+
         stats_query = """
         SELECT 
             COUNT(*) as total_intelligence,
@@ -976,44 +1030,48 @@ class ThreatIntelligenceManager:
         FROM threat_intelligence
         GROUP BY threat_type, threat_level
         """
-        
+
         conn = await get_postgres_connection()
         try:
             results = await conn.fetch(stats_query)
-            
-            total_intelligence = sum(row['total_intelligence'] for row in results)
-            active_intelligence = sum(row['active_intelligence'] for row in results)
-            unique_addresses = sum(row['unique_addresses'] for row in results)
-            active_feeds = sum(row['active_feeds'] for row in results)
-            
+
+            total_intelligence = sum(row["total_intelligence"] for row in results)
+            active_intelligence = sum(row["active_intelligence"] for row in results)
+            unique_addresses = sum(row["unique_addresses"] for row in results)
+            active_feeds = sum(row["active_feeds"] for row in results)
+
             return {
-                'total_intelligence': total_intelligence,
-                'active_intelligence': active_intelligence,
-                'active_feeds': active_feeds,
-                'unique_addresses': unique_addresses,
-                'breakdown_by_type': [
+                "total_intelligence": total_intelligence,
+                "active_intelligence": active_intelligence,
+                "active_feeds": active_feeds,
+                "unique_addresses": unique_addresses,
+                "breakdown_by_type": [
                     {
-                        'threat_type': row['threat_type'],
-                        'threat_level': row['threat_level'],
-                        'count': row['total_intelligence'],
-                        'avg_confidence': float(row['avg_confidence'])
+                        "threat_type": row["threat_type"],
+                        "threat_level": row["threat_level"],
+                        "count": row["total_intelligence"],
+                        "avg_confidence": float(row["avg_confidence"]),
                     }
                     for row in results
                 ],
-                'generated_at': datetime.now(timezone.utc).isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"Error getting threat intelligence statistics: {e}")
             return {}
         finally:
             await conn.close()
-    
-    async def _update_feed_sync_time(self, feed_id: str, start_time: datetime, status: str, error_message: str = ""):
+
+    async def _update_feed_sync_time(
+        self, feed_id: str, start_time: datetime, status: str, error_message: str = ""
+    ):
         """Update feed sync time and log results"""
-        
-        sync_duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
-        
+
+        sync_duration_ms = int(
+            (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+        )
+
         # Update feed in database
         update_query = """
         UPDATE threat_feeds
@@ -1026,7 +1084,7 @@ class ThreatIntelligenceManager:
         END, updated_at = NOW()
         WHERE feed_id = $4
         """
-        
+
         # Log sync result
         log_query = """
         INSERT INTO threat_feed_sync_log (
@@ -1035,13 +1093,24 @@ class ThreatIntelligenceManager:
             error_message, sync_timestamp
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """
-        
+
         conn = await get_postgres_connection()
         try:
             await conn.execute(update_query, start_time, status, error_message, feed_id)
-            await conn.execute(log_query, feed_id, status, 0, 0, 0, 0, sync_duration_ms, error_message, start_time)
+            await conn.execute(
+                log_query,
+                feed_id,
+                status,
+                0,
+                0,
+                0,
+                0,
+                sync_duration_ms,
+                error_message,
+                start_time,
+            )
             await conn.commit()
-            
+
             # Update feed in memory
             if feed_id in self.feeds:
                 self.feeds[feed_id].last_sync = start_time
@@ -1049,7 +1118,7 @@ class ThreatIntelligenceManager:
                     self.feeds[feed_id].error_count += 1
                 else:
                     self.feeds[feed_id].error_count = 0
-            
+
         except Exception as e:
             logger.error(f"Error updating feed sync time for {feed_id}: {e}")
             await conn.rollback()
@@ -1059,6 +1128,7 @@ class ThreatIntelligenceManager:
 
 # Global threat intelligence manager instance
 _threat_intelligence_manager = None
+
 
 def get_threat_intelligence_manager() -> ThreatIntelligenceManager:
     """Get the global threat intelligence manager instance"""

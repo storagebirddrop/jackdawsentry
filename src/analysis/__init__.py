@@ -10,6 +10,4 @@ from .bridge_tracker import BridgeTracker
 # from .address_clustering import AddressClustering
 # from .ml_models import MLModels
 
-__all__ = [
-    'BridgeTracker'
-]
+__all__ = ["BridgeTracker"]

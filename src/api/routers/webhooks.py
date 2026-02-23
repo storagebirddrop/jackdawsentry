@@ -5,11 +5,16 @@ Outbound webhook registration and management.
 Prefix: /api/v1/webhooks
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_validator
 from typing import List
 
-from src.api.auth import User, get_current_user
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import User
+from src.api.auth import get_current_user
 from src.api.database import get_postgres_connection
 from src.services.webhook_manager import VALID_EVENTS
 
@@ -53,6 +58,7 @@ async def register_webhook(
 ):
     """Register a new outbound webhook endpoint."""
     from src.services.webhook_manager import register_webhook as _register
+
     async with get_postgres_connection() as conn:
         hook = await _register(
             conn, current_user.id, request.url, request.events, request.secret
@@ -64,6 +70,7 @@ async def register_webhook(
 async def list_webhooks(current_user: User = Depends(get_current_user)):
     """List all webhooks registered by the current user."""
     from src.services.webhook_manager import list_webhooks as _list
+
     async with get_postgres_connection() as conn:
         hooks = await _list(conn, current_user.id)
     return {"success": True, "webhooks": hooks, "count": len(hooks)}
@@ -76,6 +83,7 @@ async def delete_webhook(
 ):
     """Delete a webhook registration."""
     from src.services.webhook_manager import delete_webhook as _delete
+
     async with get_postgres_connection() as conn:
         deleted = await _delete(conn, hook_id, current_user.id)
     if not deleted:

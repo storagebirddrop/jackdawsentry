@@ -93,6 +93,7 @@ JWT tokens expire after 30 minutes by default. Implement token refresh logic:
 
 ```python
 import time
+import threading
 from datetime import datetime, timedelta
 
 class TokenManager:
@@ -101,10 +102,15 @@ class TokenManager:
         self.password = password
         self.token = None
         self.expires_at = None
+        self._lock = threading.Lock()
     
     def get_token(self):
-        if not self.token or datetime.now() >= self.expires_at:
-            self.refresh_token()
+        # Add safety buffer for clock skew/latency
+        if not self.token or datetime.now() >= self.expires_at - timedelta(seconds=30):
+            with self._lock:  # Protect refresh from races
+                # Double-check after acquiring lock
+                if not self.token or datetime.now() >= self.expires_at - timedelta(seconds=30):
+                    self.refresh_token()
         return self.token
     
     def refresh_token(self):
@@ -116,9 +122,11 @@ class TokenManager:
         if response.status_code == 200:
             data = response.json()
             self.token = data["access_token"]
-            self.expires_at = datetime.now() + timedelta(seconds=data["expires_in"])
+            # Add safety buffer when computing expiry
+            self.expires_at = datetime.now() + timedelta(seconds=data["expires_in"] - 30)
         else:
-            raise Exception("Failed to refresh token")
+            # Improve error handling with descriptive exception
+            raise Exception(f"Failed to refresh token: {response.status_code} - {response.text}")
 
 # Usage
 token_manager = TokenManager("username", "password")
@@ -320,7 +328,7 @@ POST /api/v1/compliance/reports
 **Request Body:**
 ```json
 {
-  "report_type": "sar",  // sar, ctr, annual_review
+  "report_type": "sar",
   "period": {
     "start": "2024-01-01T00:00:00Z",
     "end": "2024-01-31T23:59:59Z"
@@ -329,6 +337,8 @@ POST /api/v1/compliance/reports
   "format": "pdf"
 }
 ```
+
+**Valid report types:** `sar`, `ctr`, `annual_review`
 
 ### Blockchain Endpoints
 
@@ -497,6 +507,17 @@ for address in addresses:
 
 # Good: Single bulk request
 results = bulk_analyze_addresses(addresses)
+
+# Conceptual helper - implement as batch call to analyze_address:
+def bulk_analyze_addresses(addresses):
+    """Bulk analyze multiple addresses - implement as batch API call"""
+    response = requests.post(
+        f"{BASE_URL}/api/v1/analysis/bulk",
+        headers=headers,
+        json={"addresses": addresses}
+    )
+    response.raise_for_status()
+    return response.json()
 ```
 
 ### 2. Implement Caching
@@ -506,25 +527,32 @@ Cache frequently requested data to reduce API calls:
 ```python
 import functools
 import time
+import threading
+import pickle
+import hashlib
 from datetime import timedelta, datetime
 
 def cache_result(ttl_seconds=3600):
     cache = {}
+    cache_lock = threading.RLock()
     
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            key = str(args) + str(kwargs)
+            # Generate stable serialized key
+            key_payload = pickle.dumps((args, kwargs))
+            key = hashlib.sha256(key_payload).hexdigest()
             now = datetime.now()
             
-            if key in cache:
-                cached_time, result = cache[key]
-                if (now - cached_time) < timedelta(seconds=ttl_seconds):
-                    return result
-            
-            result = func(*args, **kwargs)
-            cache[key] = (now, result)
-            return result
+            with cache_lock:
+                if key in cache:
+                    cached_time, result = cache[key]
+                    if (now - cached_time) < timedelta(seconds=ttl_seconds):
+                        return result
+                
+                result = func(*args, **kwargs)
+                cache[key] = (now, result)
+                return result
         
         return wrapper
     return decorator
@@ -547,7 +575,7 @@ session = requests.Session()
 retry_strategy = Retry(
     total=3,
     backoff_factor=1,
-    status_forcelist=[429, 500, 502, 503, 504],
+    status_forcelist=[500, 502, 503, 504],
 )
 
 adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -706,6 +734,7 @@ class InvestigationWorkflow:
                 "addresses": addresses
             }
         )
+        response.raise_for_status()
         return response.json()
     
     def analyze_address(self, address):
@@ -713,6 +742,7 @@ class InvestigationWorkflow:
             f"{self.base_url}/api/v1/analysis/address/{address}",
             headers=self.headers
         )
+        response.raise_for_status()
         return response.json()
     
     def detect_patterns(self, addresses):
@@ -721,6 +751,7 @@ class InvestigationWorkflow:
             headers=self.headers,
             json={"addresses": addresses}
         )
+        response.raise_for_status()
         return response.json()
     
     def add_evidence(self, investigation_id, evidence):
@@ -729,6 +760,7 @@ class InvestigationWorkflow:
             headers=self.headers,
             json=evidence
         )
+        response.raise_for_status()
         return response.json()
     
     def generate_compliance_report(self, investigation_id):
@@ -741,6 +773,7 @@ class InvestigationWorkflow:
                 "format": "pdf"
             }
         )
+        response.raise_for_status()
         return response.json()
     
     def update_investigation_status(self, investigation_id, status):
@@ -749,6 +782,7 @@ class InvestigationWorkflow:
             headers=self.headers,
             json={"status": status}
         )
+        response.raise_for_status()
         return response.json()
     
     def get_investigation_summary(self, investigation_id):
@@ -756,6 +790,7 @@ class InvestigationWorkflow:
             f"{self.base_url}/api/v1/investigations/{investigation_id}",
             headers=self.headers
         )
+        response.raise_for_status()
         return response.json()
 
 # Usage

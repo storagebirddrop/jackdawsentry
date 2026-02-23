@@ -19,8 +19,12 @@ Protocol types:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -30,10 +34,12 @@ from typing import Dict, List, Optional, Set
 @dataclass
 class Protocol:
     name: str
-    protocol_type: str          # bridge | dex | lending | staking | yield_farming | mixer | nft | payments
+    protocol_type: (
+        str  # bridge | dex | lending | staking | yield_farming | mixer | nft | payments
+    )
     chains: List[str]
-    addresses: Dict[str, List[str]]   # chain → list of known contract addresses
-    risk_level: str = "low"           # low | medium | high | critical
+    addresses: Dict[str, List[str]]  # chain → list of known contract addresses
+    risk_level: str = "low"  # low | medium | high | critical
     description: str = ""
     website: str = ""
     tags: List[str] = field(default_factory=list)
@@ -145,7 +151,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://cbridge.celer.network",
         tags=["bridge"],
     ),
-
     # ── DEXes ─────────────────────────────────────────────────────────────────
     Protocol(
         name="Uniswap V2",
@@ -165,7 +170,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="dex",
         chains=["ethereum", "polygon", "arbitrum", "optimism", "bsc"],
         addresses={
-            "ethereum": ["0xe592427a0aece92de3edee1f18e0157c05861564", "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"],
+            "ethereum": [
+                "0xe592427a0aece92de3edee1f18e0157c05861564",
+                "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45",
+            ],
             "polygon": ["0xe592427a0aece92de3edee1f18e0157c05861564"],
             "arbitrum": ["0xe592427a0aece92de3edee1f18e0157c05861564"],
         },
@@ -179,7 +187,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="dex",
         chains=["ethereum", "polygon", "arbitrum", "avalanche"],
         addresses={
-            "ethereum": ["0x99e921ad2c4dbf743735b9bea3682db22f7a7a3f", "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"],
+            "ethereum": [
+                "0x99e921ad2c4dbf743735b9bea3682db22f7a7a3f",
+                "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7",
+            ],
         },
         risk_level="low",
         description="AMM optimised for stablecoin and pegged asset swaps",
@@ -204,7 +215,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="dex",
         chains=["bsc", "ethereum"],
         addresses={
-            "bsc": ["0x10ed43c718714eb63d5aa57b78b54704e256024e", "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"],
+            "bsc": [
+                "0x10ed43c718714eb63d5aa57b78b54704e256024e",
+                "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+            ],
         },
         risk_level="low",
         description="Leading DEX on BNB Chain",
@@ -216,7 +230,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="dex",
         chains=["ethereum", "polygon", "bsc", "arbitrum", "optimism", "avalanche"],
         addresses={
-            "ethereum": ["0x1111111254fb6c44bac0bed2854e76f90643097d", "0x1111111254eeb25477b68fb85ed929f73a960582"],
+            "ethereum": [
+                "0x1111111254fb6c44bac0bed2854e76f90643097d",
+                "0x1111111254eeb25477b68fb85ed929f73a960582",
+            ],
             "polygon": ["0x1111111254fb6c44bac0bed2854e76f90643097d"],
         },
         risk_level="low",
@@ -248,7 +265,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://dydx.exchange",
         tags=["dex", "derivatives", "perps"],
     ),
-
     # ── Lending ───────────────────────────────────────────────────────────────
     Protocol(
         name="Aave V2",
@@ -306,7 +322,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="lending",
         chains=["ethereum"],
         addresses={
-            "ethereum": ["0x9759a6ac90977b93b58547b4a71c78317f391a28", "0x35d1b3f3d7966a1dfe207aa4514c12a259a0492b"],
+            "ethereum": [
+                "0x9759a6ac90977b93b58547b4a71c78317f391a28",
+                "0x35d1b3f3d7966a1dfe207aa4514c12a259a0492b",
+            ],
         },
         risk_level="low",
         description="DAI stablecoin and CDP lending protocol",
@@ -330,7 +349,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="lending",
         chains=["ethereum", "base"],
         addresses={
-            "ethereum": ["0x8888882f8f843896699869179fb6035b5ab7bb1b", "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb"],
+            "ethereum": [
+                "0x8888882f8f843896699869179fb6035b5ab7bb1b",
+                "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+            ],
         },
         risk_level="low",
         description="Peer-to-peer lending optimizer on top of Aave/Compound",
@@ -350,14 +372,16 @@ _PROTOCOLS: List[Protocol] = [
         website="https://radiant.capital",
         tags=["lending", "omnichain"],
     ),
-
     # ── Staking ───────────────────────────────────────────────────────────────
     Protocol(
         name="Lido Finance",
         protocol_type="staking",
         chains=["ethereum", "solana", "polygon"],
         addresses={
-            "ethereum": ["0xae7ab96520de3a18e5e111b5eaab095312d7fe84", "0xdc24316b9ae028f1497c275eb9192a3ea0f67022"],
+            "ethereum": [
+                "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+                "0xdc24316b9ae028f1497c275eb9192a3ea0f67022",
+            ],
             "solana": ["CrpYkTSz4hkdENNfEXeB61ipTiHzmKjRSZxVaLMez5tA"],
         },
         risk_level="low",
@@ -370,7 +394,10 @@ _PROTOCOLS: List[Protocol] = [
         protocol_type="staking",
         chains=["ethereum"],
         addresses={
-            "ethereum": ["0xdd3f50f8a6cafbe9b31a427582963f465e745af8", "0xae78736cd615f374d3085123a210448e74fc6393"],
+            "ethereum": [
+                "0xdd3f50f8a6cafbe9b31a427582963f465e745af8",
+                "0xae78736cd615f374d3085123a210448e74fc6393",
+            ],
         },
         risk_level="low",
         description="Decentralised Ethereum staking protocol (rETH)",
@@ -402,14 +429,16 @@ _PROTOCOLS: List[Protocol] = [
         website="https://staderlabs.com",
         tags=["staking", "liquid-staking"],
     ),
-
     # ── Yield Farming / Aggregators ───────────────────────────────────────────
     Protocol(
         name="Yearn Finance",
         protocol_type="yield_farming",
         chains=["ethereum", "polygon", "arbitrum", "avalanche"],
         addresses={
-            "ethereum": ["0x50c1a2ea0a861a967d9d0ffe2ae4012c2e053804", "0x52f04c806eb82930f40d410259b8aa71c0abe1e0"],
+            "ethereum": [
+                "0x50c1a2ea0a861a967d9d0ffe2ae4012c2e053804",
+                "0x52f04c806eb82930f40d410259b8aa71c0abe1e0",
+            ],
         },
         risk_level="low",
         description="Automated yield optimisation vaults",
@@ -466,7 +495,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://pendle.finance",
         tags=["yield", "tokenisation"],
     ),
-
     # ── Mixers / Privacy ──────────────────────────────────────────────────────
     Protocol(
         name="Tornado Cash",
@@ -499,7 +527,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://railgun.org",
         tags=["mixer", "privacy", "zk"],
     ),
-
     # ── NFT Marketplaces ──────────────────────────────────────────────────────
     Protocol(
         name="OpenSea",
@@ -525,7 +552,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://blur.io",
         tags=["nft", "marketplace"],
     ),
-
     # ── Payment Processors ─────────────────────────────────────────────────────
     Protocol(
         name="Tornado Cash Nova",
@@ -563,7 +589,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://sablier.com",
         tags=["payments", "streaming"],
     ),
-
     # ── Additional DEXes ─────────────────────────────────────────────────────
     Protocol(
         name="Balancer",
@@ -602,7 +627,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://aerodrome.finance",
         tags=["dex", "amm", "l2"],
     ),
-
     # ── Additional Lending ────────────────────────────────────────────────────
     Protocol(
         name="Spark Protocol",
@@ -628,7 +652,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://venus.io",
         tags=["lending", "bsc"],
     ),
-
     # ── Additional Staking ────────────────────────────────────────────────────
     Protocol(
         name="EtherFi",
@@ -654,7 +677,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://kelpdao.xyz",
         tags=["staking", "restaking"],
     ),
-
     # ── Additional Yield ──────────────────────────────────────────────────────
     Protocol(
         name="Ethena",
@@ -680,7 +702,6 @@ _PROTOCOLS: List[Protocol] = [
         website="https://originprotocol.com",
         tags=["yield", "stablecoin"],
     ),
-
     # ── Additional Bridge ─────────────────────────────────────────────────────
     Protocol(
         name="Synapse Protocol",
@@ -741,26 +762,46 @@ def get_protocols_by_type(protocol_type: str) -> List[Protocol]:
 
 def get_known_bridge_addresses() -> Set[str]:
     """Return all known bridge contract addresses (lowercase)."""
-    return {addr.lower() for p in _PROTOCOLS if p.protocol_type == "bridge"
-            for addrs in p.addresses.values() for addr in addrs}
+    return {
+        addr.lower()
+        for p in _PROTOCOLS
+        if p.protocol_type == "bridge"
+        for addrs in p.addresses.values()
+        for addr in addrs
+    }
 
 
 def get_known_dex_addresses() -> Set[str]:
     """Return all known DEX contract addresses (lowercase)."""
-    return {addr.lower() for p in _PROTOCOLS if p.protocol_type == "dex"
-            for addrs in p.addresses.values() for addr in addrs}
+    return {
+        addr.lower()
+        for p in _PROTOCOLS
+        if p.protocol_type == "dex"
+        for addrs in p.addresses.values()
+        for addr in addrs
+    }
 
 
 def get_known_mixer_addresses() -> Set[str]:
     """Return all known mixer contract addresses (lowercase)."""
-    return {addr.lower() for p in _PROTOCOLS if p.protocol_type == "mixer"
-            for addrs in p.addresses.values() for addr in addrs}
+    return {
+        addr.lower()
+        for p in _PROTOCOLS
+        if p.protocol_type == "mixer"
+        for addrs in p.addresses.values()
+        for addr in addrs
+    }
 
 
 def get_high_risk_addresses() -> Set[str]:
     """Return addresses belonging to high/critical risk protocols."""
-    return {addr.lower() for p in _PROTOCOLS if p.risk_level in {"high", "critical"}
-            for addrs in p.addresses.values() for addr in addrs}
+    return {
+        addr.lower()
+        for p in _PROTOCOLS
+        if p.risk_level in {"high", "critical"}
+        for addrs in p.addresses.values()
+        for addr in addrs
+    }
 
 
 def classify_address(address: str) -> Optional[Dict]:

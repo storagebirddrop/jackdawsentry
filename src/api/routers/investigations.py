@@ -3,17 +3,30 @@ Jackdaw Sentry - Investigations Router
 Case management and investigation endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, field_validator
 import json as _json
 import logging
 import uuid
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_neo4j_session, get_postgres_connection
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import status
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.database import get_neo4j_session
+from src.api.database import get_postgres_connection
 from src.api.exceptions import JackdawException
 
 logger = logging.getLogger(__name__)
@@ -33,20 +46,20 @@ class InvestigationRequest(BaseModel):
     time_range_start: datetime
     time_range_end: datetime
     tags: List[str] = []
-    
-    @field_validator('priority')
+
+    @field_validator("priority")
     @classmethod
     def validate_priority(cls, v):
         valid_priorities = ["low", "medium", "high", "critical"]
         if v not in valid_priorities:
-            raise ValueError(f'Invalid priority: {v}')
+            raise ValueError(f"Invalid priority: {v}")
         return v
 
-    @field_validator('addresses')
+    @field_validator("addresses")
     @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
-            raise ValueError('At least one address must be provided')
+            raise ValueError("At least one address must be provided")
         return [addr.strip() for addr in v if addr.strip()]
 
 
@@ -64,12 +77,12 @@ class EvidenceRequest(BaseModel):
     description: str
     data: Dict[str, Any]
     confidence: float = 0.5
-    
-    @field_validator('confidence')
+
+    @field_validator("confidence")
     @classmethod
     def validate_confidence(cls, v):
         if v < 0.0 or v > 1.0:
-            raise ValueError('Confidence must be between 0.0 and 1.0')
+            raise ValueError("Confidence must be between 0.0 and 1.0")
         return v
 
 
@@ -84,7 +97,9 @@ class InvestigationResponse(BaseModel):
 @router.post("/create", response_model=InvestigationResponse)
 async def create_investigation(
     request: InvestigationRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Create new investigation case and persist to Neo4j"""
     try:
@@ -165,7 +180,9 @@ async def list_investigations(
     assigned_to: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """List investigations from Neo4j with filters"""
     try:
@@ -180,7 +197,9 @@ async def list_investigations(
                 detail="limit must be at least 1",
             )
 
-        logger.info(f"Listing investigations with filters: status={status}, priority={priority}")
+        logger.info(
+            f"Listing investigations with filters: status={status}, priority={priority}"
+        )
 
         where_clauses = []
         params: Dict[str, Any] = {"skip_val": offset, "limit_val": limit}
@@ -198,7 +217,8 @@ async def list_investigations(
 
         async with get_neo4j_session() as session:
             count_result = await session.run(
-                f"MATCH (i:Investigation) {where_str} RETURN count(i) AS total", **params
+                f"MATCH (i:Investigation) {where_str} RETURN count(i) AS total",
+                **params,
             )
             count_record = await count_result.single()
             total_count = count_record["total"] if count_record else 0
@@ -226,7 +246,11 @@ async def list_investigations(
                 "offset": offset,
                 "has_more": offset + limit < total_count,
             },
-            "filters_applied": {"status": status, "priority": priority, "assigned_to": assigned_to},
+            "filters_applied": {
+                "status": status,
+                "priority": priority,
+                "assigned_to": assigned_to,
+            },
             "timestamp": datetime.now(timezone.utc),
         }
 
@@ -243,7 +267,9 @@ async def list_investigations(
 @router.get("/{investigation_id}")
 async def get_investigation(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Get detailed investigation from Neo4j"""
     try:
@@ -261,7 +287,9 @@ async def get_investigation(
             record = await result.single()
 
         if not record or not record["i"]:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found"
+            )
 
         investigation_data = dict(record["i"])
         investigation_data["evidence_count"] = record["evidence_count"]
@@ -286,7 +314,9 @@ async def get_investigation(
 async def update_investigation(
     investigation_id: str,
     request: InvestigationUpdateRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Update investigation in Neo4j"""
     try:
@@ -328,12 +358,18 @@ async def update_investigation(
             record = await result.single()
 
         if not record or not record["i"]:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Investigation not found"
+            )
 
         update_data = dict(record["i"])
 
         metadata = {
-            "update_fields": [k for k, v in request.model_dump(exclude_unset=True).items() if v is not None],
+            "update_fields": [
+                k
+                for k, v in request.model_dump(exclude_unset=True).items()
+                if v is not None
+            ],
             "persisted_to": "neo4j",
         }
 
@@ -357,7 +393,9 @@ async def update_investigation(
 @router.post("/evidence", response_model=InvestigationResponse)
 async def add_evidence(
     request: EvidenceRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Add evidence to investigation and persist to Neo4j"""
     try:
@@ -432,7 +470,9 @@ async def add_evidence(
 async def get_investigation_evidence(
     investigation_id: str,
     evidence_type: Optional[str] = None,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Get evidence for investigation from Neo4j"""
     try:
@@ -484,20 +524,20 @@ async def get_investigation_evidence(
 
 @router.get("/statistics")
 async def get_investigation_statistics(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Get investigation statistics from Neo4j"""
     try:
         stats: Dict[str, Any] = {}
         async with get_neo4j_session() as session:
-            result = await session.run(
-                """
+            result = await session.run("""
                 MATCH (i:Investigation)
                 RETURN count(i) AS total,
                        count(CASE WHEN i.status IN ['open','in_progress'] THEN 1 END) AS active,
                        count(CASE WHEN i.status = 'closed' THEN 1 END) AS closed
-                """
-            )
+                """)
             record = await result.single()
             stats["total_investigations"] = record["total"] if record else 0
             stats["active_investigations"] = record["active"] if record else 0
@@ -507,15 +547,21 @@ async def get_investigation_statistics(
                 "MATCH (i:Investigation) RETURN i.status AS status, count(i) AS count"
             )
             status_records = await status_result.data()
-            stats["cases_by_status"] = {r["status"]: r["count"] for r in status_records if r["status"]}
+            stats["cases_by_status"] = {
+                r["status"]: r["count"] for r in status_records if r["status"]
+            }
 
             prio_result = await session.run(
                 "MATCH (i:Investigation) RETURN i.priority AS priority, count(i) AS count"
             )
             prio_records = await prio_result.data()
-            stats["cases_by_priority"] = {r["priority"]: r["count"] for r in prio_records if r["priority"]}
+            stats["cases_by_priority"] = {
+                r["priority"]: r["count"] for r in prio_records if r["priority"]
+            }
 
-            evd_result = await session.run("MATCH (e:Evidence) RETURN count(e) AS total")
+            evd_result = await session.run(
+                "MATCH (e:Evidence) RETURN count(e) AS total"
+            )
             evd_record = await evd_result.single()
             stats["evidence_items_total"] = evd_record["total"] if evd_record else 0
 
@@ -548,18 +594,22 @@ class GraphStateRequest(BaseModel):
 async def save_investigation_graph(
     investigation_id: str,
     request: GraphStateRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Persist graph nodes/edges/layout as a JSON blob on the Investigation node."""
     try:
         now = datetime.now(timezone.utc)
-        graph_json = _json.dumps({
-            "nodes": request.nodes,
-            "edges": request.edges,
-            "layout": request.layout or {},
-            "saved_by": current_user.username,
-            "saved_at": now.isoformat(),
-        })
+        graph_json = _json.dumps(
+            {
+                "nodes": request.nodes,
+                "edges": request.edges,
+                "layout": request.layout or {},
+                "saved_by": current_user.username,
+                "saved_at": now.isoformat(),
+            }
+        )
 
         async with get_neo4j_session() as session:
             result = await session.run(
@@ -602,7 +652,9 @@ async def save_investigation_graph(
 @router.get("/{investigation_id}/graph")
 async def load_investigation_graph(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Load/share a previously persisted graph state for an investigation."""
     try:
@@ -660,7 +712,9 @@ async def load_investigation_graph(
 @router.get("/{investigation_id}/report/pdf")
 async def export_investigation_pdf(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Export investigation as a PDF report (StreamingResponse)."""
     try:
@@ -716,11 +770,15 @@ async def export_investigation_pdf(
 @router.post("/{investigation_id}/narrative")
 async def generate_investigation_narrative_endpoint(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Generate an AI/template narrative for the investigation."""
     try:
-        from src.analysis.investigation_narrative import generate_investigation_narrative
+        from src.analysis.investigation_narrative import (
+            generate_investigation_narrative,
+        )
 
         async with get_neo4j_session() as session:
             result = await session.run(
@@ -767,7 +825,7 @@ async def generate_investigation_narrative_endpoint(
 
 class AnnotationRequest(BaseModel):
     target_id: str
-    annotation_type: str = "note"   # "note" | "flag" | "highlight"
+    annotation_type: str = "note"  # "note" | "flag" | "highlight"
     content: str
 
     @field_validator("annotation_type")
@@ -790,11 +848,14 @@ class AnnotationRequest(BaseModel):
 async def add_graph_annotation(
     investigation_id: str,
     request: AnnotationRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Add an annotation to a node or edge within the investigation graph."""
     try:
         import json as _json_inner
+
         now = datetime.now(timezone.utc)
         ann_id = f"ANN-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
 
@@ -857,7 +918,9 @@ async def add_graph_annotation(
 @router.get("/{investigation_id}/graph/annotations")
 async def get_graph_annotations(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """List all annotations for the investigation graph."""
     try:
@@ -902,11 +965,14 @@ async def get_graph_annotations(
 async def delete_graph_annotation(
     investigation_id: str,
     annotation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["write_investigations"]])
+    ),
 ):
     """Remove a single annotation from the investigation graph."""
     try:
         import json as _json_inner
+
         now = datetime.now(timezone.utc)
 
         async with get_neo4j_session() as session:
@@ -925,7 +991,9 @@ async def delete_graph_annotation(
         raw = record["anns"]
         annotations = _json_inner.loads(raw) if raw else []
         before = len(annotations)
-        annotations = [a for a in annotations if a.get("annotation_id") != annotation_id]
+        annotations = [
+            a for a in annotations if a.get("annotation_id") != annotation_id
+        ]
 
         if len(annotations) == before:
             raise HTTPException(status_code=404, detail="Annotation not found")
@@ -968,7 +1036,9 @@ async def delete_graph_annotation(
 @router.get("/{investigation_id}/timeline")
 async def get_investigation_timeline(
     investigation_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_investigations"]]))
+    current_user: User = Depends(
+        check_permissions([PERMISSIONS["read_investigations"]])
+    ),
 ):
     """Return a chronological event timeline derived from investigation + evidence nodes."""
     try:
@@ -1000,45 +1070,56 @@ async def get_investigation_timeline(
 
         # Investigation created
         if inv_props.get("created_at"):
-            events.append({
-                "event_type": "investigation_created",
-                "timestamp": inv_props["created_at"],
-                "actor": inv_props.get("created_by", "unknown"),
-                "details": {"title": inv_props.get("title", ""), "priority": inv_props.get("priority", "")},
-            })
+            events.append(
+                {
+                    "event_type": "investigation_created",
+                    "timestamp": inv_props["created_at"],
+                    "actor": inv_props.get("created_by", "unknown"),
+                    "details": {
+                        "title": inv_props.get("title", ""),
+                        "priority": inv_props.get("priority", ""),
+                    },
+                }
+            )
 
         # Evidence additions
         for rec in evd_records:
             ev = dict(rec["e"])
-            events.append({
-                "event_type": "evidence_added",
-                "timestamp": ev.get("added_at", ""),
-                "actor": ev.get("added_by", "unknown"),
-                "details": {
-                    "evidence_id": ev.get("evidence_id", ""),
-                    "evidence_type": ev.get("evidence_type", ""),
-                    "description": ev.get("description", "")[:80],
-                    "confidence": ev.get("confidence", 0.0),
-                },
-            })
+            events.append(
+                {
+                    "event_type": "evidence_added",
+                    "timestamp": ev.get("added_at", ""),
+                    "actor": ev.get("added_by", "unknown"),
+                    "details": {
+                        "evidence_id": ev.get("evidence_id", ""),
+                        "evidence_type": ev.get("evidence_type", ""),
+                        "description": ev.get("description", "")[:80],
+                        "confidence": ev.get("confidence", 0.0),
+                    },
+                }
+            )
 
         # Graph saved
         if inv_props.get("graph_updated_at"):
-            events.append({
-                "event_type": "graph_saved",
-                "timestamp": inv_props["graph_updated_at"],
-                "actor": inv_props.get("graph_updated_by", "unknown"),
-                "details": {},
-            })
+            events.append(
+                {
+                    "event_type": "graph_saved",
+                    "timestamp": inv_props["graph_updated_at"],
+                    "actor": inv_props.get("graph_updated_by", "unknown"),
+                    "details": {},
+                }
+            )
 
         # Status update
         if inv_props.get("updated_at") and inv_props.get("status"):
-            events.append({
-                "event_type": "status_updated",
-                "timestamp": inv_props["updated_at"],
-                "actor": inv_props.get("updated_by", "unknown"),
-                "details": {"status": inv_props["status"]},
-            })
+            events.append(
+                {
+                    "event_type": "status_updated",
+                    "timestamp": inv_props["updated_at"],
+                    "actor": inv_props.get("updated_by", "unknown"),
+                    "details": {"status": inv_props["status"]},
+                }
+            )
 
         # Sort all events chronologically
         events.sort(key=lambda e: e.get("timestamp") or "")

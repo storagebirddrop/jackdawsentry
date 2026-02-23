@@ -139,6 +139,17 @@ database_backups/
 .continue/
 .windsurf/
 
+# ── Competitive Assessment & Testing Reports ────────────────────────────────────
+competitive_assessment_report.json
+feature_parity_matrix.json
+performance_benchmark_report.json
+industry_validation_results.json
+competitive_dashboard_data/
+testing_phase_reports/
+phase*_testing_complete.md
+phase*_competitive_assessment.md
+competitive_validation/
+
 # ── Overhaul Reports & Analysis ────────────────────────────────────────────────
 bandit_report.json
 safety_report.json
@@ -149,6 +160,13 @@ test_expansion_report.json
 security_audit/
 code_quality/
 performance_analysis/
+
+# ── Console Output & Terminal Logs ───────────────────────────────────────────
+=*
+*.terminal
+*.console
+console_output*
+terminal_dump*
 
 # ── Package Managers ───────────────────────────────────────────────────────────
 poetry.lock

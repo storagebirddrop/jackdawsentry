@@ -3,16 +3,21 @@ Jackdaw Sentry - Main API Application
 Enterprise-grade blockchain onchain analysis platform for crypto compliance
 """
 
-from fastapi import FastAPI, HTTPException, Depends, status
+import asyncio
+import json
+import logging
+from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Optional
+
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import logging
-import asyncio
-import json
-from datetime import datetime
-from typing import Optional
+
 
 # Custom JSON encoder for datetime serialization
 class DateTimeEncoder(json.JSONEncoder):
@@ -21,27 +26,26 @@ class DateTimeEncoder(json.JSONEncoder):
             return obj.isoformat()
         return super().default(obj)
 
+
 # Custom JSONResponse class that uses our encoder
 class CustomJSONResponse(JSONResponse):
     def render(self, content) -> bytes:
         return json.dumps(
-            content,
-            cls=DateTimeEncoder,
-            ensure_ascii=False,
-            allow_nan=False
+            content, cls=DateTimeEncoder, ensure_ascii=False, allow_nan=False
         ).encode("utf-8")
+
 
 # Custom middleware to handle datetime serialization
 class DateTimeMiddleware:
     def __init__(self, app):
         self.app = app
-    
+
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
             # Let the app handle the request first
             async def receive_wrapper():
                 return await receive()
-            
+
             async def send_wrapper(message):
                 if message["type"] == "http.response.start":
                     # Modify the response to use our custom JSON response
@@ -59,7 +63,7 @@ class DateTimeMiddleware:
                                         content,
                                         cls=DateTimeEncoder,
                                         ensure_ascii=False,
-                                        allow_nan=False
+                                        allow_nan=False,
                                     ).encode("utf-8")
                                     message["body"] = serialized
                                 except:
@@ -67,67 +71,64 @@ class DateTimeMiddleware:
                     except:
                         pass  # If anything fails, use original message
                 await send(message)
-            
+
             await self.app(scope, receive_wrapper, send_wrapper)
         else:
             await self.app(scope, receive, send)
 
+
+from src.api.auth import User
+from src.api.auth import get_current_user
+from src.api.auth import require_admin
 from src.api.config import settings
-from src.api.database import init_databases, close_databases
-from src.api.auth import get_current_user, require_admin, User
+from src.api.database import close_databases
+from src.api.database import init_databases
+from src.api.exceptions import BlockchainException
+from src.api.exceptions import ComplianceException
+from src.api.exceptions import JackdawException
+from src.api.middleware import AuditMiddleware
+from src.api.middleware import RateLimitMiddleware
+from src.api.middleware import SecurityMiddleware
 from src.api.routers import (
-    alerts,
-    # analysis,  # Temporarily disabled due to dependency issues
-    # analytics,  # Temporarily disabled due to dependency issues
-    attribution,
-    blockchain,
-    bulk,
-    compliance,
-    cross_platform,
-    entities,
-    export,
-    forensics,
-    graph,
-    intelligence,
-    patterns,
-    # advanced_analytics,  # Temporarily disabled due to dependency issues
-    reports,
-    admin,
-    teams,
-    travel_rule,
-    tracing,
-    mobile,
-    monitoring,
-    rate_limit,
-    risk_config,
-    sanctions,
-    scheduler,
-    setup,
-    webhooks,
-    workflows,
-    victim_reports,
-    threat_feeds,
-    professional_services,
-    investigations,
-    visualization
+    admin, analysis,  # Re-enabled for testing, analytics,  # Temporarily disabled due to dependency issues; advanced_analytics,  # Temporarily disabled due to dependency issues
 )
+from src.api.routers import alerts
+from src.api.routers import attribution
 from src.api.routers import auth as auth_router
+from src.api.routers import blockchain
+from src.api.routers import bulk
+from src.api.routers import compliance
+from src.api.routers import cross_platform
+from src.api.routers import entities
+from src.api.routers import export
+from src.api.routers import forensics
+from src.api.routers import graph
+from src.api.routers import intelligence
+from src.api.routers import investigations
+from src.api.routers import mobile
+from src.api.routers import monitoring
+from src.api.routers import patterns
+from src.api.routers import professional_services
+from src.api.routers import rate_limit
+from src.api.routers import reports
+from src.api.routers import risk_config
+from src.api.routers import sanctions
+from src.api.routers import scheduler
+from src.api.routers import setup
 from src.api.routers import setup as setup_router
-from src.api.middleware import (
-    SecurityMiddleware,
-    AuditMiddleware,
-    RateLimitMiddleware
-)
-from src.api.exceptions import (
-    JackdawException,
-    ComplianceException,
-    BlockchainException
-)
+from src.api.routers import teams
+from src.api.routers import threat_feeds
+from src.api.routers import tracing
+from src.api.routers import travel_rule
+from src.api.routers import victim_reports
+from src.api.routers import visualization
+from src.api.routers import webhooks
+from src.api.routers import workflows
 
 # Configure logging
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
     logger.info("Starting Jackdaw Sentry API...")
-    
+
     try:
         # Initialize databases
         await init_databases()
@@ -145,23 +146,25 @@ async def lifespan(app: FastAPI):
 
         # Ensure monitoring tables exist (alert_rules, alert_events)
         from src.monitoring.alert_rules import ensure_tables as ensure_alert_tables
+
         await ensure_alert_tables()
         logger.info("Alert tables ready")
 
         # Start background tasks
         asyncio.create_task(start_background_tasks())
         logger.info("Background tasks started")
-        
+
     except Exception as e:
         logger.error(f"Failed to initialize application: {e}")
         raise
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Jackdaw Sentry API...")
     await stop_background_tasks()
     from src.collectors.rpc.factory import close_all_clients
+
     errors = []
     try:
         await close_all_clients()
@@ -181,22 +184,22 @@ async def lifespan(app: FastAPI):
 
 async def start_background_tasks():
     """Start background collection and analysis tasks with error handling"""
-    from src.collectors.manager import CollectorManager
     from src.analysis.manager import AnalysisManager
-    from src.attribution import get_attribution_engine
-    from src.patterns import get_pattern_detector
     from src.analytics import get_analytics_engine
-    from src.intelligence.victim_reports import get_victim_reports_db
-    from src.intelligence.threat_feeds import get_threat_intelligence_manager
+    from src.attribution import get_attribution_engine
+    from src.collectors.manager import CollectorManager
+    from src.forensics.court_defensible import get_court_defensible_evidence
+    from src.forensics.evidence_manager import get_evidence_manager
+    from src.forensics.forensic_engine import get_forensic_engine
+    from src.forensics.report_generator import get_report_generator
     from src.intelligence.cross_platform import get_cross_platform_attribution_engine
     from src.intelligence.professional_services import get_professional_services_manager
-    from src.forensics.forensic_engine import get_forensic_engine
-    from src.forensics.evidence_manager import get_evidence_manager
-    from src.forensics.report_generator import get_report_generator
-    from src.forensics.court_defensible import get_court_defensible_evidence
-    
+    from src.intelligence.threat_feeds import get_threat_intelligence_manager
+    from src.intelligence.victim_reports import get_victim_reports_db
+    from src.patterns import get_pattern_detector
+
     tasks = []
-    
+
     try:
         # Start blockchain collectors
         logger.info("Starting blockchain collectors...")
@@ -204,11 +207,11 @@ async def start_background_tasks():
         await collector_manager.start_all()
         tasks.append(collector_manager)
         logger.info("✅ Blockchain collectors started")
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to start blockchain collectors: {e}")
         # Continue with other tasks even if collectors fail
-    
+
     try:
         # Start analysis engine
         logger.info("Starting analysis engine...")
@@ -216,47 +219,48 @@ async def start_background_tasks():
         await analysis_manager.start()
         tasks.append(analysis_manager)
         logger.info("✅ Analysis engine started")
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to start analysis engine: {e}")
         # Continue with other tasks even if analysis fails
-    
+
     try:
         # Initialize attribution engine
         logger.info("Initializing attribution engine...")
         attribution_engine = get_attribution_engine()
         await attribution_engine.initialize()
         logger.info("✅ Attribution engine initialized")
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to initialize attribution engine: {e}")
         # Continue with other tasks even if attribution fails
-    
+
     try:
         # Initialize pattern detector
         logger.info("Initializing pattern detector...")
         pattern_detector = get_pattern_detector()
         await pattern_detector.initialize()
         logger.info("✅ Pattern detector initialized")
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to initialize pattern detector: {e}")
         # Continue with other tasks even if patterns fail
-    
+
     try:
         # Initialize advanced analytics engine
         logger.info("Initializing advanced analytics engine...")
         analytics_engine = get_analytics_engine()
         await analytics_engine.initialize()
         logger.info("✅ Advanced analytics engine initialized")
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to initialize advanced analytics engine: {e}")
         # Continue with other tasks even if analytics fails
-    
+
     # Start sanctions sync background loop
     try:
         from src.services.sanctions import sync_all as _sanctions_sync
+
         _sanctions_task = asyncio.create_task(_sanctions_sync_loop(_sanctions_sync))
         tasks.append(_sanctions_task)
         logger.info("✅ Sanctions sync scheduler started (every 6h)")
@@ -266,6 +270,7 @@ async def start_background_tasks():
     # Start entity labels sync background loop
     try:
         from src.services.entity_attribution import sync_all_labels as _labels_sync
+
         _labels_task = asyncio.create_task(_labels_sync_loop(_labels_sync))
         tasks.append(_labels_task)
         logger.info("Entity labels sync scheduler started (every 24h)")
@@ -275,6 +280,7 @@ async def start_background_tasks():
     # Start transaction monitoring pipeline (M12)
     try:
         from src.monitoring.tx_monitor import start_monitor
+
         start_monitor(chains=["ethereum", "bitcoin"])
         logger.info("Transaction monitor started (ethereum, bitcoin)")
     except Exception as e:
@@ -354,11 +360,11 @@ async def start_background_tasks():
         logger.error(f"❌ Failed to initialize court defensible evidence system: {e}")
 
     # Store task references for monitoring and cleanup
-    if hasattr(start_background_tasks, '_tasks'):
+    if hasattr(start_background_tasks, "_tasks"):
         start_background_tasks._tasks.extend(tasks)
     else:
         start_background_tasks._tasks = tasks
-    
+
     logger.info(f"✅ Background tasks started: {len(tasks)} managers running")
 
 
@@ -396,9 +402,9 @@ async def _labels_sync_loop(sync_fn, interval_seconds: int = 86400):
 
 async def stop_background_tasks():
     """Stop all background tasks gracefully"""
-    if not hasattr(start_background_tasks, '_tasks'):
+    if not hasattr(start_background_tasks, "_tasks"):
         return
-    
+
     logger.info("Stopping background tasks...")
 
     async_tasks = []
@@ -407,9 +413,9 @@ async def stop_background_tasks():
             if isinstance(task, asyncio.Task):
                 task.cancel()
                 async_tasks.append(task)
-            elif hasattr(task, 'stop_all'):
+            elif hasattr(task, "stop_all"):
                 await task.stop_all()
-            elif hasattr(task, 'stop'):
+            elif hasattr(task, "stop"):
                 await task.stop()
             logger.info(f"✅ Stopped task: {type(task).__name__}")
         except Exception as e:
@@ -421,8 +427,10 @@ async def stop_background_tasks():
             if isinstance(result, asyncio.CancelledError):
                 logger.info(f"✅ Cancelled async task: {task.get_name()}")
             elif isinstance(result, Exception):
-                logger.error(f"❌ Async task {task.get_name()} error on cancel: {result}")
-    
+                logger.error(
+                    f"❌ Async task {task.get_name()} error on cancel: {result}"
+                )
+
     start_background_tasks._tasks.clear()
     logger.info("✅ All background tasks stopped")
 
@@ -436,26 +444,27 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
-    default_response_class=CustomJSONResponse
+    default_response_class=CustomJSONResponse,
 )
+
+import json as _json
 
 # Override the default JSON response class
 from fastapi.responses import JSONResponse
-import json as _json
 
 # Monkey patch the JSONResponse.render method to use our encoder
 original_render = JSONResponse.render
+
+
 def patched_render(self, content) -> bytes:
     try:
         return _json.dumps(
-            content,
-            cls=DateTimeEncoder,
-            ensure_ascii=False,
-            allow_nan=False
+            content, cls=DateTimeEncoder, ensure_ascii=False, allow_nan=False
         ).encode("utf-8")
     except (TypeError, ValueError):
         # Fallback to original render if our encoder fails
         return original_render(self, content)
+
 
 JSONResponse.render = patched_render
 
@@ -471,10 +480,7 @@ app.add_middleware(
 allowed_hosts = ["localhost", "127.0.0.1", "*.jackdawsentry.local"]
 if settings.DEBUG or settings.TESTING:
     allowed_hosts.append("testclient")
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=allowed_hosts
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(AuditMiddleware)
@@ -492,8 +498,8 @@ async def jackdaw_exception_handler(request, exc: JackdawException):
             "error": "JackdawError",
             "message": exc.message,
             "code": exc.error_code,
-            "timestamp": exc.timestamp
-        }
+            "timestamp": exc.timestamp,
+        },
     )
 
 
@@ -507,8 +513,8 @@ async def compliance_exception_handler(request, exc: ComplianceException):
             "error": "ComplianceError",
             "message": exc.message,
             "regulation": exc.regulation,
-            "timestamp": exc.timestamp
-        }
+            "timestamp": exc.timestamp,
+        },
     )
 
 
@@ -522,8 +528,8 @@ async def blockchain_exception_handler(request, exc: BlockchainException):
             "error": "BlockchainError",
             "message": exc.message,
             "blockchain": exc.blockchain,
-            "timestamp": exc.timestamp
-        }
+            "timestamp": exc.timestamp,
+        },
     )
 
 
@@ -535,19 +541,20 @@ async def health_check():
         "status": "healthy",
         "service": "Jackdaw Sentry API",
         "version": "1.0.0",
-        "timestamp": "2024-01-01T00:00:00Z"
+        "timestamp": "2024-01-01T00:00:00Z",
     }
 
 
 @app.get("/metrics", tags=["Monitoring"])
 async def metrics():
     """Basic application metrics"""
-    import time
     import os
+    import time
 
     process = None
     try:
         import psutil
+
         process = psutil.Process(os.getpid())
     except Exception:
         pass
@@ -567,15 +574,15 @@ async def metrics():
 async def detailed_health_check():
     """Detailed health check with database status"""
     from src.api.database import check_database_health
-    
+
     db_health = await check_database_health()
-    
+
     return {
         "status": "healthy" if all(db_health.values()) else "degraded",
         "service": "Jackdaw Sentry API",
         "version": "1.0.0",
         "databases": db_health,
-        "timestamp": "2024-01-01T00:00:00Z"
+        "timestamp": "2024-01-01T00:00:00Z",
     }
 
 
@@ -591,71 +598,63 @@ async def api_status(current_user: User = Depends(get_current_user)):
             "lightning_network": True,
             "stablecoin_tracking": True,
             "compliance_reporting": True,
-            "gdpr_compliant": True
-        }
+            "gdpr_compliant": True,
+        },
     }
 
 
 # Include routers
-app.include_router(
-    setup_router.router,
-    prefix="/api/v1/setup",
-    tags=["Setup"]
-)
+app.include_router(setup_router.router, prefix="/api/v1/setup", tags=["Setup"])
+
+app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Authentication"])
 
 app.include_router(
-    auth_router.router,
-    prefix="/api/v1/auth",
-    tags=["Authentication"]
+    analysis.router,
+    prefix="/api/v1/analysis",
+    tags=["Analysis"],
+    dependencies=[Depends(get_current_user)]
 )
-
-# app.include_router(
-#     analysis.router,
-#     prefix="/api/v1/analysis",
-#     tags=["Analysis"],
-#     dependencies=[Depends(get_current_user)]
-# )
 
 app.include_router(
     compliance.router,
     prefix="/api/v1/compliance",
     tags=["Compliance"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     investigations.router,
     prefix="/api/v1/investigations",
     tags=["Investigations"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     blockchain.router,
     prefix="/api/v1/blockchain",
     tags=["Blockchain"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     graph.router,
     prefix="/api/v1/graph",
     tags=["Graph"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     sanctions.router,
     prefix="/api/v1/sanctions",
     tags=["Sanctions"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     entities.router,
     prefix="/api/v1/entities",
     tags=["Entities"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
@@ -668,14 +667,14 @@ app.include_router(
     attribution.router,
     prefix="/api/v1/attribution",
     tags=["Attribution"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     patterns.router,
     prefix="/api/v1/patterns",
     tags=["Patterns"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 # app.include_router(
@@ -689,7 +688,7 @@ app.include_router(
     tracing.router,
     prefix="/api/v1/tracing",
     tags=["Tracing"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
@@ -702,56 +701,56 @@ app.include_router(
     intelligence.router,
     prefix="/api/v1/intelligence",
     tags=["Intelligence"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     victim_reports.router,
     prefix="/api/v1/intelligence/victim-reports",
     tags=["Victim Reports"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     threat_feeds.router,
     prefix="/api/v1/intelligence/threat-feeds",
     tags=["Threat Feeds"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     cross_platform.router,
     prefix="/api/v1/intelligence/attribution",
     tags=["Cross-Platform Attribution"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     professional_services.router,
     prefix="/api/v1/intelligence/professional-services",
     tags=["Professional Services"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     forensics.router,
     prefix="/api/v1/forensics",
     tags=["Forensics"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     reports.router,
     prefix="/api/v1/reports",
     tags=["Reports"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     admin.router,
     prefix="/api/v1/admin",
     tags=["Admin"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 # app.include_router(
@@ -765,49 +764,49 @@ app.include_router(
     export.router,
     prefix="/api/v1/compliance/export",
     tags=["Export"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     workflows.router,
     prefix="/api/v1/compliance/workflows",
     tags=["Workflows"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     monitoring.router,
     prefix="/api/v1/compliance/monitoring",
     tags=["Monitoring"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     rate_limit.router,
     prefix="/api/v1/compliance/rate-limit",
     tags=["Rate Limiting"],
-    dependencies=[Depends(require_admin)]
+    dependencies=[Depends(require_admin)],
 )
 
 app.include_router(
     visualization.router,
     prefix="/api/v1/compliance/visualization",
     tags=["Visualization"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
     scheduler.router,
     prefix="/api/v1/compliance/scheduler",
     tags=["Scheduler"],
-    dependencies=[Depends(require_admin)]
+    dependencies=[Depends(require_admin)],
 )
 
 app.include_router(
     mobile.router,
     prefix="/api/v1/compliance/mobile",
     tags=["Mobile"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
 
 app.include_router(
@@ -845,17 +844,17 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health",
-        "status": "/api/v1/status"
+        "status": "/api/v1/status",
     }
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "main:app",
         host=settings.API_HOST,
         port=settings.API_PORT,
         reload=settings.DEBUG,
-        log_level=settings.LOG_LEVEL.lower()
+        log_level=settings.LOG_LEVEL.lower(),
     )

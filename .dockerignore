@@ -91,6 +91,18 @@ training_data/
 .claude/
 .clinerules/
 .continue/
+.windsurf/
+
+# ── Competitive Assessment & Testing Reports ────────────────────────────────────
+competitive_assessment_report.json
+feature_parity_matrix.json
+performance_benchmark_report.json
+industry_validation_results.json
+competitive_dashboard_data/
+testing_phase_reports/
+phase*_testing_complete.md
+phase*_competitive_assessment.md
+competitive_validation/
 
 # ── Overhaul Reports & Analysis ────────────────────────────────────────────────
 bandit_report.json

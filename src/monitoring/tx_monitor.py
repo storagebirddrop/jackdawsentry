@@ -13,8 +13,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from src.monitoring.alert_rules import evaluate_transaction
 
@@ -22,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Polling intervals (seconds) per chain family
 _POLL_INTERVALS: Dict[str, int] = {
-    "evm": 12,       # ~ETH block time
+    "evm": 12,  # ~ETH block time
     "bitcoin": 60,
     "solana": 4,
     "tron": 3,

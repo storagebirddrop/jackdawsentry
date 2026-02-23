@@ -20,12 +20,21 @@ POST   /risk-config/deobfuscate         run mixer de-obfuscation on a tx list
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
 
-from src.api.auth import get_current_user, require_admin, User
+from src.api.auth import User
+from src.api.auth import get_current_user
+from src.api.auth import require_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/risk-config", tags=["risk-config"])
@@ -70,6 +79,7 @@ class CustomRuleCreate(BaseModel):
 
 class ScoreRequest(BaseModel):
     """Minimal address feature dict for on-demand scoring."""
+
     # Binary flags
     mixer_usage: bool = False
     privacy_tool_usage: bool = False
@@ -127,6 +137,7 @@ async def list_weights(
     _: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     from src.analysis.ml_risk_model import list_weights as _list
+
     rows = await _list()
     return {"weights": rows, "count": len(rows)}
 
@@ -137,7 +148,9 @@ async def update_weight(
     body: WeightUpdate,
     _: User = Depends(require_admin),
 ) -> Dict[str, Any]:
-    from src.analysis.ml_risk_model import _DEFAULT_WEIGHTS, save_weight
+    from src.analysis.ml_risk_model import _DEFAULT_WEIGHTS
+    from src.analysis.ml_risk_model import save_weight
+
     if feature_name not in _DEFAULT_WEIGHTS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -151,7 +164,9 @@ async def update_weight(
 async def reset_weights(
     _: User = Depends(require_admin),
 ) -> Dict[str, Any]:
-    from src.analysis.ml_risk_model import _DEFAULT_WEIGHTS, save_weight
+    from src.analysis.ml_risk_model import _DEFAULT_WEIGHTS
+    from src.analysis.ml_risk_model import save_weight
+
     for fname, (w, _desc) in _DEFAULT_WEIGHTS.items():
         await save_weight(fname, w)
     return {"reset": True, "features_reset": len(_DEFAULT_WEIGHTS)}
@@ -167,16 +182,20 @@ async def list_rules(
     _: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     from src.analysis.ml_risk_model import list_custom_rules
+
     rules = await list_custom_rules()
     return {"rules": rules, "count": len(rules)}
 
 
-@router.post("/rules", status_code=status.HTTP_201_CREATED, summary="Create a custom risk rule")
+@router.post(
+    "/rules", status_code=status.HTTP_201_CREATED, summary="Create a custom risk rule"
+)
 async def create_rule(
     body: CustomRuleCreate,
     user: User = Depends(require_admin),
 ) -> Dict[str, Any]:
     from src.analysis.ml_risk_model import create_custom_rule
+
     rule = await create_custom_rule(
         name=body.name,
         conditions=body.conditions,
@@ -193,6 +212,7 @@ async def delete_rule(
     _: User = Depends(require_admin),
 ) -> Dict[str, Any]:
     from src.analysis.ml_risk_model import delete_custom_rule
+
     try:
         deleted = await delete_custom_rule(rule_id)
     except Exception as exc:
@@ -246,11 +266,9 @@ async def deobfuscate_transactions(
     body: DeobfuscateRequest,
     _: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    from src.analysis.mixer_deobfuscator import (
-        build_mixer_transactions,
-        find_candidate_pairs,
-        summarize_deobfuscation,
-    )
+    from src.analysis.mixer_deobfuscator import build_mixer_transactions
+    from src.analysis.mixer_deobfuscator import find_candidate_pairs
+    from src.analysis.mixer_deobfuscator import summarize_deobfuscation
 
     mixer_txs = build_mixer_transactions(body.transactions)
     if not mixer_txs:

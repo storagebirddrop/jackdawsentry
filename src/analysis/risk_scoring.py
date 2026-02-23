@@ -3,7 +3,10 @@ Jackdaw Sentry - Computed Risk Scoring
 Weighted multi-signal risk score combining sanctions, patterns, mixer, and volume.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 
 def compute_risk_score(
@@ -28,7 +31,9 @@ def compute_risk_score(
     # Pattern component (weight 0.30)
     pattern_component = 0.0
     if pattern_matches:
-        pattern_risks = [p.get("risk_score", 0.0) for p in pattern_matches if isinstance(p, dict)]
+        pattern_risks = [
+            p.get("risk_score", 0.0) for p in pattern_matches if isinstance(p, dict)
+        ]
         if pattern_risks:
             avg_pattern_risk = sum(pattern_risks) / len(pattern_risks)
             pattern_component = min(avg_pattern_risk * 0.30, 0.30)

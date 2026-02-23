@@ -10,29 +10,47 @@ Endpoints:
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Query
+from pydantic import BaseModel
+from pydantic import field_validator
 
-from src.api.auth import User, check_permissions, PERMISSIONS
-from src.analysis.defi_decoder import decode_transaction, decode_transactions_bulk
-from src.analysis.protocol_registry import (
-    classify_address,
-    get_all_protocols,
-    get_protocol_by_address,
-    get_protocols_by_type,
-    protocol_count,
-)
+from src.analysis.defi_decoder import decode_transaction
+from src.analysis.defi_decoder import decode_transactions_bulk
+from src.analysis.protocol_registry import classify_address
+from src.analysis.protocol_registry import get_all_protocols
+from src.analysis.protocol_registry import get_protocol_by_address
+from src.analysis.protocol_registry import get_protocols_by_type
+from src.analysis.protocol_registry import protocol_count
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 _SUPPORTED_CHAINS = {
-    "ethereum", "bitcoin", "polygon", "bsc", "arbitrum",
-    "optimism", "avalanche", "solana", "tron", "xrpl",
-    "base", "fantom", "xdai",
+    "ethereum",
+    "bitcoin",
+    "polygon",
+    "bsc",
+    "arbitrum",
+    "optimism",
+    "avalanche",
+    "solana",
+    "tron",
+    "xrpl",
+    "base",
+    "fantom",
+    "xdai",
 }
 
 
@@ -108,6 +126,7 @@ async def trace_address(
     """
     try:
         from src.analysis.cross_chain import CrossChainAnalyzer
+
         analyzer = CrossChainAnalyzer()
         analysis = await analyzer.get_cross_chain_analysis(
             body.address, time_range=body.time_range_hours
@@ -169,7 +188,10 @@ async def decode_txs_bulk(
 
 @router.get("/protocols")
 async def list_protocols(
-    protocol_type: Optional[str] = Query(None, description="Filter by type: bridge|dex|lending|staking|yield_farming|mixer|nft|payments"),
+    protocol_type: Optional[str] = Query(
+        None,
+        description="Filter by type: bridge|dex|lending|staking|yield_farming|mixer|nft|payments",
+    ),
     current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """List all protocols in the registry (optionally filtered by type)."""
@@ -194,7 +216,9 @@ async def lookup_protocol_by_address(
     """Look up a protocol by contract address."""
     proto = get_protocol_by_address(address)
     if not proto:
-        raise HTTPException(status_code=404, detail="Address not found in protocol registry")
+        raise HTTPException(
+            status_code=404, detail="Address not found in protocol registry"
+        )
     return {"success": True, "protocol": _serialize_protocol(proto)}
 
 

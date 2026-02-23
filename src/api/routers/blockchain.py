@@ -3,19 +3,35 @@ Jackdaw Sentry - Blockchain Router
 Blockchain data and node management endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, field_validator
 import logging
 import time
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_neo4j_session, get_redis_connection
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.config import get_blockchain_config
+from src.api.config import get_supported_blockchains
+from src.api.database import get_neo4j_session
+from src.api.database import get_redis_connection
 from src.api.exceptions import BlockchainException
-from src.api.config import get_supported_blockchains, get_blockchain_config
+from src.collectors.base import Address
+from src.collectors.base import Block
+from src.collectors.base import Transaction
 from src.collectors.rpc.factory import get_rpc_client
-from src.collectors.base import Transaction, Block, Address
 
 logger = logging.getLogger(__name__)
 
@@ -28,34 +44,34 @@ class BlockchainQueryRequest(BaseModel):
     query_type: str  # transaction, address, block, contract
     identifier: str
     include_details: bool = True
-    
-    @field_validator('blockchain')
+
+    @field_validator("blockchain")
     @classmethod
     def validate_blockchain(cls, v):
         supported = get_supported_blockchains()
         if v.lower() not in supported:
-            raise ValueError(f'Unsupported blockchain: {v}')
+            raise ValueError(f"Unsupported blockchain: {v}")
         return v.lower()
 
-    @field_validator('query_type')
+    @field_validator("query_type")
     @classmethod
     def validate_query_type(cls, v):
         valid_types = ["transaction", "address", "block", "contract"]
         if v not in valid_types:
-            raise ValueError(f'Invalid query type: {v}')
+            raise ValueError(f"Invalid query type: {v}")
         return v
 
 
 class NodeStatusRequest(BaseModel):
     blockchain: str
     node_url: Optional[str] = None
-    
-    @field_validator('blockchain')
+
+    @field_validator("blockchain")
     @classmethod
     def validate_blockchain(cls, v):
         supported = get_supported_blockchains()
         if v.lower() not in supported:
-            raise ValueError(f'Unsupported blockchain: {v}')
+            raise ValueError(f"Unsupported blockchain: {v}")
         return v.lower()
 
 
@@ -70,12 +86,14 @@ class BlockchainResponse(BaseModel):
 @router.post("/query", response_model=BlockchainResponse)
 async def query_blockchain(
     request: BlockchainQueryRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Query blockchain data from Neo4j"""
     try:
         start = time.monotonic()
-        logger.info(f"Querying {request.blockchain} for {request.query_type}: {request.identifier}")
+        logger.info(
+            f"Querying {request.blockchain} for {request.query_type}: {request.identifier}"
+        )
 
         data: Dict[str, Any] = {"blockchain": request.blockchain}
 
@@ -88,7 +106,8 @@ async def query_blockchain(
                     OPTIONAL MATCH (t)-[:RECEIVED]->(to_a:Address)
                     RETURN t, from_a.address AS from_addr, to_a.address AS to_addr
                     """,
-                    id=request.identifier, bc=request.blockchain,
+                    id=request.identifier,
+                    bc=request.blockchain,
                 )
                 rec = await result.single()
                 if rec and rec["t"]:
@@ -106,7 +125,9 @@ async def query_blockchain(
                         data["data_source"] = "live_rpc"
                     else:
                         data["transaction_hash"] = request.identifier
-                        data["note"] = "Transaction not found in database or via live RPC"
+                        data["note"] = (
+                            "Transaction not found in database or via live RPC"
+                        )
 
             elif request.query_type == "address":
                 result = await session.run(
@@ -115,7 +136,8 @@ async def query_blockchain(
                     OPTIONAL MATCH (a)-[r:SENT|RECEIVED]-()
                     RETURN a, count(r) AS tx_count
                     """,
-                    id=request.identifier, bc=request.blockchain,
+                    id=request.identifier,
+                    bc=request.blockchain,
                 )
                 rec = await result.single()
                 if rec and rec["a"]:
@@ -142,7 +164,8 @@ async def query_blockchain(
                     OPTIONAL MATCH (b)-[:CONTAINS]->(t:Transaction)
                     RETURN b, count(t) AS tx_count
                     """,
-                    id=request.identifier, bc=request.blockchain,
+                    id=request.identifier,
+                    bc=request.blockchain,
                 )
                 rec = await result.single()
                 if rec and rec["b"]:
@@ -156,7 +179,8 @@ async def query_blockchain(
             else:  # contract
                 result = await session.run(
                     "OPTIONAL MATCH (c:Contract {address: $id, blockchain: $bc}) RETURN c",
-                    id=request.identifier, bc=request.blockchain,
+                    id=request.identifier,
+                    bc=request.blockchain,
                 )
                 rec = await result.single()
                 if rec and rec["c"]:
@@ -174,8 +198,10 @@ async def query_blockchain(
         }
 
         return BlockchainResponse(
-            success=True, blockchain_data=data,
-            metadata=metadata, timestamp=datetime.now(timezone.utc),
+            success=True,
+            blockchain_data=data,
+            metadata=metadata,
+            timestamp=datetime.now(timezone.utc),
         )
 
     except Exception as e:
@@ -189,12 +215,12 @@ async def query_blockchain(
 
 @router.get("/supported")
 async def get_supported_blockchains_info(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Get list of supported blockchains"""
     try:
         supported = get_supported_blockchains()
-        
+
         blockchain_info = {}
         for chain in supported:
             blockchain_info[chain] = {
@@ -202,87 +228,98 @@ async def get_supported_blockchains_info(
                 "status": "active",
                 "features": {
                     "transactions": True,
-                    "contracts": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"],
-                    "tokens": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base", "solana", "tron"],
+                    "contracts": chain
+                    in ["ethereum", "bsc", "polygon", "arbitrum", "base"],
+                    "tokens": chain
+                    in [
+                        "ethereum",
+                        "bsc",
+                        "polygon",
+                        "arbitrum",
+                        "base",
+                        "solana",
+                        "tron",
+                    ],
                     "nfts": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"],
-                    "defi": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"]
+                    "defi": chain in ["ethereum", "bsc", "polygon", "arbitrum", "base"],
                 },
                 "last_sync": datetime.now(timezone.utc) - timedelta(minutes=5),
-                "sync_status": "healthy"
+                "sync_status": "healthy",
             }
-        
+
         return {
             "success": True,
             "blockchains": blockchain_info,
             "total_supported": len(supported),
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Supported blockchains retrieval failed: {e}")
         raise BlockchainException(
             message=f"Supported blockchains retrieval failed: {str(e)}",
             blockchain="multiple",
-            error_code="SUPPORTED_CHAINS_FAILED"
+            error_code="SUPPORTED_CHAINS_FAILED",
         )
 
 
 @router.post("/node/status", response_model=BlockchainResponse)
 async def get_node_status(
     request: NodeStatusRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Get blockchain node status"""
     try:
         logger.info(f"Getting node status for {request.blockchain}")
-        
+
         status_data = {
             "blockchain": request.blockchain,
             "node_status": "healthy",
             "connected": True,
             "sync_status": "synced",
             "latest_block": 18500000,
-            "latest_block_timestamp": datetime.now(timezone.utc) - timedelta(seconds=30),
+            "latest_block_timestamp": datetime.now(timezone.utc)
+            - timedelta(seconds=30),
             "peer_count": 25,
             "rpc_latency_ms": 45,
             "uptime_percentage": 99.8,
-            "last_check": datetime.now(timezone.utc)
+            "last_check": datetime.now(timezone.utc),
         }
-        
+
         # Add blockchain-specific metrics
         if request.blockchain == "bitcoin":
-            status_data.update({
-                "difficulty": 52000000000000,
-                "hash_rate_th": 450000,
-                "mempool_size": 5000,
-                "block_interval_minutes": 10
-            })
+            status_data.update(
+                {
+                    "difficulty": 52000000000000,
+                    "hash_rate_th": 450000,
+                    "mempool_size": 5000,
+                    "block_interval_minutes": 10,
+                }
+            )
         elif request.blockchain in ["ethereum", "bsc", "polygon", "arbitrum", "base"]:
-            status_data.update({
-                "gas_price_gwei": 25,
-                "network_utilization": 0.65,
-                "block_time_seconds": 12
-            })
-        
-        metadata = {
-            "check_duration_ms": 120,
-            "alerts": [],
-            "performance_grade": "A"
-        }
-        
+            status_data.update(
+                {
+                    "gas_price_gwei": 25,
+                    "network_utilization": 0.65,
+                    "block_time_seconds": 12,
+                }
+            )
+
+        metadata = {"check_duration_ms": 120, "alerts": [], "performance_grade": "A"}
+
         return BlockchainResponse(
             success=True,
             blockchain_data=status_data,
             metadata=metadata,
-            timestamp=datetime.now(timezone.utc)
+            timestamp=datetime.now(timezone.utc),
         )
-        
+
     except Exception as e:
         logger.error(f"Node status check failed: {e}")
         raise BlockchainException(
             message=f"Node status check failed: {str(e)}",
             blockchain=request.blockchain,
-            error_code="NODE_STATUS_FAILED"
+            error_code="NODE_STATUS_FAILED",
         )
 
 
@@ -290,7 +327,7 @@ async def get_node_status(
 async def get_latest_transactions(
     blockchain: str,
     limit: int = 50,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Get latest transactions from Neo4j"""
     try:
@@ -302,7 +339,8 @@ async def get_latest_transactions(
                 MATCH (t:Transaction {blockchain: $bc})
                 RETURN t ORDER BY t.timestamp DESC LIMIT $limit
                 """,
-                bc=blockchain, limit=min(limit, 50),
+                bc=blockchain,
+                limit=min(limit, 50),
             )
             records = await result.data()
 
@@ -329,7 +367,7 @@ async def get_latest_transactions(
 async def get_latest_blocks(
     blockchain: str,
     limit: int = 20,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Get latest blocks from Neo4j"""
     try:
@@ -343,7 +381,8 @@ async def get_latest_blocks(
                 RETURN b, count(t) AS tx_count
                 ORDER BY b.number DESC LIMIT $limit
                 """,
-                bc=blockchain, limit=min(limit, 20),
+                bc=blockchain,
+                limit=min(limit, 20),
             )
             records = await result.data()
 
@@ -387,7 +426,9 @@ async def get_transaction_by_hash(
     """
     blockchain = blockchain.lower()
     if blockchain not in get_supported_blockchains():
-        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported blockchain: {blockchain}"
+        )
 
     start = time.monotonic()
 
@@ -400,7 +441,8 @@ async def get_transaction_by_hash(
             OPTIONAL MATCH (t)-[:RECEIVED]->(to_a:Address)
             RETURN t, from_a.address AS from_addr, to_a.address AS to_addr
             """,
-            id=tx_hash, bc=blockchain,
+            id=tx_hash,
+            bc=blockchain,
         )
         rec = await result.single()
 
@@ -422,7 +464,10 @@ async def get_transaction_by_hash(
         "success": True,
         "blockchain": blockchain,
         "transaction": data,
-        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data.get("data_source", "neo4j")},
+        "metadata": {
+            "processing_time_ms": elapsed_ms,
+            "data_source": data.get("data_source", "neo4j"),
+        },
         "timestamp": datetime.now(timezone.utc),
     }
 
@@ -439,7 +484,9 @@ async def get_address(
     """
     blockchain = blockchain.lower()
     if blockchain not in get_supported_blockchains():
-        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported blockchain: {blockchain}"
+        )
 
     normalized_address = address.lower()
     start = time.monotonic()
@@ -452,7 +499,8 @@ async def get_address(
             OPTIONAL MATCH (a)-[r:SENT|RECEIVED]-()
             RETURN a, count(r) AS tx_count
             """,
-            id=normalized_address, bc=blockchain,
+            id=normalized_address,
+            bc=blockchain,
         )
         rec = await result.single()
 
@@ -473,7 +521,10 @@ async def get_address(
         "success": True,
         "blockchain": blockchain,
         "address": data,
-        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data.get("data_source", "neo4j")},
+        "metadata": {
+            "processing_time_ms": elapsed_ms,
+            "data_source": data.get("data_source", "neo4j"),
+        },
         "timestamp": datetime.now(timezone.utc),
     }
 
@@ -492,7 +543,9 @@ async def get_address_transactions(
     """
     blockchain = blockchain.lower()
     if blockchain not in get_supported_blockchains():
-        raise HTTPException(status_code=400, detail=f"Unsupported blockchain: {blockchain}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported blockchain: {blockchain}"
+        )
 
     limit = min(max(limit, 1), 50)
     offset = min(max(offset, 0), 10_000)
@@ -507,7 +560,10 @@ async def get_address_transactions(
             MATCH (a:Address {address: $addr, blockchain: $bc})-[:SENT|RECEIVED]-(t:Transaction)
             RETURN t ORDER BY t.timestamp DESC SKIP $skip LIMIT $limit
             """,
-            addr=address.lower(), bc=blockchain, skip=offset, limit=limit,
+            addr=address.lower(),
+            bc=blockchain,
+            skip=offset,
+            limit=limit,
         )
         records = await result.data()
         transactions = [dict(r["t"]) for r in records]
@@ -532,7 +588,12 @@ async def get_address_transactions(
         "address": address,
         "transactions": transactions,
         "count": len(transactions),
-        "metadata": {"processing_time_ms": elapsed_ms, "data_source": data_source, "offset": offset, "limit": limit},
+        "metadata": {
+            "processing_time_ms": elapsed_ms,
+            "data_source": data_source,
+            "offset": offset,
+            "limit": limit,
+        },
         "timestamp": datetime.now(timezone.utc),
     }
 
@@ -563,9 +624,7 @@ async def _rpc_lookup_transaction(
         return None
 
 
-async def _rpc_lookup_address(
-    blockchain: str, address: str
-) -> Optional[Address]:
+async def _rpc_lookup_address(blockchain: str, address: str) -> Optional[Address]:
     """Attempt a live RPC lookup for address info. Returns None on failure."""
     client = get_rpc_client(blockchain)
     if client is None:
@@ -573,7 +632,9 @@ async def _rpc_lookup_address(
     try:
         return await client.get_address_info(address)
     except Exception as exc:
-        logger.warning(f"Live RPC address lookup failed for {blockchain}/{address}: {exc}")
+        logger.warning(
+            f"Live RPC address lookup failed for {blockchain}/{address}: {exc}"
+        )
         return None
 
 
@@ -659,22 +720,22 @@ def blockchain_block_time(blockchain: str) -> int:
     block_times = {
         "bitcoin": 10,
         "ethereum": 0.2,  # 12 seconds
-        "bsc": 0.05,      # 3 seconds
+        "bsc": 0.05,  # 3 seconds
         "polygon": 0.05,  # 3 seconds
         "arbitrum": 0.4,  # 24 seconds
-        "base": 0.4,       # 24 seconds
-        "avalanche": 0.05, # 3 seconds
-        "solana": 0.016,   # ~1 second
-        "tron": 0.05,      # 3 seconds
-        "xrpl": 0.05,      # 3-5 seconds
-        "stellar": 0.083   # 5 seconds
+        "base": 0.4,  # 24 seconds
+        "avalanche": 0.05,  # 3 seconds
+        "solana": 0.016,  # ~1 second
+        "tron": 0.05,  # 3 seconds
+        "xrpl": 0.05,  # 3-5 seconds
+        "stellar": 0.083,  # 5 seconds
     }
     return block_times.get(blockchain, 1)
 
 
 @router.get("/statistics")
 async def get_blockchain_statistics(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_blockchain"]])),
 ):
     """Get blockchain system statistics from Neo4j"""
     try:
@@ -683,8 +744,7 @@ async def get_blockchain_statistics(
         }
 
         async with get_neo4j_session() as session:
-            result = await session.run(
-                """
+            result = await session.run("""
                 OPTIONAL MATCH (t:Transaction)
                 WITH count(t) AS total_tx
                 OPTIONAL MATCH (a:Address)
@@ -696,8 +756,7 @@ async def get_blockchain_statistics(
                      CASE WHEN t2 IS NOT NULL THEN t2.blockchain ELSE NULL END AS bc
                 RETURN total_tx, total_addr, total_blk,
                        collect(bc) AS all_bc
-                """
-            )
+                """)
             rec = await result.single()
             stats["total_transactions"] = rec["total_tx"] if rec else 0
             stats["total_addresses"] = rec["total_addr"] if rec else 0
@@ -707,9 +766,13 @@ async def get_blockchain_statistics(
             if rec:
                 for bc in rec["all_bc"]:
                     if bc:
-                        blockchain_distribution[bc] = blockchain_distribution.get(bc, 0) + 1
+                        blockchain_distribution[bc] = (
+                            blockchain_distribution.get(bc, 0) + 1
+                        )
             stats["blockchain_distribution"] = dict(
-                sorted(blockchain_distribution.items(), key=lambda x: x[1], reverse=True)
+                sorted(
+                    blockchain_distribution.items(), key=lambda x: x[1], reverse=True
+                )
             )
 
         return {

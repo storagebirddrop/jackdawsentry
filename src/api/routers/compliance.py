@@ -3,31 +3,44 @@ Jackdaw Sentry - Compliance Router
 Regulatory compliance and reporting endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, field_validator
 import logging
 import uuid
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_postgres_connection, get_neo4j_session, execute_neo4j_query
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.database import execute_neo4j_query
+from src.api.database import get_neo4j_session
+from src.api.database import get_postgres_connection
 from src.api.exceptions import ComplianceException
-from src.compliance import (
-    RegulatoryReportingEngine,
-    CaseManagementEngine,
-    AuditTrailEngine,
-    AutomatedRiskAssessmentEngine,
-    AuditEventType,
-    AuditSeverity,
-    RegulatoryJurisdiction,
-    ReportType,
-    CaseStatus,
-    CasePriority,
-    RiskLevel,
-    AssessmentStatus,
-    TriggerType
-)
+from src.compliance import AssessmentStatus
+from src.compliance import AuditEventType
+from src.compliance import AuditSeverity
+from src.compliance import AuditTrailEngine
+from src.compliance import AutomatedRiskAssessmentEngine
+from src.compliance import CaseManagementEngine
+from src.compliance import CasePriority
+from src.compliance import CaseStatus
+from src.compliance import RegulatoryJurisdiction
+from src.compliance import RegulatoryReportingEngine
+from src.compliance import ReportType
+from src.compliance import RiskLevel
+from src.compliance import TriggerType
 
 logger = logging.getLogger(__name__)
 
@@ -46,21 +59,21 @@ class ComplianceCheckRequest(BaseModel):
     blockchain: str
     check_types: List[str] = ["sanctions", "aml", "risk"]
     jurisdiction: str = "global"
-    
-    @field_validator('addresses')
+
+    @field_validator("addresses")
     @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
-            raise ValueError('At least one address must be provided')
+            raise ValueError("At least one address must be provided")
         return [addr.strip() for addr in v if addr.strip()]
 
-    @field_validator('check_types')
+    @field_validator("check_types")
     @classmethod
     def validate_check_types(cls, v):
         valid_types = ["sanctions", "aml", "risk", "pep", "adverse_media"]
         for check_type in v:
             if check_type not in valid_types:
-                raise ValueError(f'Invalid check type: {check_type}')
+                raise ValueError(f"Invalid check type: {check_type}")
         return v
 
 
@@ -71,13 +84,13 @@ class ComplianceReportRequest(BaseModel):
     addresses: Optional[List[str]] = None
     threshold_amount: Optional[float] = None
     jurisdiction: str = "US"
-    
-    @field_validator('report_type')
+
+    @field_validator("report_type")
     @classmethod
     def validate_report_type(cls, v):
         valid_types = ["sar", "ctr", "str", "custom", "audit"]
         if v not in valid_types:
-            raise ValueError(f'Invalid report type: {v}')
+            raise ValueError(f"Invalid report type: {v}")
         return v
 
 
@@ -88,12 +101,12 @@ class RuleConfigRequest(BaseModel):
     actions: List[str]
     enabled: bool = True
     priority: int = 1
-    
-    @field_validator('priority')
+
+    @field_validator("priority")
     @classmethod
     def validate_priority(cls, v):
         if v < 1 or v > 10:
-            raise ValueError('Priority must be between 1 and 10')
+            raise ValueError("Priority must be between 1 and 10")
         return v
 
 
@@ -108,11 +121,12 @@ class ComplianceResponse(BaseModel):
 @router.post("/check", response_model=ComplianceResponse)
 async def run_compliance_check(
     request: ComplianceCheckRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Run compliance checks on addresses using real risk and sanctions engines"""
     try:
         import time
+
         start = time.monotonic()
         logger.info(f"Running compliance checks for {len(request.addresses)} addresses")
 
@@ -135,7 +149,11 @@ async def run_compliance_check(
                         "overall_score": assessment.overall_score,
                         "confidence": assessment.confidence,
                         "factors": {
-                            f.category.value: {"score": f.score, "weight": f.weight, "description": f.description}
+                            f.category.value: {
+                                "score": f.score,
+                                "weight": f.weight,
+                                "description": f.description,
+                            }
                             for f in assessment.risk_factors
                         },
                     }
@@ -148,7 +166,11 @@ async def run_compliance_check(
 
             if "sanctions" in request.check_types:
                 # Query Neo4j for sanctions matches
-                sanctions_result = {"status": "clear", "lists_checked": [], "match_count": 0}
+                sanctions_result = {
+                    "status": "clear",
+                    "lists_checked": [],
+                    "match_count": 0,
+                }
                 try:
                     async with get_neo4j_session() as session:
                         result = await session.run(
@@ -164,7 +186,9 @@ async def run_compliance_check(
                             match_count = record["match_count"]
                             sanctions_result["match_count"] = match_count
                             sanctions_result["matched_lists"] = record["matched_lists"]
-                            sanctions_result["status"] = "flagged" if match_count > 0 else "clear"
+                            sanctions_result["status"] = (
+                                "flagged" if match_count > 0 else "clear"
+                            )
 
                         # Get list names we checked
                         lists_result = await session.run(
@@ -172,14 +196,25 @@ async def run_compliance_check(
                         )
                         lists_record = await lists_result.single()
                         if lists_record and lists_record["list_names"]:
-                            sanctions_result["lists_checked"] = lists_record["list_names"]
+                            sanctions_result["lists_checked"] = lists_record[
+                                "list_names"
+                            ]
                         else:
-                            sanctions_result["lists_checked"] = ["OFAC", "UN", "EU", "HMT"]
+                            sanctions_result["lists_checked"] = [
+                                "OFAC",
+                                "UN",
+                                "EU",
+                                "HMT",
+                            ]
                 except Exception as sanctions_err:
-                    logger.warning(f"Sanctions DB query failed, returning safe default: {sanctions_err}")
+                    logger.warning(
+                        f"Sanctions DB query failed, returning safe default: {sanctions_err}"
+                    )
                     sanctions_result["lists_checked"] = ["OFAC", "UN", "EU", "HMT"]
 
-                sanctions_result["last_updated"] = datetime.now(timezone.utc).isoformat()
+                sanctions_result["last_updated"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
                 address_results["sanctions"] = sanctions_result
 
             compliance_results[address] = address_results
@@ -189,7 +224,11 @@ async def run_compliance_check(
             "check_types": request.check_types,
             "jurisdiction": request.jurisdiction,
             "processing_time_ms": elapsed_ms,
-            "data_sources": ["risk_assessment_engine", "neo4j_sanctions_db", "blockchain_analysis"],
+            "data_sources": [
+                "risk_assessment_engine",
+                "neo4j_sanctions_db",
+                "blockchain_analysis",
+            ],
         }
 
         return ComplianceResponse(
@@ -211,11 +250,12 @@ async def run_compliance_check(
 @router.post("/report", response_model=ComplianceResponse)
 async def generate_compliance_report(
     request: ComplianceReportRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Generate compliance reports (SAR, CTR, STR, etc.) via regulatory engine"""
     try:
         import time
+
         start = time.monotonic()
         logger.info(f"Generating {request.report_type.upper()} report")
 
@@ -234,7 +274,11 @@ async def generate_compliance_report(
             report_type = ReportType.SAR
 
         # Create the report through the engine (persisted to Neo4j)
-        entity_id = request.addresses[0] if request.addresses else f"batch_{uuid.uuid4().hex[:8]}"
+        entity_id = (
+            request.addresses[0]
+            if request.addresses
+            else f"batch_{uuid.uuid4().hex[:8]}"
+        )
         report = await regulatory_engine.create_regulatory_report(
             jurisdiction=jurisdiction,
             report_type=report_type,
@@ -287,33 +331,33 @@ async def generate_compliance_report(
 
 @router.get("/rules")
 async def get_compliance_rules(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get all compliance rules from Neo4j"""
     try:
         async with get_neo4j_session() as session:
-            result = await session.run(
-                """
+            result = await session.run("""
                 MATCH (r:ComplianceRule)
                 RETURN r ORDER BY r.priority ASC, r.created_at DESC
-                """
-            )
+                """)
             records = await result.data()
 
         rules = []
         for record in records:
             r = record["r"]
-            rules.append({
-                "id": r.get("rule_id"),
-                "name": r.get("name"),
-                "description": r.get("description"),
-                "conditions": r.get("conditions", {}),
-                "actions": r.get("actions", []),
-                "enabled": r.get("enabled", True),
-                "priority": r.get("priority", 1),
-                "created_by": r.get("created_by"),
-                "created_at": r.get("created_at"),
-            })
+            rules.append(
+                {
+                    "id": r.get("rule_id"),
+                    "name": r.get("name"),
+                    "description": r.get("description"),
+                    "conditions": r.get("conditions", {}),
+                    "actions": r.get("actions", []),
+                    "enabled": r.get("enabled", True),
+                    "priority": r.get("priority", 1),
+                    "created_by": r.get("created_by"),
+                    "created_at": r.get("created_at"),
+                }
+            )
 
         return {
             "success": True,
@@ -334,11 +378,12 @@ async def get_compliance_rules(
 @router.post("/rules", response_model=ComplianceResponse)
 async def create_compliance_rule(
     request: RuleConfigRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Create new compliance rule and persist to Neo4j"""
     try:
         import json as _json
+
         logger.info(f"Creating compliance rule: {request.name}")
 
         rule_id = f"rule_{uuid.uuid4().hex[:12]}"
@@ -421,15 +466,14 @@ async def create_compliance_rule(
 
 @router.get("/sanctions/lists")
 async def get_sanctions_lists_status(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get status of sanctions lists from Neo4j"""
     try:
         sanctions_status = []
         try:
             async with get_neo4j_session() as session:
-                result = await session.run(
-                    """
+                result = await session.run("""
                     MATCH (sl:SanctionsList)
                     OPTIONAL MATCH (sl)<-[:BELONGS_TO]-(entry:SanctionEntry)
                     RETURN sl.name AS list_name,
@@ -439,30 +483,61 @@ async def get_sanctions_lists_status(
                            sl.status AS status,
                            count(entry) AS total_entries
                     ORDER BY sl.name
-                    """
-                )
+                    """)
                 records = await result.data()
 
                 for r in records:
-                    sanctions_status.append({
-                        "list_name": r["list_name"],
-                        "provider": r.get("provider", "Unknown"),
-                        "last_updated": r.get("last_updated"),
-                        "total_entries": r["total_entries"],
-                        "status": r.get("status", "active"),
-                        "coverage": r.get("coverage", "global"),
-                    })
+                    sanctions_status.append(
+                        {
+                            "list_name": r["list_name"],
+                            "provider": r.get("provider", "Unknown"),
+                            "last_updated": r.get("last_updated"),
+                            "total_entries": r["total_entries"],
+                            "status": r.get("status", "active"),
+                            "coverage": r.get("coverage", "global"),
+                        }
+                    )
         except Exception as db_err:
-            logger.warning(f"Sanctions lists DB query failed, returning tracked defaults: {db_err}")
+            logger.warning(
+                f"Sanctions lists DB query failed, returning tracked defaults: {db_err}"
+            )
 
         # If no lists in DB yet, return tracked defaults
         if not sanctions_status:
             now = datetime.now(timezone.utc)
             sanctions_status = [
-                {"list_name": "OFAC SDN", "provider": "US Treasury", "last_updated": (now - timedelta(hours=6)).isoformat(), "total_entries": 0, "status": "tracked", "coverage": "global"},
-                {"list_name": "UN Sanctions", "provider": "United Nations", "last_updated": (now - timedelta(hours=12)).isoformat(), "total_entries": 0, "status": "tracked", "coverage": "global"},
-                {"list_name": "EU Sanctions", "provider": "European Union", "last_updated": (now - timedelta(hours=8)).isoformat(), "total_entries": 0, "status": "tracked", "coverage": "eu"},
-                {"list_name": "HMT Sanctions", "provider": "UK HM Treasury", "last_updated": (now - timedelta(hours=10)).isoformat(), "total_entries": 0, "status": "tracked", "coverage": "uk"},
+                {
+                    "list_name": "OFAC SDN",
+                    "provider": "US Treasury",
+                    "last_updated": (now - timedelta(hours=6)).isoformat(),
+                    "total_entries": 0,
+                    "status": "tracked",
+                    "coverage": "global",
+                },
+                {
+                    "list_name": "UN Sanctions",
+                    "provider": "United Nations",
+                    "last_updated": (now - timedelta(hours=12)).isoformat(),
+                    "total_entries": 0,
+                    "status": "tracked",
+                    "coverage": "global",
+                },
+                {
+                    "list_name": "EU Sanctions",
+                    "provider": "European Union",
+                    "last_updated": (now - timedelta(hours=8)).isoformat(),
+                    "total_entries": 0,
+                    "status": "tracked",
+                    "coverage": "eu",
+                },
+                {
+                    "list_name": "HMT Sanctions",
+                    "provider": "UK HM Treasury",
+                    "last_updated": (now - timedelta(hours=10)).isoformat(),
+                    "total_entries": 0,
+                    "status": "tracked",
+                    "coverage": "uk",
+                },
             ]
 
         return {
@@ -483,7 +558,7 @@ async def get_sanctions_lists_status(
 
 @router.get("/statistics")
 async def get_compliance_statistics(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get compliance system statistics aggregated from real engines"""
     try:
@@ -492,8 +567,7 @@ async def get_compliance_statistics(
         # Aggregate from Neo4j
         try:
             async with get_neo4j_session() as session:
-                result = await session.run(
-                    """
+                result = await session.run("""
                     OPTIONAL MATCH (a:RiskAssessment)
                     WITH count(a) AS total_risk_assessments,
                          count(CASE WHEN a.risk_level IN ['high','severe'] THEN 1 END) AS flagged_assessments
@@ -514,8 +588,7 @@ async def get_compliance_statistics(
                            reports_generated, total_rules, enabled_rules,
                            total_cases, open_cases,
                            count(e) AS total_audit_events
-                    """
-                )
+                    """)
                 record = await result.single()
                 if record:
                     stats["total_risk_assessments"] = record["total_risk_assessments"]
@@ -552,19 +625,19 @@ async def create_regulatory_report(
     jurisdiction: str,
     report_type: str,
     entity_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Create regulatory report"""
     try:
         await regulatory_engine.initialize()
-        
+
         report = await regulatory_engine.create_report(
             jurisdiction=RegulatoryJurisdiction(jurisdiction.lower()),
             report_type=ReportType(report_type.lower()),
             entity_id=entity_id,
-            submitted_by=current_user.username
+            submitted_by=current_user.username,
         )
-        
+
         return {
             "success": True,
             "report": {
@@ -572,37 +645,36 @@ async def create_regulatory_report(
                 "jurisdiction": report.jurisdiction.value,
                 "report_type": report.report_type.value,
                 "status": report.status.value,
-                "created_at": report.created_at
+                "created_at": report.created_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Regulatory report creation failed: {e}")
         raise ComplianceException(
             message=f"Regulatory report creation failed: {str(e)}",
             regulation=jurisdiction,
-            error_code="REGULATORY_REPORT_FAILED"
+            error_code="REGULATORY_REPORT_FAILED",
         )
 
 
 @router.get("/regulatory/reports/{report_id}")
 async def get_regulatory_report(
     report_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get regulatory report by ID"""
     try:
         await regulatory_engine.initialize()
-        
+
         report = await regulatory_engine.get_report(report_id)
-        
+
         if not report:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Report not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Report not found"
             )
-        
+
         return {
             "success": True,
             "report": {
@@ -613,11 +685,11 @@ async def get_regulatory_report(
                 "entity_id": report.entity_id,
                 "content": report.report_data,
                 "submitted_at": report.submitted_at,
-                "created_at": report.created_at
+                "created_at": report.created_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -625,7 +697,7 @@ async def get_regulatory_report(
         raise ComplianceException(
             message=f"Regulatory report retrieval failed: {str(e)}",
             regulation="UNKNOWN",
-            error_code="REPORT_RETRIEVAL_FAILED"
+            error_code="REPORT_RETRIEVAL_FAILED",
         )
 
 
@@ -637,21 +709,21 @@ async def create_case(
     case_type: str,
     priority: str = "medium",
     assigned_to: Optional[str] = None,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Create new compliance case"""
     try:
         await case_engine.initialize()
-        
+
         case = await case_engine.create_case(
             title=title,
             description=description,
             case_type=case_type,
             priority=CasePriority(priority.lower()),
             assigned_to=assigned_to or current_user.username,
-            created_by=current_user.username
+            created_by=current_user.username,
         )
-        
+
         return {
             "success": True,
             "case": {
@@ -661,37 +733,36 @@ async def create_case(
                 "priority": case.priority.value,
                 "status": case.status.value,
                 "assigned_to": case.assigned_to,
-                "created_at": case.created_at
+                "created_at": case.created_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Case creation failed: {e}")
         raise ComplianceException(
             message=f"Case creation failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="CASE_CREATION_FAILED"
+            error_code="CASE_CREATION_FAILED",
         )
 
 
 @router.get("/cases/{case_id}")
 async def get_case(
     case_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get case by ID"""
     try:
         await case_engine.initialize()
-        
+
         case = await case_engine.get_case(case_id)
-        
+
         if not case:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Case not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
             )
-        
+
         return {
             "success": True,
             "case": {
@@ -704,11 +775,11 @@ async def get_case(
                 "assigned_to": case.assigned_to,
                 "created_by": case.created_by,
                 "created_at": case.created_at,
-                "updated_at": case.updated_at
+                "updated_at": case.updated_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -716,7 +787,7 @@ async def get_case(
         raise ComplianceException(
             message=f"Case retrieval failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="CASE_RETRIEVAL_FAILED"
+            error_code="CASE_RETRIEVAL_FAILED",
         )
 
 
@@ -726,20 +797,20 @@ async def add_evidence_to_case(
     evidence_type: str,
     description: str,
     content: Dict[str, Any],
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Add evidence to case"""
     try:
         await case_engine.initialize()
-        
+
         evidence = await case_engine.add_evidence(
             case_id=case_id,
             evidence_type=evidence_type,
             description=description,
             content=content,
-            collected_by=current_user.username
+            collected_by=current_user.username,
         )
-        
+
         return {
             "success": True,
             "evidence": {
@@ -749,17 +820,17 @@ async def add_evidence_to_case(
                 "description": evidence.description,
                 "status": evidence.status.value,
                 "collected_by": evidence.collected_by,
-                "collected_at": evidence.collected_at
+                "collected_at": evidence.collected_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Evidence addition failed: {e}")
         raise ComplianceException(
             message=f"Evidence addition failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="EVIDENCE_ADDITION_FAILED"
+            error_code="EVIDENCE_ADDITION_FAILED",
         )
 
 
@@ -770,20 +841,20 @@ async def create_risk_assessment(
     entity_type: str,
     trigger_type: str = "automatic",
     workflow_id: Optional[str] = None,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Create risk assessment"""
     try:
         await risk_engine.initialize()
-        
+
         assessment = await risk_engine.create_risk_assessment(
             entity_id=entity_id,
             entity_type=entity_type,
             trigger_type=TriggerType(trigger_type.lower()),
             workflow_id=workflow_id,
-            assessor=current_user.username
+            assessor=current_user.username,
         )
-        
+
         return {
             "success": True,
             "assessment": {
@@ -796,37 +867,36 @@ async def create_risk_assessment(
                 "trigger_type": assessment.trigger_type.value,
                 "confidence": assessment.confidence,
                 "recommendations": assessment.recommendations,
-                "created_at": assessment.created_at
+                "created_at": assessment.created_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Risk assessment creation failed: {e}")
         raise ComplianceException(
             message=f"Risk assessment creation failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="RISK_ASSESSMENT_FAILED"
+            error_code="RISK_ASSESSMENT_FAILED",
         )
 
 
 @router.get("/risk/assessments/{assessment_id}")
 async def get_risk_assessment(
     assessment_id: str,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get risk assessment by ID"""
     try:
         await risk_engine.initialize()
-        
+
         assessment = await risk_engine.get_risk_assessment(assessment_id)
-        
+
         if not assessment:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assessment not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
             )
-        
+
         return {
             "success": True,
             "assessment": {
@@ -844,15 +914,15 @@ async def get_risk_assessment(
                         "category": factor.category.value,
                         "weight": factor.weight,
                         "score": factor.score,
-                        "description": factor.description
+                        "description": factor.description,
                     }
                     for factor in assessment.risk_factors
                 ],
-                "created_at": assessment.created_at
+                "created_at": assessment.created_at,
             },
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -860,7 +930,7 @@ async def get_risk_assessment(
         raise ComplianceException(
             message=f"Risk assessment retrieval failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="ASSESSMENT_RETRIEVAL_FAILED"
+            error_code="ASSESSMENT_RETRIEVAL_FAILED",
         )
 
 
@@ -868,26 +938,26 @@ async def get_risk_assessment(
 async def get_risk_summary(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get risk assessment summary"""
     try:
         await risk_engine.initialize()
-        
+
         summary = await risk_engine.get_risk_summary(start_date, end_date)
-        
+
         return {
             "success": True,
             "summary": summary,
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
-        
+
     except Exception as e:
         logger.error(f"Risk summary failed: {e}")
         raise ComplianceException(
             message=f"Risk summary failed: {str(e)}",
             regulation="INTERNAL",
-            error_code="RISK_SUMMARY_FAILED"
+            error_code="RISK_SUMMARY_FAILED",
         )
 
 
@@ -900,7 +970,7 @@ async def log_audit_event(
     severity: str = "medium",
     user_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
-    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["write_compliance"]])),
 ):
     """Log audit event with proper enum conversion"""
     try:
@@ -958,7 +1028,7 @@ async def get_audit_events(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     limit: int = 100,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_compliance"]])),
 ):
     """Get audit events from Neo4j"""
     try:
@@ -985,12 +1055,24 @@ async def get_audit_events(
             "events": [
                 {
                     "event_id": event.event_id,
-                    "event_type": event.event_type.value if hasattr(event.event_type, 'value') else event.event_type,
+                    "event_type": (
+                        event.event_type.value
+                        if hasattr(event.event_type, "value")
+                        else event.event_type
+                    ),
                     "description": event.description,
-                    "severity": event.severity.value if hasattr(event.severity, 'value') else event.severity,
+                    "severity": (
+                        event.severity.value
+                        if hasattr(event.severity, "value")
+                        else event.severity
+                    ),
                     "user_id": event.user_id,
                     "action": event.action,
-                    "timestamp": event.timestamp.isoformat() if hasattr(event.timestamp, 'isoformat') else event.timestamp,
+                    "timestamp": (
+                        event.timestamp.isoformat()
+                        if hasattr(event.timestamp, "isoformat")
+                        else event.timestamp
+                    ),
                 }
                 for event in events
             ],

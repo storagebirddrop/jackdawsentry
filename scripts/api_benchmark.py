@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import aiohttp
 import pytest
 
@@ -88,7 +88,7 @@ class APIBenchmark:
                 if method.upper() == "GET":
                     async with self.session.get(url, params=params) as response:
                         content = await response.read()
-                        response_time = time.time() - start_time
+                        response_time = (time.time() - start_time) * 1000
                         
                         result = BenchmarkResult(
                             endpoint=endpoint,
@@ -102,7 +102,7 @@ class APIBenchmark:
                 elif method.upper() == "POST":
                     async with self.session.post(url, json=data) as response:
                         content = await response.read()
-                        response_time = time.time() - start_time
+                        response_time = (time.time() - start_time) * 1000
                         
                         result = BenchmarkResult(
                             endpoint=endpoint,
@@ -113,13 +113,26 @@ class APIBenchmark:
                             success=response.status < 400
                         )
                 
+                else:
+                    # Handle unsupported HTTP methods
+                    response_time = (time.time() - start_time) * 1000
+                    result = BenchmarkResult(
+                        endpoint=endpoint,
+                        method=method,
+                        status_code=0,
+                        response_time=response_time,
+                        response_size=0,
+                        success=False,
+                        error=f"Unsupported method: {method}"
+                    )
+                
                 results.append(result)
                 
                 # Small delay between requests
                 await asyncio.sleep(0.1)
                 
             except Exception as e:
-                response_time = time.time() - start_time
+                response_time = (time.time() - start_time) * 1000
                 result = BenchmarkResult(
                     endpoint=endpoint,
                     method=method,
@@ -166,7 +179,7 @@ class APIBenchmark:
         # Generate report
         report = {
             "summary": self._get_summary_stats(),
-            "endpoint_stats": stats,
+            "endpoint_stats": {k: asdict(v) for k, v in stats.items()},
             "performance_recommendations": self._get_performance_recommendations(),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -272,7 +285,7 @@ class APIBenchmark:
                     p50_response_time=statistics.median(response_times),
                     p95_response_time=self._percentile(response_times, 95),
                     p99_response_time=self._percentile(response_times, 99),
-                    avg_response_size=statistics.mean(response_sizes)
+                    avg_response_size=int(statistics.mean(response_sizes))
                 )
             else:
                 stats[key] = EndpointStats(
@@ -321,7 +334,7 @@ class APIBenchmark:
                 "min_response_time": min(response_times),
                 "max_response_time": max(response_times),
                 "p95_response_time": self._percentile(response_times, 95),
-                "avg_response_size": statistics.mean(response_sizes)
+                "avg_response_size": int(statistics.mean(response_sizes))
             }
         else:
             return {

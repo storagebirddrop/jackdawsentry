@@ -3,8 +3,12 @@ Jackdaw Sentry - PDF Investigation Report Generator
 Uses reportlab to produce a structured PDF for investigation export.
 """
 
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 
 def generate_investigation_pdf(
@@ -24,19 +28,19 @@ def generate_investigation_pdf(
     Raises:
         ImportError: If reportlab is not installed.
     """
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.lib import colors
-    from reportlab.platypus import (
-        SimpleDocTemplate,
-        Paragraph,
-        Spacer,
-        Table,
-        TableStyle,
-        HRFlowable,
-    )
     import io
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import HRFlowable
+    from reportlab.platypus import Paragraph
+    from reportlab.platypus import SimpleDocTemplate
+    from reportlab.platypus import Spacer
+    from reportlab.platypus import Table
+    from reportlab.platypus import TableStyle
 
     buffer = io.BytesIO()
 
@@ -108,17 +112,26 @@ def generate_investigation_pdf(
         ["Risk Score", str(investigation.get("risk_score", 0.0))],
     ]
     summary_table = Table(summary_data, colWidths=[4 * cm, 13 * cm])
-    summary_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
-        ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f7fafc")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#edf2f7")]),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("PADDING", (0, 0), (-1, -1), 6),
-    ]))
+    summary_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f7fafc")),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#edf2f7")],
+                ),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
     elements.append(summary_table)
     elements.append(Spacer(1, 0.4 * cm))
 
@@ -137,15 +150,24 @@ def generate_investigation_pdf(
             [str(i + 1), str(addr)] for i, addr in enumerate(addresses)
         ]
         addr_table = Table(addr_data, colWidths=[1 * cm, 16 * cm])
-        addr_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#edf2f7")]),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("PADDING", (0, 0), (-1, -1), 5),
-            ("FONTSIZE", (0, 1), (-1, -1), 8),
-        ]))
+        addr_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.white, colors.HexColor("#edf2f7")],
+                    ),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("PADDING", (0, 0), (-1, -1), 5),
+                    ("FONTSIZE", (0, 1), (-1, -1), 8),
+                ]
+            )
+        )
         elements.append(addr_table)
         elements.append(Spacer(1, 0.4 * cm))
 
@@ -154,28 +176,39 @@ def generate_investigation_pdf(
         elements.append(Paragraph(f"Evidence ({len(evidence)} items)", heading2_style))
         evd_data = [["ID", "Type", "Description", "Confidence", "Added By", "Date"]]
         for ev in evidence:
-            evd_data.append([
-                str(ev.get("evidence_id", ""))[:12],
-                str(ev.get("evidence_type", "")),
-                str(ev.get("description", ""))[:60],
-                f"{float(ev.get('confidence', 0)):.0%}",
-                str(ev.get("added_by", "")),
-                str(ev.get("added_at", ""))[:10],
-            ])
+            evd_data.append(
+                [
+                    str(ev.get("evidence_id", ""))[:12],
+                    str(ev.get("evidence_type", "")),
+                    str(ev.get("description", ""))[:60],
+                    f"{float(ev.get('confidence', 0)):.0%}",
+                    str(ev.get("added_by", "")),
+                    str(ev.get("added_at", ""))[:10],
+                ]
+            )
         evd_table = Table(
             evd_data,
             colWidths=[2 * cm, 2.5 * cm, 6 * cm, 2 * cm, 2.5 * cm, 2 * cm],
         )
-        evd_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#edf2f7")]),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("PADDING", (0, 0), (-1, -1), 4),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
+        evd_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d3748")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.white, colors.HexColor("#edf2f7")],
+                    ),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("PADDING", (0, 0), (-1, -1), 4),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         elements.append(evd_table)
         elements.append(Spacer(1, 0.4 * cm))
 
@@ -193,11 +226,13 @@ def generate_investigation_pdf(
     # Footer note
     elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
     elements.append(Spacer(1, 0.2 * cm))
-    elements.append(Paragraph(
-        "<i>This report is confidential and generated by Jackdaw Sentry. "
-        "Handle in accordance with your organisation's data-handling policies.</i>",
-        body_style,
-    ))
+    elements.append(
+        Paragraph(
+            "<i>This report is confidential and generated by Jackdaw Sentry. "
+            "Handle in accordance with your organisation's data-handling policies.</i>",
+            body_style,
+        )
+    )
 
     doc.build(elements, onFirstPage=_add_page_number, onLaterPages=_add_page_number)
     return buffer.getvalue()

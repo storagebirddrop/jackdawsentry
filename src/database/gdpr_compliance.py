@@ -4,12 +4,18 @@ Data protection, consent management, and automated deletion
 """
 
 import asyncio
-import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Any
 import base64
 import hashlib
 import json
+import logging
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+
 from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
@@ -17,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class GDPRComplianceManager:
     """GDPR compliance management for Jackdaw Sentry"""
-    
+
     def __init__(self, postgres_pool, neo4j_driver, encryption_key: str):
         self.postgres_pool = postgres_pool
         self.neo4j_driver = neo4j_driver
@@ -25,7 +31,7 @@ class GDPRComplianceManager:
         self.fernet = Fernet(base64.urlsafe_b64encode(_key_bytes))
         self._data_cleanup_task: Optional[asyncio.Task] = None
         self._consent_review_task: Optional[asyncio.Task] = None
-    
+
     async def initialize_compliance_framework(self):
         """Initialize GDPR compliance framework"""
         logger.info("Initializing GDPR compliance framework...")
@@ -34,53 +40,79 @@ class GDPRComplianceManager:
             ("data_processing_records", self.setup_data_processing_records()),
             ("retention_policies", self.setup_retention_policies()),
             ("consent_management", self.setup_consent_management()),
-            ("data_subject_request_handling", self.setup_data_subject_request_handling()),
+            (
+                "data_subject_request_handling",
+                self.setup_data_subject_request_handling(),
+            ),
         ]:
             try:
                 await coro
             except Exception as e:
-                logger.warning(f"⚠️  GDPR setup step '{step_name}' skipped (tables may not be migrated yet): {e}")
+                logger.warning(
+                    f"⚠️  GDPR setup step '{step_name}' skipped (tables may not be migrated yet): {e}"
+                )
 
         logger.info("✅ GDPR compliance framework initialized")
-    
+
     async def setup_data_processing_records(self):
         """Setup GDPR Article 30 processing records"""
         processing_activities = [
             {
                 "processing_activity": "Blockchain Transaction Analysis",
-                "data_types": ["wallet_addresses", "transaction_hashes", "amounts", "timestamps"],
-                "purposes": ["fraud_detection", "aml_compliance", "regulatory_reporting"],
+                "data_types": [
+                    "wallet_addresses",
+                    "transaction_hashes",
+                    "amounts",
+                    "timestamps",
+                ],
+                "purposes": [
+                    "fraud_detection",
+                    "aml_compliance",
+                    "regulatory_reporting",
+                ],
                 "legal_basis": "legitimate_interest",
                 "data_subject_categories": ["crypto_users", "transaction_participants"],
                 "recipients": ["regulatory_authorities", "law_enforcement"],
                 "retention_period": "7_years",
                 "security_measures": "encryption_at_rest_and_transit",
-                "controller": "Jackdaw Sentry"
+                "controller": "Jackdaw Sentry",
             },
             {
                 "processing_activity": "Address Risk Assessment",
-                "data_types": ["risk_scores", "address_classifications", "behavioral_patterns"],
+                "data_types": [
+                    "risk_scores",
+                    "address_classifications",
+                    "behavioral_patterns",
+                ],
                 "purposes": ["risk_management", "compliance_monitoring"],
                 "legal_basis": "legal_obligation",
                 "data_subject_categories": ["crypto_users"],
                 "recipients": ["compliance_officers", "regulatory_authorities"],
                 "retention_period": "7_years",
                 "security_measures": "encryption_access_controls",
-                "controller": "Jackdaw Sentry"
+                "controller": "Jackdaw Sentry",
             },
             {
                 "processing_activity": "Investigation Case Management",
-                "data_types": ["case_details", "evidence", "analyst_notes", "sar_reports"],
+                "data_types": [
+                    "case_details",
+                    "evidence",
+                    "analyst_notes",
+                    "sar_reports",
+                ],
                 "purposes": ["regulatory_compliance", "criminal_investigation"],
                 "legal_basis": "legal_obligation",
-                "data_subject_categories": ["suspected_individuals", "investigation_subjects"],
+                "data_subject_categories": [
+                    "suspected_individuals",
+                    "investigation_subjects",
+                ],
                 "recipients": ["regulatory_authorities", "law_enforcement"],
                 "retention_period": "7_years",
                 "security_measures": "strict_access_controls_audit_logging",
-                "controller": "Jackdaw Sentry"
-            }
+                "controller": "Jackdaw Sentry",
+            },
         ]
-        
+
         query = """
         INSERT INTO compliance.data_processing_records (
             processing_activity, data_types, purposes, legal_basis,
@@ -89,7 +121,7 @@ class GDPRComplianceManager:
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT DO NOTHING
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             for activity in processing_activities:
                 await conn.execute(
@@ -104,12 +136,12 @@ class GDPRComplianceManager:
                     activity.get("security_measures"),
                     activity["controller"],
                 )
-        
+
         logger.info("✅ Setup data processing records")
-    
+
     async def setup_retention_policies(self):
         """Setup automated data retention policies"""
-        
+
         # Create retention policy function
         retention_function = """
         CREATE OR REPLACE FUNCTION compliance.cleanup_expired_data()
@@ -154,15 +186,15 @@ class GDPRComplianceManager:
         END;
         $$ LANGUAGE plpgsql;
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             await conn.execute(retention_function)
-        
+
         logger.info("✅ Setup retention policies")
-    
+
     async def setup_consent_management(self):
         """Setup GDPR consent management"""
-        
+
         # Create consent tracking table
         consent_table = """
         CREATE TABLE IF NOT EXISTS compliance.user_consent (
@@ -179,15 +211,15 @@ class GDPRComplianceManager:
             UNIQUE(user_id, consent_type, consent_version)
         )
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             await conn.execute(consent_table)
-        
+
         logger.info("✅ Setup consent management")
-    
+
     async def setup_data_subject_request_handling(self):
         """Setup GDPR data subject request handling"""
-        
+
         # Create request processing functions
         request_functions = [
             # Access request handler
@@ -235,7 +267,6 @@ class GDPRComplianceManager:
             END;
             $$ LANGUAGE plpgsql;
             """,
-            
             # Erasure request handler
             """
             CREATE OR REPLACE FUNCTION compliance.handle_erasure_request(request_id UUID)
@@ -273,42 +304,59 @@ class GDPRComplianceManager:
                 RETURN TRUE;
             END;
             $$ LANGUAGE plpgsql;
-            """
+            """,
         ]
-        
+
         async with self.postgres_pool.acquire() as conn:
             for func in request_functions:
                 await conn.execute(func)
-        
+
         logger.info("✅ Setup data subject request handling")
-    
+
     async def hash_address(self, address: str) -> str:
         """Hash blockchain address for GDPR compliance"""
         return hashlib.sha256(address.encode()).hexdigest()
-    
+
     async def encrypt_sensitive_data(self, data: str) -> str:
         """Encrypt sensitive data"""
         return self.fernet.encrypt(data.encode()).decode()
-    
+
     async def decrypt_sensitive_data(self, encrypted_data: str) -> str:
         """Decrypt sensitive data"""
         return self.fernet.decrypt(encrypted_data.encode()).decode()
-    
-    async def log_data_access(self, user_id: str, data_type: str, data_id: str, 
-                           access_type: str, purpose: str, legal_basis: str,
-                           ip_address: str = None):
+
+    async def log_data_access(
+        self,
+        user_id: str,
+        data_type: str,
+        data_id: str,
+        access_type: str,
+        purpose: str,
+        legal_basis: str,
+        ip_address: str = None,
+    ):
         """Log data access for GDPR compliance"""
         query = """
         INSERT INTO compliance.data_access_log (
             user_id, data_type, data_id, access_type, purpose, legal_basis, ip_address
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
-            await conn.execute(query, user_id, data_type, data_id, access_type, purpose, legal_basis, ip_address)
-    
-    async def create_data_subject_request(self, request_type: str, subject_identifier: str,
-                                     request_data: Dict[str, Any]) -> str:
+            await conn.execute(
+                query,
+                user_id,
+                data_type,
+                data_id,
+                access_type,
+                purpose,
+                legal_basis,
+                ip_address,
+            )
+
+    async def create_data_subject_request(
+        self, request_type: str, subject_identifier: str, request_data: Dict[str, Any]
+    ) -> str:
         """Create GDPR data subject request"""
         query = """
         INSERT INTO compliance.gdpr_requests (
@@ -316,13 +364,15 @@ class GDPRComplianceManager:
         ) VALUES ($1, $2, $3, 'pending')
         RETURNING id
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
-            request_id = await conn.fetchval(query, request_type, subject_identifier, json.dumps(request_data))
-        
+            request_id = await conn.fetchval(
+                query, request_type, subject_identifier, json.dumps(request_data)
+            )
+
         logger.info(f"Created GDPR request: {request_id} of type: {request_type}")
         return request_id
-    
+
     async def get_user_consent(self, user_id: str, consent_type: str) -> Optional[Dict]:
         """Get user consent record"""
         query = """
@@ -331,35 +381,44 @@ class GDPRComplianceManager:
         ORDER BY consent_date DESC 
         LIMIT 1
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             record = await conn.fetchrow(query, user_id, consent_type)
             return dict(record) if record else None
-    
-    async def update_user_consent(self, user_id: str, consent_type: str, 
-                              consent_given: bool, ip_address: str = None,
-                              user_agent: str = None):
+
+    async def update_user_consent(
+        self,
+        user_id: str,
+        consent_type: str,
+        consent_given: bool,
+        ip_address: str = None,
+        user_agent: str = None,
+    ):
         """Update user consent"""
         query = """
         INSERT INTO compliance.user_consent (
             user_id, consent_type, consent_given, ip_address, user_agent
         ) VALUES ($1, $2, $3, $4, $5)
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
-            await conn.execute(query, user_id, consent_type, consent_given, ip_address, user_agent)
-        
-        logger.info(f"Updated consent for user {user_id}: {consent_type} = {consent_given}")
-    
+            await conn.execute(
+                query, user_id, consent_type, consent_given, ip_address, user_agent
+            )
+
+        logger.info(
+            f"Updated consent for user {user_id}: {consent_type} = {consent_given}"
+        )
+
     async def cleanup_expired_data(self):
         """Clean up expired data according to retention policies"""
         query = "SELECT compliance.cleanup_expired_data()"
-        
+
         async with self.postgres_pool.acquire() as conn:
             await conn.execute(query)
-        
+
         logger.info("Completed expired data cleanup")
-    
+
     async def generate_data_processing_report(self) -> Dict[str, Any]:
         """Generate GDPR Article 30 data processing report"""
         query = """
@@ -375,21 +434,21 @@ class GDPRComplianceManager:
         FROM compliance.data_processing_records
         ORDER BY processing_activity
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             records = await conn.fetch(query)
-        
+
         return {
             "controller": "Jackdaw Sentry",
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "processing_activities": [dict(record) for record in records]
+            "processing_activities": [dict(record) for record in records],
         }
-    
+
     async def start_background_tasks(self):
         """Start background GDPR compliance tasks"""
         # Schedule daily data cleanup
         self._data_cleanup_task = asyncio.create_task(self.schedule_data_cleanup())
-        
+
         # Schedule weekly consent review
         self._consent_review_task = asyncio.create_task(self.schedule_consent_review())
 
@@ -406,7 +465,7 @@ class GDPRComplianceManager:
                     pass
         self._data_cleanup_task = None
         self._consent_review_task = None
-    
+
     async def schedule_data_cleanup(self):
         """Schedule daily data cleanup"""
         while True:
@@ -416,7 +475,7 @@ class GDPRComplianceManager:
             except Exception as e:
                 logger.error(f"Error in data cleanup: {e}")
                 await asyncio.sleep(3600)  # Retry in 1 hour
-    
+
     async def schedule_consent_review(self):
         """Schedule weekly consent review"""
         while True:
@@ -426,7 +485,7 @@ class GDPRComplianceManager:
             except Exception as e:
                 logger.error(f"Error in consent review: {e}")
                 await asyncio.sleep(24 * 3600)  # Retry in 1 day
-    
+
     async def review_expired_consent(self):
         """Review and handle expired consent"""
         query = """
@@ -435,35 +494,37 @@ class GDPRComplianceManager:
         WHERE consent_given = TRUE 
         AND consent_date < NOW() - INTERVAL '1 year'
         """
-        
+
         async with self.postgres_pool.acquire() as conn:
             expired_consent = await conn.fetch(query)
-        
+
         for record in expired_consent:
-            logger.warning(f"Consent expired for user {record['user_id']} - {record['consent_type']}")
+            logger.warning(
+                f"Consent expired for user {record['user_id']} - {record['consent_type']}"
+            )
             # Here you could trigger consent renewal notifications
 
 
 async def setup_gdpr_compliance():
     """Setup GDPR compliance framework"""
     from src.api.config import settings
-    from src.api.database import get_postgres_pool, get_neo4j_driver
-    
+    from src.api.database import get_neo4j_driver
+    from src.api.database import get_postgres_pool
+
     postgres_pool = get_postgres_pool()
     neo4j_driver = get_neo4j_driver()
-    
+
     gdpr_manager = GDPRComplianceManager(
-        postgres_pool, 
-        neo4j_driver, 
-        settings.ENCRYPTION_KEY
+        postgres_pool, neo4j_driver, settings.ENCRYPTION_KEY
     )
-    
+
     await gdpr_manager.initialize_compliance_framework()
     await gdpr_manager.start_background_tasks()
-    
+
     return gdpr_manager
 
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(setup_gdpr_compliance())

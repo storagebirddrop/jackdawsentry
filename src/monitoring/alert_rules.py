@@ -18,10 +18,15 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.database import get_postgres_pool, get_redis_client
+from src.api.database import get_postgres_pool
+from src.api.database import get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +59,9 @@ def _new_rule(
     }
 
 
-def _new_alert(rule: Dict[str, Any], tx: Dict[str, Any], detail: str = "") -> Dict[str, Any]:
+def _new_alert(
+    rule: Dict[str, Any], tx: Dict[str, Any], detail: str = ""
+) -> Dict[str, Any]:
     return {
         "id": str(uuid.uuid4()),
         "rule_id": rule["id"],
@@ -218,7 +225,9 @@ def _row_to_rule(row) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _matches(rule: Dict[str, Any], tx: Dict[str, Any], patterns: List[str] = None) -> bool:
+def _matches(
+    rule: Dict[str, Any], tx: Dict[str, Any], patterns: List[str] = None
+) -> bool:
     """Return True if *tx* satisfies all conditions in *rule*."""
     cond = rule.get("conditions", {})
 
@@ -320,7 +329,9 @@ async def evaluate_transaction(
 # ---------------------------------------------------------------------------
 
 
-async def get_recent_alerts(limit: int = 50, severity: str = None) -> List[Dict[str, Any]]:
+async def get_recent_alerts(
+    limit: int = 50, severity: str = None
+) -> List[Dict[str, Any]]:
     """Return recent alert events from PostgreSQL."""
     pool = get_postgres_pool()
     where = "WHERE severity = $2" if severity else ""

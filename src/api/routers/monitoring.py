@@ -9,19 +9,22 @@ Endpoints for compliance monitoring and alerting including:
 """
 
 import asyncio
-
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import PlainTextResponse
-from typing import Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
+from datetime import timezone
+from typing import Optional
 
-from src.api.auth import get_current_user, check_permissions, User
-from src.monitoring.compliance_monitoring import (
-    ComplianceMonitoringEngine,
-    AlertSeverity,
-    AlertStatus,
-)
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi.responses import PlainTextResponse
+
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
+from src.monitoring.compliance_monitoring import AlertSeverity
+from src.monitoring.compliance_monitoring import AlertStatus
+from src.monitoring.compliance_monitoring import ComplianceMonitoringEngine
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,7 @@ def get_monitoring_engine() -> ComplianceMonitoringEngine:
 async def get_metrics_summary(
     engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get metrics summary"""
     try:
@@ -59,7 +62,7 @@ async def get_alerts(
     status: Optional[str] = None,
     engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get compliance alerts"""
     try:
@@ -97,13 +100,16 @@ async def resolve_alert(
     alert_id: str,
     engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Resolve a compliance alert"""
     try:
         success = await engine.resolve_alert(alert_id)
         if not success:
-            raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found or already resolved")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Alert {alert_id} not found or already resolved",
+            )
         return {"success": True, "message": f"Alert {alert_id} resolved"}
     except HTTPException:
         raise
@@ -116,7 +122,7 @@ async def resolve_alert(
 async def get_health_checks(
     engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get health check results"""
     try:
@@ -128,7 +134,9 @@ async def get_health_checks(
                     "name": c.name,
                     "status": c.status,
                     "response_time_ms": c.response_time_ms,
-                    "last_checked": c.last_checked.isoformat() if c.last_checked else None,
+                    "last_checked": (
+                        c.last_checked.isoformat() if c.last_checked else None
+                    ),
                     "metadata": c.metadata,
                 }
                 for c in checks
@@ -147,7 +155,9 @@ async def get_prometheus_metrics(
     """Get Prometheus metrics in text format"""
     try:
         metrics_text = await engine.get_prometheus_metrics()
-        return PlainTextResponse(content=metrics_text, media_type="text/plain; version=0.0.4")
+        return PlainTextResponse(
+            content=metrics_text, media_type="text/plain; version=0.0.4"
+        )
     except Exception as e:
         logger.error(f"Failed to get Prometheus metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -157,7 +167,7 @@ async def get_prometheus_metrics(
 async def get_monitoring_statistics(
     engine: ComplianceMonitoringEngine = Depends(get_monitoring_engine),
     current_user: User = Depends(get_current_user),
-    _: None = Depends(check_permissions(["compliance:read"]))
+    _: None = Depends(check_permissions(["compliance:read"])),
 ):
     """Get monitoring statistics"""
     try:

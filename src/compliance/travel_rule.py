@@ -6,7 +6,10 @@ Checks whether a transaction requires VASP-to-VASP information transfer
 and validates originator/beneficiary information completeness.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 # FATF / MiCA threshold (USD equivalent)
 _THRESHOLD_USD: float = 1000.0
@@ -17,7 +20,11 @@ _VASP_REGISTRY: Dict[str, Dict[str, str]] = {
     "0x2222": {"name": "Kraken", "jurisdiction": "US", "lei": "549300YFCPHG28AHLO95"},
     "0x3333": {"name": "Binance", "jurisdiction": "KY", "lei": "254900GS6WFIAX5GF683"},
     "0x4444": {"name": "Bitstamp", "jurisdiction": "GB", "lei": "8356007750DTD1WGHJ65"},
-    "0x5555": {"name": "Kraken EU", "jurisdiction": "EU", "lei": "529900WGBVWHEP5IOP06"},
+    "0x5555": {
+        "name": "Kraken EU",
+        "jurisdiction": "EU",
+        "lei": "529900WGBVWHEP5IOP06",
+    },
 }
 
 
@@ -102,10 +109,15 @@ def build_travel_rule_record(
             "name": beneficiary_name,
             "vasp": beneficiary_vasp,
         },
-        "compliance_status": _assess_compliance(triggered, originator_vasp, beneficiary_vasp),
+        "compliance_status": _assess_compliance(
+            triggered, originator_vasp, beneficiary_vasp
+        ),
         "missing_fields": _missing_fields(
-            triggered, originator_name, beneficiary_name,
-            originator_vasp, beneficiary_vasp,
+            triggered,
+            originator_name,
+            beneficiary_name,
+            originator_vasp,
+            beneficiary_vasp,
         ),
     }
 

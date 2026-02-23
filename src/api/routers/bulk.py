@@ -7,14 +7,21 @@ Prefix: /api/v1/bulk
 
 import csv
 import io
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import datetime
+from datetime import timezone
+from typing import List
+from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
+from fastapi import Depends
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
+from pydantic import field_validator
 
-from src.api.auth import User, get_current_user, check_permissions, PERMISSIONS
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import get_current_user
 
 router = APIRouter()
 
@@ -55,12 +62,14 @@ async def bulk_screen_addresses(
     results = []
     for addr in request.addresses:
         vasp = lookup_vasp(addr) if request.include_sanctions else None
-        results.append({
-            "address": addr,
-            "chain": request.chain,
-            "vasp_match": vasp,
-            "screened": True,
-        })
+        results.append(
+            {
+                "address": addr,
+                "chain": request.chain,
+                "vasp_match": vasp,
+                "screened": True,
+            }
+        )
 
     return {
         "success": True,
@@ -88,13 +97,15 @@ async def export_bulk_screen_csv(
 
     for addr in request.addresses:
         vasp = lookup_vasp(addr) if request.include_sanctions else None
-        writer.writerow({
-            "address": addr,
-            "chain": request.chain,
-            "vasp_name": vasp["name"] if vasp else "",
-            "vasp_jurisdiction": vasp["jurisdiction"] if vasp else "",
-            "screened": "true",
-        })
+        writer.writerow(
+            {
+                "address": addr,
+                "chain": request.chain,
+                "vasp_name": vasp["name"] if vasp else "",
+                "vasp_jurisdiction": vasp["jurisdiction"] if vasp else "",
+                "screened": "true",
+            }
+        )
 
     buffer.seek(0)
     filename = f"bulk_screen_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
@@ -111,7 +122,8 @@ async def analyze_contract(
     current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Decode and classify a smart contract interaction from calldata."""
-    from src.analysis.smart_contract_analyzer import classify_contract, analyze_nft_transfer
+    from src.analysis.smart_contract_analyzer import analyze_nft_transfer
+    from src.analysis.smart_contract_analyzer import classify_contract
 
     classification = classify_contract(
         request.calldata,
@@ -139,8 +151,16 @@ async def bulk_api_stats(current_user: User = Depends(get_current_user)):
         "success": True,
         "max_addresses_per_request": _MAX_BULK,
         "supported_chains": [
-            "ethereum", "bitcoin", "polygon", "solana", "tron", "xrpl",
-            "arbitrum", "optimism", "bnb_chain", "avalanche",
+            "ethereum",
+            "bitcoin",
+            "polygon",
+            "solana",
+            "tron",
+            "xrpl",
+            "arbitrum",
+            "optimism",
+            "bnb_chain",
+            "avalanche",
         ],
         "features": ["screen", "export_csv", "contract_analysis"],
     }

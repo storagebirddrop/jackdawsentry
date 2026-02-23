@@ -6,35 +6,94 @@ Supports ERC-20, ERC-721 (NFT), and ERC-1155 (multi-token) standards,
 plus common DeFi protocol function signatures.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 # 4-byte function selector → metadata
 _FUNCTION_SELECTORS: Dict[str, Dict[str, Any]] = {
     # ERC-20
-    "a9059cbb": {"standard": "ERC-20", "name": "transfer", "params": ["address", "uint256"]},
-    "23b872dd": {"standard": "ERC-20", "name": "transferFrom", "params": ["address", "address", "uint256"]},
-    "095ea7b3": {"standard": "ERC-20", "name": "approve", "params": ["address", "uint256"]},
+    "a9059cbb": {
+        "standard": "ERC-20",
+        "name": "transfer",
+        "params": ["address", "uint256"],
+    },
+    "23b872dd": {
+        "standard": "ERC-20",
+        "name": "transferFrom",
+        "params": ["address", "address", "uint256"],
+    },
+    "095ea7b3": {
+        "standard": "ERC-20",
+        "name": "approve",
+        "params": ["address", "uint256"],
+    },
     "70a08231": {"standard": "ERC-20", "name": "balanceOf", "params": ["address"]},
-    "dd62ed3e": {"standard": "ERC-20", "name": "allowance", "params": ["address", "address"]},
+    "dd62ed3e": {
+        "standard": "ERC-20",
+        "name": "allowance",
+        "params": ["address", "address"],
+    },
     "18160ddd": {"standard": "ERC-20", "name": "totalSupply", "params": []},
     # ERC-721
-    "42842e0e": {"standard": "ERC-721", "name": "safeTransferFrom", "params": ["address", "address", "uint256"]},
+    "42842e0e": {
+        "standard": "ERC-721",
+        "name": "safeTransferFrom",
+        "params": ["address", "address", "uint256"],
+    },
     "6352211e": {"standard": "ERC-721", "name": "ownerOf", "params": ["uint256"]},
     "081812fc": {"standard": "ERC-721", "name": "getApproved", "params": ["uint256"]},
-    "e985e9c5": {"standard": "ERC-721", "name": "isApprovedForAll", "params": ["address", "address"]},
-    "b88d4fde": {"standard": "ERC-721", "name": "safeTransferFrom(data)", "params": ["address", "address", "uint256", "bytes"]},
+    "e985e9c5": {
+        "standard": "ERC-721",
+        "name": "isApprovedForAll",
+        "params": ["address", "address"],
+    },
+    "b88d4fde": {
+        "standard": "ERC-721",
+        "name": "safeTransferFrom(data)",
+        "params": ["address", "address", "uint256", "bytes"],
+    },
     # ERC-1155
-    "f242432a": {"standard": "ERC-1155", "name": "safeTransferFrom", "params": ["address", "address", "uint256", "uint256", "bytes"]},
-    "2eb2c2d6": {"standard": "ERC-1155", "name": "safeBatchTransferFrom", "params": ["address", "address", "uint256[]", "uint256[]", "bytes"]},
-    "00fdd58e": {"standard": "ERC-1155", "name": "balanceOf", "params": ["address", "uint256"]},
-    "4e1273f4": {"standard": "ERC-1155", "name": "balanceOfBatch", "params": ["address[]", "uint256[]"]},
+    "f242432a": {
+        "standard": "ERC-1155",
+        "name": "safeTransferFrom",
+        "params": ["address", "address", "uint256", "uint256", "bytes"],
+    },
+    "2eb2c2d6": {
+        "standard": "ERC-1155",
+        "name": "safeBatchTransferFrom",
+        "params": ["address", "address", "uint256[]", "uint256[]", "bytes"],
+    },
+    "00fdd58e": {
+        "standard": "ERC-1155",
+        "name": "balanceOf",
+        "params": ["address", "uint256"],
+    },
+    "4e1273f4": {
+        "standard": "ERC-1155",
+        "name": "balanceOfBatch",
+        "params": ["address[]", "uint256[]"],
+    },
     # WETH
     "d0e30db0": {"standard": "WETH", "name": "deposit", "params": []},
     "2e1a7d4d": {"standard": "WETH", "name": "withdraw", "params": ["uint256"]},
     # Uniswap
-    "3593564c": {"standard": "Uniswap-V3", "name": "execute", "params": ["bytes", "bytes[]", "uint256"]},
-    "7ff36ab5": {"standard": "Uniswap-V2", "name": "swapExactETHForTokens", "params": ["uint256", "address[]", "address", "uint256"]},
-    "38ed1739": {"standard": "Uniswap-V2", "name": "swapExactTokensForTokens", "params": ["uint256", "uint256", "address[]", "address", "uint256"]},
+    "3593564c": {
+        "standard": "Uniswap-V3",
+        "name": "execute",
+        "params": ["bytes", "bytes[]", "uint256"],
+    },
+    "7ff36ab5": {
+        "standard": "Uniswap-V2",
+        "name": "swapExactETHForTokens",
+        "params": ["uint256", "address[]", "address", "uint256"],
+    },
+    "38ed1739": {
+        "standard": "Uniswap-V2",
+        "name": "swapExactTokensForTokens",
+        "params": ["uint256", "uint256", "address[]", "address", "uint256"],
+    },
 }
 
 _NFT_STANDARDS = frozenset({"ERC-721", "ERC-1155"})
@@ -60,7 +119,12 @@ def decode_calldata(calldata: str) -> Optional[Dict[str, Any]]:
     selector = clean[:8]
     match = _FUNCTION_SELECTORS.get(selector)
     if not match:
-        return {"selector": selector, "standard": "unknown", "name": "unknown", "params": []}
+        return {
+            "selector": selector,
+            "standard": "unknown",
+            "name": "unknown",
+            "params": [],
+        }
     return {"selector": selector, **match}
 
 

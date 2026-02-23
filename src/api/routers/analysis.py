@@ -3,21 +3,34 @@ Jackdaw Sentry - Analysis Router
 Blockchain transaction analysis endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel, field_validator
 import asyncio
 import logging
 import time as _time
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, PERMISSIONS
-from src.api.database import get_neo4j_session, get_postgres_connection
-from src.api.exceptions import JackdawException
-from src.analysis.pattern_detection import MLPatternDetector
-from src.analysis.mixer_detection import MixerDetector
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import status
+from pydantic import BaseModel
+from pydantic import field_validator
+
 from src.analysis.cross_chain import CrossChainAnalyzer
+from src.analysis.mixer_detection import MixerDetector
+from src.analysis.pattern_detection import MLPatternDetector
 from src.analysis.risk_scoring import compute_risk_score
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.database import get_neo4j_session
+from src.api.database import get_postgres_connection
+from src.api.exceptions import JackdawException
 
 logger = logging.getLogger(__name__)
 
@@ -57,28 +70,39 @@ class AddressAnalysisRequest(BaseModel):
     depth: int = 3
     include_tokens: bool = True
     time_range: Optional[int] = None  # days
-    
-    @field_validator('address')
+
+    @field_validator("address")
     @classmethod
     def validate_address(cls, v):
         if not v or len(v.strip()) == 0:
-            raise ValueError('Address cannot be empty')
+            raise ValueError("Address cannot be empty")
         return v.strip()
 
-    @field_validator('blockchain')
+    @field_validator("blockchain")
     @classmethod
     def validate_blockchain(cls, v):
-        supported = ['bitcoin', 'ethereum', 'bsc', 'polygon', 'arbitrum', 'base',
-                    'avalanche', 'solana', 'tron', 'xrpl', 'stellar']
+        supported = [
+            "bitcoin",
+            "ethereum",
+            "bsc",
+            "polygon",
+            "arbitrum",
+            "base",
+            "avalanche",
+            "solana",
+            "tron",
+            "xrpl",
+            "stellar",
+        ]
         if v.lower() not in supported:
-            raise ValueError(f'Unsupported blockchain: {v}')
+            raise ValueError(f"Unsupported blockchain: {v}")
         return v.lower()
 
-    @field_validator('depth')
+    @field_validator("depth")
     @classmethod
     def validate_depth(cls, v):
         if v < 1 or v > 10:
-            raise ValueError('Depth must be between 1 and 10')
+            raise ValueError("Depth must be between 1 and 10")
         return v
 
 
@@ -86,12 +110,12 @@ class TransactionAnalysisRequest(BaseModel):
     transaction_hash: str
     blockchain: str
     include_detailed_trace: bool = False
-    
-    @field_validator('transaction_hash')
+
+    @field_validator("transaction_hash")
     @classmethod
     def validate_hash(cls, v):
         if not v or len(v.strip()) == 0:
-            raise ValueError('Transaction hash cannot be empty')
+            raise ValueError("Transaction hash cannot be empty")
         return v.strip()
 
 
@@ -99,14 +123,14 @@ class RiskScoreRequest(BaseModel):
     addresses: List[str]
     blockchain: str
     analysis_type: str = "standard"  # standard, enhanced, forensic
-    
-    @field_validator('addresses')
+
+    @field_validator("addresses")
     @classmethod
     def validate_addresses(cls, v):
         if not v or len(v) == 0:
-            raise ValueError('At least one address must be provided')
+            raise ValueError("At least one address must be provided")
         if len(v) > 100:
-            raise ValueError('Maximum 100 addresses allowed per request')
+            raise ValueError("Maximum 100 addresses allowed per request")
         return [addr.strip() for addr in v if addr.strip()]
 
 
@@ -121,12 +145,14 @@ class AnalysisResponse(BaseModel):
 @router.post("/address", response_model=AnalysisResponse)
 async def analyze_address(
     request: AddressAnalysisRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Analyze blockchain address for transaction patterns and risk assessment"""
     try:
         start = _time.monotonic()
-        logger.info(f"Starting address analysis for {request.address} on {request.blockchain}")
+        logger.info(
+            f"Starting address analysis for {request.address} on {request.blockchain}"
+        )
 
         analysis_data = {
             "address": request.address,
@@ -169,16 +195,23 @@ async def analyze_address(
                 analysis_data["risk_score"] = 0.0
                 try:
                     from src.collectors.rpc.factory import get_rpc_client
+
                     rpc = get_rpc_client(request.blockchain)
                     if rpc:
                         addr_info = await rpc.get_address_info(request.address)
                         if addr_info:
-                            analysis_data["transaction_count"] = addr_info.transaction_count or 0
+                            analysis_data["transaction_count"] = (
+                                addr_info.transaction_count or 0
+                            )
                             analysis_data["total_value"] = float(addr_info.balance or 0)
-                            analysis_data["labels"] = [addr_info.type] if addr_info.type else []
+                            analysis_data["labels"] = (
+                                [addr_info.type] if addr_info.type else []
+                            )
                             analysis_data["source"] = "live_rpc"
                 except Exception as _rpc_err:
-                    logger.warning(f"Live RPC fallback failed for {request.address}: {_rpc_err}")
+                    logger.warning(
+                        f"Live RPC fallback failed for {request.address}: {_rpc_err}"
+                    )
 
             # Connected addresses (up to depth)
             # Neo4j 5 does not allow parameter substitution in relationship depth bounds,
@@ -263,12 +296,14 @@ async def analyze_address(
 @router.post("/transaction", response_model=AnalysisResponse)
 async def analyze_transaction(
     request: TransactionAnalysisRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Analyze individual transaction for compliance risks"""
     try:
         start = _time.monotonic()
-        logger.info(f"Analyzing transaction {request.transaction_hash} on {request.blockchain}")
+        logger.info(
+            f"Analyzing transaction {request.transaction_hash} on {request.blockchain}"
+        )
 
         analysis_data = {
             "transaction_hash": request.transaction_hash,
@@ -298,7 +333,9 @@ async def analyze_transaction(
                 analysis_data["timestamp"] = tx_props.get("timestamp")
                 analysis_data["risk_indicators"] = tx_props.get("risk_indicators", [])
                 analysis_data["compliance_flags"] = tx_props.get("compliance_flags", [])
-                analysis_data["sanctions_check"] = tx_props.get("sanctions_check", "clear")
+                analysis_data["sanctions_check"] = tx_props.get(
+                    "sanctions_check", "clear"
+                )
             else:
                 analysis_data["from_address"] = None
                 analysis_data["to_address"] = None
@@ -366,7 +403,7 @@ async def analyze_transaction(
 @router.post("/risk-score", response_model=AnalysisResponse)
 async def calculate_risk_scores(
     request: RiskScoreRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Calculate risk scores for multiple addresses from Neo4j"""
     try:
@@ -396,7 +433,11 @@ async def calculate_risk_scores(
 
             for record in records:
                 addr = record["address"]
-                score = float(record["risk_score"] or 0.0) if record["risk_score"] is not None else 0.0
+                score = (
+                    float(record["risk_score"] or 0.0)
+                    if record["risk_score"] is not None
+                    else 0.0
+                )
                 tx_count = record["tx_count"]
                 sanctions_hits = record["sanctions_hits"]
 
@@ -462,7 +503,7 @@ async def calculate_risk_scores(
 async def get_transaction_patterns(
     blockchain: str,
     time_range: int = 30,  # days
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Get common transaction patterns for a blockchain from Neo4j"""
     try:
@@ -485,8 +526,12 @@ async def get_transaction_patterns(
             )
             amt_record = await amt_result.single()
             patterns["amount_patterns"] = {
-                "average_amount": float(amt_record["avg_amount"] or 0) if amt_record else 0,
-                "median_amount": float(amt_record["median_amount"] or 0) if amt_record else 0,
+                "average_amount": (
+                    float(amt_record["avg_amount"] or 0) if amt_record else 0
+                ),
+                "median_amount": (
+                    float(amt_record["median_amount"] or 0) if amt_record else 0
+                ),
                 "transaction_count": amt_record["tx_count"] if amt_record else 0,
             }
 
@@ -503,7 +548,10 @@ async def get_transaction_patterns(
             )
             hub_records = await hub_result.data()
             patterns["network_patterns"] = {
-                "hub_addresses": [{"address": r["addr"], "connections": r["degree"]} for r in hub_records],
+                "hub_addresses": [
+                    {"address": r["addr"], "connections": r["degree"]}
+                    for r in hub_records
+                ],
             }
 
         return {
@@ -524,7 +572,7 @@ async def get_transaction_patterns(
 
 @router.get("/statistics")
 async def get_analysis_statistics(
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Get analysis system statistics aggregated from Neo4j"""
     try:
@@ -532,38 +580,38 @@ async def get_analysis_statistics(
         stats = {}
         async with get_neo4j_session() as session:
             # Total addresses and transactions
-            count_result = await session.run(
-                """
+            count_result = await session.run("""
                 OPTIONAL MATCH (a:Address)
                 WITH count(a) AS addr_count
                 OPTIONAL MATCH (t:Transaction)
                 RETURN addr_count, count(t) AS tx_count
-                """
-            )
+                """)
             count_record = await count_result.single()
             stats["total_addresses"] = count_record["addr_count"] if count_record else 0
-            stats["total_transactions"] = count_record["tx_count"] if count_record else 0
+            stats["total_transactions"] = (
+                count_record["tx_count"] if count_record else 0
+            )
 
             # Blockchain distribution
-            dist_result = await session.run(
-                """
+            dist_result = await session.run("""
                 MATCH (a:Address)
                 RETURN a.blockchain AS blockchain, count(a) AS count
                 ORDER BY count DESC
-                """
-            )
+                """)
             dist_records = await dist_result.data()
-            stats["blockchain_distribution"] = {r["blockchain"]: r["count"] for r in dist_records if r["blockchain"]}
+            stats["blockchain_distribution"] = {
+                r["blockchain"]: r["count"] for r in dist_records if r["blockchain"]
+            }
 
             # Risk distribution
-            risk_result = await session.run(
-                """
+            risk_result = await session.run("""
                 MATCH (a:RiskAssessment)
                 RETURN a.risk_level AS level, count(a) AS count
-                """
-            )
+                """)
             risk_records = await risk_result.data()
-            stats["risk_distribution"] = {r["level"]: r["count"] for r in risk_records if r["level"]}
+            stats["risk_distribution"] = {
+                r["level"]: r["count"] for r in risk_records if r["level"]
+            }
 
         processing_time_ms = int((_time.perf_counter() - start) * 1000)
 
@@ -585,7 +633,7 @@ async def get_analysis_statistics(
 @router.post("/address/full", response_model=AnalysisResponse)
 async def analyze_address_full(
     request: AddressAnalysisRequest,
-    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]]))
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Full combined analysis: patterns, mixer, cross-chain, and risk score via asyncio.gather()."""
     try:
@@ -593,17 +641,23 @@ async def analyze_address_full(
 
         async def _get_patterns():
             try:
-                return await _get_pattern_detector().detect_patterns(request.address, request.blockchain)
+                return await _get_pattern_detector().detect_patterns(
+                    request.address, request.blockchain
+                )
             except Exception:
                 return []
 
         async def _get_mixer():
             try:
-                return await _get_mixer_detector().detect_mixer_usage(request.address, request.blockchain)
+                return await _get_mixer_detector().detect_mixer_usage(
+                    request.address, request.blockchain
+                )
             except Exception:
                 return None
 
-        patterns_raw, mixer_analysis = await asyncio.gather(_get_patterns(), _get_mixer())
+        patterns_raw, mixer_analysis = await asyncio.gather(
+            _get_patterns(), _get_mixer()
+        )
 
         pattern_results = [
             {

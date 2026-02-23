@@ -35,8 +35,8 @@ class DatabaseOptimizer:
             "entity_addresses_address_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_address_idx ON entity_addresses(address)",
             "entity_addresses_entity_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_entity_idx ON entity_addresses(entity_id)",
             "entity_addresses_blockchain_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_blockchain_idx ON entity_addresses(blockchain)",
-            "entity_addresses_active_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_active_idx ON entity_addresses(removed_at IS NULL)",
-            "entity_addresses_composite_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_composite_idx ON entity_addresses(address, blockchain, removed_at IS NULL)",
+            "entity_addresses_active_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_active_idx ON entity_addresses(removed_at IS NULL) WHERE removed_at IS NULL",
+            "entity_addresses_composite_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS entity_addresses_composite_idx ON entity_addresses(address, blockchain) WHERE removed_at IS NULL",
             
             "transactions_hash_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS transactions_hash_idx ON transactions(hash)",
             "transactions_address_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS transactions_address_idx ON transactions(from_address)",
@@ -48,7 +48,7 @@ class DatabaseOptimizer:
             "alerts_created_at_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_created_at_idx ON alerts(created_at DESC)",
             "alerts_status_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_status_idx ON alerts(status)",
             "alerts_severity_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_severity_idx ON alerts(severity)",
-            "alerts_active_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_active_idx ON alerts(status = 'active')",
+            "alerts_active_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_active_idx ON alerts(status) WHERE status = 'active'",
             
             "audit_logs_timestamp_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS audit_logs_timestamp_idx ON audit_logs(timestamp DESC)",
             "audit_logs_user_idx": "CREATE INDEX CONCURRENTLY IF NOT EXISTS audit_logs_user_idx ON audit_logs(user_id)",
@@ -62,29 +62,40 @@ class DatabaseOptimizer:
         
         results = {}
         
-        async with self.pool.acquire() as conn:
-            for index_name, index_sql in indexes.items():
-                try:
-                    await conn.execute(index_sql)
-                    logger.info(f"Created index: {index_name}")
-                    results[index_name] = True
-                except Exception as e:
-                    logger.error(f"Failed to create index {index_name}: {e}")
-                    results[index_name] = False
+        for index_name, index_sql in indexes.items():
+            try:
+                await self.pool.execute(index_sql)
+                logger.info(f"Created index: {index_name}")
+                results[index_name] = True
+            except Exception as e:
+                logger.error(f"Failed to create index {index_name}: {e}")
+                results[index_name] = False
         
         return results
     
     async def analyze_query_performance(self) -> Dict[str, Any]:
         """Analyze slow queries and suggest optimizations"""
         async with self.pool.acquire() as conn:
-            # Get query statistics
-            slow_queries = await conn.fetch("""
-                SELECT query, calls, total_time, mean_time, rows
-                FROM pg_stat_statements 
-                WHERE mean_time > 1000 
-                ORDER BY mean_time DESC 
-                LIMIT 10
-            """)
+            # Check if pg_stat_statements extension exists
+            try:
+                extension_check = await conn.fetchval("""
+                    SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
+                """)
+                if not extension_check:
+                    logger.warning("pg_stat_statements extension not found, skipping query analysis")
+                    slow_queries = []
+                else:
+                    # Get query statistics
+                    slow_queries = await conn.fetch("""
+                        SELECT query, calls, total_time, mean_time, rows
+                        FROM pg_stat_statements 
+                        WHERE mean_time > 1000 
+                        ORDER BY mean_time DESC 
+                        LIMIT 10
+                    """)
+            except Exception as e:
+                logger.warning(f"Failed to check pg_stat_statements extension: {e}")
+                slow_queries = []
             
             # Get table sizes
             table_sizes = await conn.fetch("""

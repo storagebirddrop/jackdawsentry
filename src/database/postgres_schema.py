@@ -3,51 +3,55 @@ Jackdaw Sentry - PostgreSQL Compliance Database Schema
 GDPR/DORA/MiCA/AMLR compliant data storage
 """
 
-import asyncpg
-from typing import Dict, List, Optional
-import logging
-from datetime import datetime, timedelta
 import hashlib
+import logging
+from datetime import datetime
+from datetime import timedelta
+from typing import Dict
+from typing import List
+from typing import Optional
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
 
 
 class PostgresSchema:
     """PostgreSQL schema management for compliance data"""
-    
+
     def __init__(self, pool):
         self.pool = pool
-    
+
     async def create_schema(self):
         """Create complete database schema"""
         logger.info("Creating PostgreSQL compliance schema...")
-        
+
         await self.create_extensions()
         await self.create_compliance_schema()
         await self.create_audit_schema()
         await self.create_gdpr_schema()
         await self.create_indexes()
         await self.create_triggers()
-        
+
         logger.info("✅ PostgreSQL schema creation completed")
-    
+
     async def create_extensions(self):
         """Create required extensions"""
         extensions = [
-            "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"",
-            "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"",
-            "CREATE EXTENSION IF NOT EXISTS \"btree_gin\"",
-            "CREATE EXTENSION IF NOT EXISTS \"pg_trgm\""
+            'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"',
+            'CREATE EXTENSION IF NOT EXISTS "pgcrypto"',
+            'CREATE EXTENSION IF NOT EXISTS "btree_gin"',
+            'CREATE EXTENSION IF NOT EXISTS "pg_trgm"',
         ]
-        
+
         async with self.pool.acquire() as conn:
             for ext in extensions:
                 await conn.execute(ext)
                 logger.info(f"✅ Created extension: {ext}")
-    
+
     async def create_compliance_schema(self):
         """Create compliance-related tables"""
-        
+
         # Investigations table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.investigations (
@@ -66,7 +70,7 @@ class PostgresSchema:
                 data_classification VARCHAR(20) DEFAULT 'confidential'
             )
         """)
-        
+
         # SAR (Suspicious Activity Reports) table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.sar_reports (
@@ -88,7 +92,7 @@ class PostgresSchema:
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-        
+
         # Address watchlists table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.address_watchlists (
@@ -107,7 +111,7 @@ class PostgresSchema:
                 retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
-        
+
         # Regulatory reports table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.regulatory_reports (
@@ -126,7 +130,7 @@ class PostgresSchema:
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-        
+
         # Users table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.users (
@@ -144,12 +148,12 @@ class PostgresSchema:
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-        
+
         logger.info("✅ Created compliance tables")
-    
+
     async def create_audit_schema(self):
         """Create audit trail tables"""
-        
+
         # Audit log table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.audit_log (
@@ -168,7 +172,7 @@ class PostgresSchema:
                 retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
-        
+
         # Data access log table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.data_access_log (
@@ -184,12 +188,12 @@ class PostgresSchema:
                 retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
-        
+
         logger.info("✅ Created audit tables")
-    
+
     async def create_gdpr_schema(self):
         """Create GDPR compliance tables"""
-        
+
         # Data subject requests table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.gdpr_requests (
@@ -208,7 +212,7 @@ class PostgresSchema:
                 retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
-        
+
         # Data processing records table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.data_processing_records (
@@ -227,7 +231,7 @@ class PostgresSchema:
                 retention_until TIMESTAMP WITH TIME ZONE
             )
         """)
-        
+
         # Data breach incidents table
         await self.pool.execute("""
             CREATE TABLE IF NOT EXISTS compliance.data_breach_incidents (
@@ -250,9 +254,9 @@ class PostgresSchema:
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-        
+
         logger.info("✅ Created GDPR tables")
-    
+
     async def create_indexes(self):
         """Create performance indexes"""
         indexes = [
@@ -261,46 +265,41 @@ class PostgresSchema:
             "CREATE INDEX IF NOT EXISTS idx_investigations_investigator ON compliance.investigations(investigator_id)",
             "CREATE INDEX IF NOT EXISTS idx_investigations_created_at ON compliance.investigations(created_at)",
             "CREATE INDEX IF NOT EXISTS idx_investigations_retention ON compliance.investigations(retention_until)",
-            
             # SAR reports indexes
             "CREATE INDEX IF NOT EXISTS idx_sar_investigation ON compliance.sar_reports(investigation_id)",
             "CREATE INDEX IF NOT EXISTS idx_sar_status ON compliance.sar_reports(status)",
             "CREATE INDEX IF NOT EXISTS idx_sar_date ON compliance.sar_reports(report_date)",
             "CREATE INDEX IF NOT EXISTS idx_sar_retention ON compliance.sar_reports(retention_until)",
-            
             # Watchlist indexes
             "CREATE INDEX IF NOT EXISTS idx_watchlist_address ON compliance.address_watchlists(address_hash)",
             "CREATE INDEX IF NOT EXISTS idx_watchlist_blockchain ON compliance.address_watchlists(blockchain)",
             "CREATE INDEX IF NOT EXISTS idx_watchlist_active ON compliance.address_watchlists(is_active)",
             "CREATE INDEX IF NOT EXISTS idx_watchlist_retention ON compliance.address_watchlists(retention_until)",
-            
             # Audit log indexes
             "CREATE INDEX IF NOT EXISTS idx_audit_user ON compliance.audit_log(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON compliance.audit_log(timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_audit_resource ON compliance.audit_log(resource_type, resource_id)",
             "CREATE INDEX IF NOT EXISTS idx_audit_retention ON compliance.audit_log(retention_until)",
-            
             # Data access log indexes
             "CREATE INDEX IF NOT EXISTS idx_access_user ON compliance.data_access_log(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_access_timestamp ON compliance.data_access_log(timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_access_data_type ON compliance.data_access_log(data_type)",
             "CREATE INDEX IF NOT EXISTS idx_access_retention ON compliance.data_access_log(retention_until)",
-            
             # GDPR requests indexes
             "CREATE INDEX IF NOT EXISTS idx_gdpr_status ON compliance.gdpr_requests(status)",
             "CREATE INDEX IF NOT EXISTS idx_gdpr_type ON compliance.gdpr_requests(request_type)",
             "CREATE INDEX IF NOT EXISTS idx_gdpr_due_date ON compliance.gdpr_requests(due_date)",
-            "CREATE INDEX IF NOT EXISTS idx_gdpr_retention ON compliance.gdpr_requests(retention_until)"
+            "CREATE INDEX IF NOT EXISTS idx_gdpr_retention ON compliance.gdpr_requests(retention_until)",
         ]
-        
+
         async with self.pool.acquire() as conn:
             for index in indexes:
                 await conn.execute(index)
                 logger.info(f"✅ Created index: {index}")
-    
+
     async def create_triggers(self):
         """Create automated triggers"""
-        
+
         # Update timestamp trigger
         await self.pool.execute("""
             CREATE OR REPLACE FUNCTION compliance.update_updated_at_column()
@@ -311,7 +310,7 @@ class PostgresSchema:
             END;
             $$ language 'plpgsql';
         """)
-        
+
         # Add triggers to tables with updated_at columns
         triggers = [
             "CREATE TRIGGER update_investigations_updated_at BEFORE UPDATE ON compliance.investigations FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()",
@@ -319,9 +318,9 @@ class PostgresSchema:
             "CREATE TRIGGER update_regulatory_reports_updated_at BEFORE UPDATE ON compliance.regulatory_reports FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()",
             "CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON compliance.users FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()",
             "CREATE TRIGGER update_data_processing_records_updated_at BEFORE UPDATE ON compliance.data_processing_records FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()",
-            "CREATE TRIGGER update_data_breach_incidents_updated_at BEFORE UPDATE ON compliance.data_breach_incidents FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()"
+            "CREATE TRIGGER update_data_breach_incidents_updated_at BEFORE UPDATE ON compliance.data_breach_incidents FOR EACH ROW EXECUTE FUNCTION compliance.update_updated_at_column()",
         ]
-        
+
         async with self.pool.acquire() as conn:
             for trigger in triggers:
                 try:
@@ -329,7 +328,7 @@ class PostgresSchema:
                     logger.info(f"✅ Created trigger: {trigger}")
                 except Exception as e:
                     logger.error(f"❌ Failed to create trigger: {trigger}, Error: {e}")
-        
+
         # Audit trigger for automatic logging
         await self.pool.execute("""
             CREATE OR REPLACE FUNCTION compliance.audit_trigger_function()
@@ -352,28 +351,30 @@ class PostgresSchema:
             END;
             $$ LANGUAGE plpgsql;
         """)
-        
+
         # Add audit triggers to sensitive tables
         audit_triggers = [
             "CREATE TRIGGER audit_investigations AFTER INSERT OR UPDATE OR DELETE ON compliance.investigations FOR EACH ROW EXECUTE FUNCTION compliance.audit_trigger_function()",
             "CREATE TRIGGER audit_sar_reports AFTER INSERT OR UPDATE OR DELETE ON compliance.sar_reports FOR EACH ROW EXECUTE FUNCTION compliance.audit_trigger_function()",
             "CREATE TRIGGER audit_address_watchlists AFTER INSERT OR UPDATE OR DELETE ON compliance.address_watchlists FOR EACH ROW EXECUTE FUNCTION compliance.audit_trigger_function()",
-            "CREATE TRIGGER audit_users AFTER INSERT OR UPDATE OR DELETE ON compliance.users FOR EACH ROW EXECUTE FUNCTION compliance.audit_trigger_function()"
+            "CREATE TRIGGER audit_users AFTER INSERT OR UPDATE OR DELETE ON compliance.users FOR EACH ROW EXECUTE FUNCTION compliance.audit_trigger_function()",
         ]
-        
+
         async with self.pool.acquire() as conn:
             for trigger in audit_triggers:
                 try:
                     await conn.execute(trigger)
                     logger.info(f"✅ Created audit trigger: {trigger}")
                 except Exception as e:
-                    logger.error(f"❌ Failed to create audit trigger: {trigger}, Error: {e}")
+                    logger.error(
+                        f"❌ Failed to create audit trigger: {trigger}, Error: {e}"
+                    )
 
 
 async def create_postgres_schema():
     """Initialize PostgreSQL database schema"""
     from src.api.config import settings
-    
+
     pool = await asyncpg.create_pool(
         host=settings.POSTGRES_HOST,
         port=settings.POSTGRES_PORT,
@@ -381,9 +382,9 @@ async def create_postgres_schema():
         user=settings.POSTGRES_USER,
         password=settings.POSTGRES_PASSWORD,
         min_size=2,
-        max_size=10
+        max_size=10,
     )
-    
+
     try:
         # Create compliance schema namespace (actual tables are managed by the
         # API migration manager via src/api/migrations/*.sql on startup)
@@ -404,4 +405,5 @@ async def create_initial_admin_user(pool):
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(create_postgres_schema())

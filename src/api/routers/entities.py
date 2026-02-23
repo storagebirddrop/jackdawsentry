@@ -3,21 +3,29 @@ Jackdaw Sentry - Entity Attribution Router (M11)
 Endpoints for entity lookup, search, and label sync management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from src.api.auth import User, check_permissions, require_admin, PERMISSIONS
-from src.services.entity_attribution import (
-    lookup_address,
-    lookup_addresses_bulk,
-    get_entity_details,
-    search_entities,
-    sync_all_labels,
-    get_sync_status,
-    get_entity_counts,
-)
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Query
+from pydantic import BaseModel
+
+from src.api.auth import PERMISSIONS
+from src.api.auth import User
+from src.api.auth import check_permissions
+from src.api.auth import require_admin
+from src.services.entity_attribution import get_entity_counts
+from src.services.entity_attribution import get_entity_details
+from src.services.entity_attribution import get_sync_status
+from src.services.entity_attribution import lookup_address
+from src.services.entity_attribution import lookup_addresses_bulk
+from src.services.entity_attribution import search_entities
+from src.services.entity_attribution import sync_all_labels
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +36,7 @@ router = APIRouter()
 # Request/response models
 # ---------------------------------------------------------------------------
 
+
 class BulkLookupRequest(BaseModel):
     addresses: List[str]
     blockchain: Optional[str] = None
@@ -37,13 +46,12 @@ class BulkLookupRequest(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/lookup")
 async def entity_lookup(
     address: str = Query(..., description="Blockchain address to look up"),
     blockchain: Optional[str] = Query(None, description="Blockchain filter"),
-    current_user: User = Depends(
-        check_permissions([PERMISSIONS["read_analysis"]])
-    ),
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Look up entity attribution for a single address."""
     result = await lookup_address(address, blockchain)
@@ -59,9 +67,7 @@ async def entity_lookup(
 @router.post("/lookup")
 async def entity_bulk_lookup(
     request: BulkLookupRequest,
-    current_user: User = Depends(
-        check_permissions([PERMISSIONS["read_analysis"]])
-    ),
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Bulk entity lookup for multiple addresses."""
     if len(request.addresses) > 500:
@@ -81,9 +87,7 @@ async def entity_search(
     q: str = Query(..., min_length=1, description="Search query"),
     type: Optional[str] = Query(None, description="Filter by entity type"),
     limit: int = Query(50, ge=1, le=200),
-    current_user: User = Depends(
-        check_permissions([PERMISSIONS["read_analysis"]])
-    ),
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Search entities by name or address."""
     results = await search_entities(q, entity_type=type, limit=limit)
@@ -98,9 +102,7 @@ async def entity_search(
 @router.get("/{entity_id}")
 async def get_entity(
     entity_id: str,
-    current_user: User = Depends(
-        check_permissions([PERMISSIONS["read_analysis"]])
-    ),
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Get full entity details with all associated addresses."""
     result = await get_entity_details(entity_id)
@@ -123,9 +125,7 @@ async def trigger_sync(
 
 @router.get("/sync/status")
 async def sync_status(
-    current_user: User = Depends(
-        check_permissions([PERMISSIONS["read_analysis"]])
-    ),
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_analysis"]])),
 ):
     """Get label source sync status."""
     status = await get_sync_status()
