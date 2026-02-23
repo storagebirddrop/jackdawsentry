@@ -153,22 +153,32 @@ class CompetitiveDashboard:
         """Update the dashboard display with current metrics"""
         logger.debug("Updating dashboard display")
         
-        # Create dashboard output
         dashboard_output = self._generate_dashboard_output()
+        await self._update_dashboard_files(dashboard_output)
         
-        # Save to dashboard file
-        dashboard_file = self.data_dir / "dashboard_current.json"
-        with open(dashboard_file, 'w') as f:
-            f.write(json.dumps(self.current_metrics, indent=2, default=str))
+    async def _update_dashboard_files(self, dashboard_output: str) -> None:
+        """Update dashboard display files"""
+        # Save current metrics to JSON file
+        await asyncio.to_thread(self._save_current_metrics)
         
         # Generate HTML dashboard
         html_content = self._generate_html_dashboard()
-        html_file = self.data_dir / "dashboard.html"
-        with open(html_file, 'w') as f:
-            f.write(html_content)
+        await asyncio.to_thread(self._save_html_dashboard, html_content)
         
         # Print summary to console
         print(dashboard_output)
+    
+    def _save_current_metrics(self) -> None:
+        """Save current metrics to JSON file"""
+        dashboard_file = self.data_dir / "dashboard_current.json"
+        with open(dashboard_file, 'w') as f:
+            f.write(json.dumps(self.current_metrics, indent=2, default=str))
+    
+    def _save_html_dashboard(self, html_content: str) -> None:
+        """Save HTML dashboard to file"""
+        html_file = self.data_dir / "dashboard.html"
+        with open(html_file, 'w') as f:
+            f.write(html_content)
     
     def _generate_dashboard_output(self) -> str:
         """Generate formatted dashboard output for console display"""
@@ -327,10 +337,11 @@ class CompetitiveDashboard:
     
     async def _save_historical_data(self):
         """Save historical data to file"""
-        if not self.historical_data:
-            return
-        
         historical_file = self.data_dir / "historical_data.json"
+        await asyncio.to_thread(self._write_historical_data, historical_file)
+    
+    def _write_historical_data(self, historical_file) -> None:
+        """Write historical data to file"""
         with open(historical_file, 'w') as f:
             f.write(json.dumps(self.historical_data, indent=2, default=str))
     
@@ -340,21 +351,25 @@ class CompetitiveDashboard:
         
         if historical_file.exists():
             try:
-                with open(historical_file, 'r') as f:
-                    content = f.read()
-                    loaded_data = json.loads(content)
-                    # Validate that loaded data is a list
-                    if isinstance(loaded_data, list):
-                        self.historical_data = loaded_data
-                        logger.info(f"Loaded {len(self.historical_data)} historical data points")
-                    else:
-                        logger.warning("Historical data file does not contain a valid list, starting fresh")
-                        self.historical_data = []
+                content = await asyncio.to_thread(self._read_historical_file, historical_file)
+                loaded_data = json.loads(content)
+                # Validate that loaded data is a list
+                if isinstance(loaded_data, list):
+                    self.historical_data = loaded_data
+                    logger.info(f"Loaded {len(self.historical_data)} historical data points")
+                else:
+                    logger.warning("Historical data file does not contain a valid list, starting fresh")
+                    self.historical_data = []
             except Exception as e:
                 logger.warning(f"Could not load historical data: {e}")
                 self.historical_data = []
         else:
             self.historical_data = []
+    
+    def _read_historical_file(self, historical_file) -> str:
+        """Read historical file content"""
+        with open(historical_file, 'r') as f:
+            return f.read()
     
     async def get_current_metrics(self) -> Dict[str, Any]:
         """Get current competitive metrics"""
@@ -364,31 +379,24 @@ class CompetitiveDashboard:
         """Get historical data with optional limit"""
         return self.historical_data[-limit:] if self.historical_data else []
     
-    async def export_report(self, output_file: Optional[str] = None) -> str:
+    async def export_report(self, output_path: str) -> None:
         """Export comprehensive competitive report"""
-        if not output_file:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            output_file = self.data_dir / f"competitive_report_{timestamp}.json"
-        
-        report = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "base_url": self.base_url,
-            "current_metrics": self.current_metrics,
-            "historical_summary": {
-                "total_data_points": len(self.historical_data),
-                "date_range": {
-                    "start": self.historical_data[0]["timestamp"] if self.historical_data else None,
-                    "end": self.historical_data[-1]["timestamp"] if self.historical_data else None
-                }
-            },
-            "trends": self._calculate_trends()
+        report_data = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'base_url': self.base_url,
+            'current_metrics': self.current_metrics,
+            'historical_data': self.historical_data[-100:],  # Last 100 data points
+            'summary': self.current_metrics.get('summary', {})
         }
         
-        with open(output_file, 'w') as f:
-            f.write(json.dumps(report, indent=2, default=str))
+        await asyncio.to_thread(self._write_report_file, output_path, report_data)
+    
+    def _write_report_file(self, output_path: str, report_data: dict) -> None:
+        """Write report data to file"""
+        with open(output_path, 'w') as f:
+            f.write(json.dumps(report_data, indent=2, default=str))
         
-        logger.info(f"Competitive report exported to {output_file}")
-        return str(output_file)
+        logger.info(f"Competitive report exported to {output_path}")
     
     def _calculate_trends(self) -> Dict[str, Any]:
         """Calculate trends from historical data"""

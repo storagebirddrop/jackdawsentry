@@ -4,9 +4,6 @@
 -- Create competitive schema if it doesn't exist
 CREATE SCHEMA IF NOT EXISTS competitive;
 
--- Create extension for UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- Competitive benchmark results table
 CREATE TABLE IF NOT EXISTS competitive.benchmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -18,6 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from .routers import auth, users, blockchain, analysis, intelligence, competitive
+from .webhooks.competitive_webhooks import startup as webhook_startup, shutdown as webhook_shutdown
+from .schedulers.competitive_scheduler import startup as scheduler_startup, shutdown as scheduler_shutdown
+
 
 # Custom JSON encoder for datetime serialization
 class DateTimeEncoder(json.JSONEncoder):
@@ -124,6 +128,7 @@ from src.api.routers import victim_reports
 from src.api.routers import visualization
 from src.api.routers import webhooks
 from src.api.routers import workflows
+from src.api.routers import competitive
 
 # Configure logging
 logging.basicConfig(
@@ -154,6 +159,11 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(start_background_tasks())
         logger.info("Background tasks started")
 
+        # Initialize competitive assessment systems
+        await webhook_startup()
+        await scheduler_startup()
+        logger.info("Competitive assessment systems initialized")
+
     except Exception as e:
         logger.error(f"Failed to initialize application: {e}")
         raise
@@ -163,6 +173,12 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Jackdaw Sentry API...")
     await stop_background_tasks()
+    
+    # Shutdown competitive assessment systems
+    await webhook_shutdown()
+    await scheduler_shutdown()
+    logger.info("Competitive assessment systems shutdown")
+    
     from src.collectors.rpc.factory import close_all_clients
 
     errors = []
@@ -778,6 +794,14 @@ app.include_router(
     monitoring.router,
     prefix="/api/v1/compliance/monitoring",
     tags=["Monitoring"],
+    dependencies=[Depends(get_current_user)],
+)
+
+# Add competitive assessment router
+app.include_router(
+    competitive.router,
+    prefix="/api/competitive",
+    tags=["Competitive Assessment"],
     dependencies=[Depends(get_current_user)],
 )
 

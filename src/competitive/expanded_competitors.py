@@ -28,7 +28,7 @@ class CompetitorProfile:
     blockchain_support: List[str]
     strengths: List[str]
     weaknesses: List[str]
-    last_updated: datetime
+    last_updated: str
 
 @dataclass
 class FeatureComparison:
@@ -569,11 +569,26 @@ class ExpandedCompetitiveAnalysis:
     
     def _analyze_market_overview(self) -> Dict[str, Any]:
         """Analyze overall market overview"""
-        total_market_share = sum(profile.market_share for profile in self.competitor_profiles.values())
+        # Get raw market shares
+        raw_shares = [profile.market_share for profile in self.competitor_profiles.values()]
+        total_raw_share = sum(raw_shares)
+        
+        # Normalize to 100% if needed
+        if total_raw_share > 100:
+            normalization_factor = 100 / total_raw_share
+            normalized_shares = [share * normalization_factor for share in raw_shares]
+            total_market_share = 100.0
+        else:
+            normalized_shares = raw_shares
+            total_market_share = total_raw_share
         
         # Group by category
         category_analysis = {}
-        for profile in self.competitor_profiles.values():
+        profiles_list = list(self.competitor_profiles.values())
+        
+        for i, profile in enumerate(profiles_list):
+            normalized_share = normalized_shares[i]
+            
             if profile.category not in category_analysis:
                 category_analysis[profile.category] = {
                     'count': 0,
@@ -582,12 +597,13 @@ class ExpandedCompetitiveAnalysis:
                 }
             
             category_analysis[profile.category]['count'] += 1
-            category_analysis[profile.category]['market_share'] += profile.market_share
+            category_analysis[profile.category]['market_share'] += normalized_share
             category_analysis[profile.category]['avg_founded_year'] += profile.founded_year
         
         # Calculate averages
-        for category in category_analysis:
-            category_analysis[category]['avg_founded_year'] //= category_analysis[category]['count']
+        for category_data in category_analysis.values():
+            category_data['avg_founded_year'] //= category_data['count']
+            category_data['market_share'] = round(category_data['market_share'], 1)
         
         return {
             'total_competitors': len(self.competitor_profiles),
@@ -630,12 +646,41 @@ class ExpandedCompetitiveAnalysis:
     
     def _calculate_feature_score(self, feature_comp: FeatureComparison) -> float:
         """Calculate Jackdaw's feature score"""
-        # This would be based on actual benchmarking results
-        # For now, return a competitive score
-        return 0.88  # 88% of market leader
+        # Calculate score based on innovation gap and business value
+        base_score = 1.0 - feature_comp.innovation_gap  # Lower gap = higher score
+        
+        # Weight by business value
+        business_weights = {
+            'Critical': 1.2,
+            'High': 1.1,
+            'Medium': 1.0,
+            'Low': 0.9
+        }
+        
+        weight = business_weights.get(feature_comp.business_value, 1.0)
+        weighted_score = base_score * weight
+        
+        # Clamp to [0.0, 1.0] range
+        return max(0.0, min(1.0, weighted_score))
     
     def _calculate_competitor_feature_score(self, comp_data: Dict[str, Any]) -> float:
         """Calculate competitor feature score"""
+        # Check if this is a pricing feature
+        if comp_data.get('feature') == 'pricing_model' or comp_data.get('category') == 'pricing':
+            # Handle pricing labels separately
+            pricing_scores = {
+                'Free': 1.0,
+                'Freemium': 0.85,
+                'Affordable': 0.75,
+                'Moderate': 0.65,
+                'Expensive': 0.45,
+                'High': 0.35,
+                'Premium': 0.25
+            }
+            pricing_value = comp_data.get('value', comp_data.get('performance', 'Moderate'))
+            return pricing_scores.get(pricing_value, 0.65)
+        
+        # Regular performance scoring
         performance_scores = {
             'Excellent': 1.0,
             'Very Good': 0.85,
@@ -850,7 +895,7 @@ async def main():
     # Top opportunities
     print(f"\nTop Opportunities:")
     for opportunity in results['opportunity_analysis'][:3]:
-        print(f"  {opportunity['opportunity']}: {opportunity['market_size']} market, {opportunity['fit_score']:.1f} fit score")
+        print(f"  {opportunity['opportunity']}: {opportunity['market_size']} market, {opportunity['fit_score']:.2f} fit score")
     
     # Strategic recommendations
     print(f"\nStrategic Recommendations:")

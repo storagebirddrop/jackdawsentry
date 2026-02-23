@@ -18,5 +18,3 @@ datasources:
     access: proxy
     url: https://competitive-dashboard:8080
     isDefault: true
-    jsonData:
-      tlsSkipVerify: true

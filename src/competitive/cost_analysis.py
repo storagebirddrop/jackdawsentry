@@ -383,7 +383,10 @@ class CostAnalysis:
         support_cost = pricing_model.additional_costs.get('support_premium', Decimal('0'))
         total_monthly = monthly_cost + support_cost
         
-        # 3-year TCO
+        # Annual cost includes support
+        annual_cost = total_monthly * Decimal('12')
+        
+        # 3-year TCO includes support costs
         tco_3_year = (annual_cost * 3) + implementation_cost
         
         # Cost per user (assuming 50 users for comparison)
@@ -394,7 +397,7 @@ class CostAnalysis:
         
         # Value score (inverse of cost, adjusted for features)
         feature_count = len(pricing_model.included_features)
-        value_score = float((100000 / total_monthly) * (feature_count / 20))
+        value_score = float((Decimal('100000') / total_monthly) * (Decimal(feature_count) / Decimal('20')))
         
         # Price premium vs market average
         market_avg = self.market_benchmarks['average_monthly_cost']
@@ -442,7 +445,7 @@ class CostAnalysis:
             'price_advantage': float((avg_competitor_cost - jackdaw_cost.monthly_cost) / avg_competitor_cost * 100),
             'market_percentile': self._calculate_price_percentile(jackdaw_cost.monthly_cost, [comp.monthly_cost for comp in competitors]),
             'value_positioning': jackdaw_cost.value_score,
-            'cost_efficiency': float(jackdaw_cost.value_score / jackdaw_cost.monthly_cost * 1000)
+            'cost_efficiency': float(jackdaw_cost.value_score / float(jackdaw_cost.monthly_cost) * 1000)
         }
     
     def _calculate_price_percentile(self, jackdaw_cost: Decimal, competitor_costs: List[Decimal]) -> float:
@@ -464,7 +467,7 @@ class CostAnalysis:
         for name, comp in cost_comparisons.items():
             if name != 'jackdaw_sentry':
                 value_ratio = jackdaw_cost.value_score / comp.value_score
-                cost_ratio = jackdaw_cost.monthly_cost / comp.monthly_cost
+                cost_ratio = float(jackdaw_cost.monthly_cost) / float(comp.monthly_cost)
                 
                 value_comparison[name] = {
                     'value_ratio': value_ratio,
@@ -481,15 +484,22 @@ class CostAnalysis:
             'best_value_competitor': best_value[0],
             'best_value_score': best_value[1]['value_for_money'],
             'jackdaw_value_ranking': self._calculate_value_ranking(jackdaw_cost.value_score, [comp.value_score for comp in cost_comparisons.values()]),
-            'price_to_value_ratio': float(jackdaw_cost.monthly_cost / jackdaw_cost.value_score)
+            'price_to_value_ratio': float(jackdaw_cost.monthly_cost) / jackdaw_cost.value_score if jackdaw_cost.value_score > 0 else 0
         }
     
     def _calculate_value_ranking(self, jackdaw_value: float, competitor_values: List[float]) -> int:
         """Calculate value ranking among competitors"""
-        all_values = competitor_values + [jackdaw_value]
-        all_values.sort(reverse=True)
+        # Sort the provided values in descending order
+        sorted_values = sorted(competitor_values, reverse=True)
         
-        return all_values.index(jackdaw_value) + 1
+        # Find jackdaw's position
+        ranking = 1
+        for value in sorted_values:
+            if jackdaw_value >= value:
+                break
+            ranking += 1
+        
+        return ranking
     
     def _generate_pricing_recommendations(self, cost_comparisons: Dict[str, CostComparison]) -> List[Dict[str, Any]]:
         """Generate pricing recommendations"""
@@ -580,14 +590,22 @@ class CostAnalysis:
         payback_period_months = int(initial_investment / monthly_savings) if monthly_savings > 0 else 999
         
         # NPV (assuming 10% discount rate)
-        discount_rate = 0.10
-        npv_3_year = 0
+        discount_rate = Decimal('0.10')
+        npv_3_year = Decimal('0')
         for year in range(1, 4):
-            npv_3_year += float(annual_savings / ((1 + discount_rate) ** year))
-        npv_3_year -= float(initial_investment)
+            discount_factor = (Decimal('1') + discount_rate) ** year
+            npv_3_year += Decimal(str(annual_savings)) / discount_factor
+        npv_3_year -= Decimal(str(initial_investment))
         
         # IRR (simplified calculation)
-        irr = float(((annual_savings * 3) / initial_investment) ** (1/3) - 1) if initial_investment > 0 else 0
+        if initial_investment > 0:
+            ratio = float((annual_savings * 3) / initial_investment)
+            if ratio > 0:
+                irr = ratio ** (1/3) - 1
+            else:
+                irr = 0
+        else:
+            irr = 0
         
         return ROICalculation(
             initial_investment=initial_investment,
@@ -721,7 +739,7 @@ async def main():
     print(f"\nJackdaw Sentry Positioning:")
     print(f"  Position: {positioning['jackdaw_position']}")
     print(f"  Price Advantage: {positioning['price_advantage']:.1f}%")
-    print(f"  Value Ranking: #{positioning['value_positioning']}")
+    print(f"  Value Ranking: #{report['value_propositions']['jackdaw_value_ranking']}")
     
     # ROI Analysis
     print(f"\nROI Analysis:")

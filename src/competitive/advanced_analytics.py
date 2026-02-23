@@ -108,18 +108,28 @@ class AdvancedAnalytics:
         
         try:
             async with self.db_pool.acquire() as conn:
-                # Get last 1000 benchmark results
+                # Get historical data using configurable training data size
                 query = """
                 SELECT test_name, metric_type, value, timestamp, success
                 FROM competitive.benchmarks
                 WHERE success = TRUE AND timestamp >= NOW() - INTERVAL '30 days'
                 ORDER BY timestamp DESC
-                LIMIT 1000
+                LIMIT $1
                 """
                 
-                rows = await conn.fetch(query)
+                rows = await conn.fetch(query, self.training_data_size)
                 
                 self.historical_data = [
                     {
                         'test_name': row['test_name'],
-                        'metric_type': r
+                        'metric_type': row['metric_type'],
+                        'value': row['value'],
+                        'timestamp': row['timestamp'],
+                        'success': row['success']
+                    }
+                    for row in rows
+                ]
+                
+        except Exception as e:
+            logger.error(f"Failed to load historical data: {e}")
+            self.historical_data = []

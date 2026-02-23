@@ -65,9 +65,9 @@ services:
     image: jackdaw-sentry:latest
     container_name: jackdaw-api
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL_FILE=/run/secrets/database_url
+      - REDIS_URL_FILE=/run/secrets/redis_url
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
     volumes:
       - ./config:/app/config
       - ./logs:/app/logs
@@ -81,6 +81,10 @@ services:
     networks:
       - jackdaw-network
     restart: unless-stopped
+    secrets:
+      - database_url
+      - redis_url
+      - jwt_secret
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -115,14 +119,16 @@ services:
   redis:
     image: redis:7-alpine
     container_name: jackdaw-redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: sh -c "redis-server --appendonly yes --requirepass \"$(cat /run/secrets/redis_password)\""
     volumes:
       - redis_data:/data
     networks:
       - jackdaw-network
     restart: unless-stopped
+    secrets:
+      - redis_password
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -180,6 +186,12 @@ secrets:
   postgres_password:
     external: true
   redis_password:
+    external: true
+  database_url:
+    external: true
+  redis_url:
+    external: true
+  jwt_secret:
     external: true
 
 networks:

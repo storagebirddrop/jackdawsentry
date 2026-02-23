@@ -11,6 +11,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import logging
+from typing import Dict, List, Any
+from dataclasses import asdict
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -57,6 +59,9 @@ async def run_enhanced_competitive_analysis(base_url: str, output_dir: str) -> N
             # Generate comprehensive report
             await generate_enhanced_report(results, output_path)
             
+            # Generate executive summary
+            results['executive_summary'] = generate_executive_summary(results)
+            
             # Print summary
             print_enhanced_summary(results)
             
@@ -89,15 +94,26 @@ async def run_advanced_analytics(analytics: AdvancedAnalytics) -> Dict[str, Any]
     
     # Detect anomalies
     anomalies = []
+    benchmark_results = results.get('benchmarking_results', {})
     for metric in key_metrics:
-        # Get current value (would come from live benchmarking)
-        current_value = 2.5  # Placeholder
+        # Get current value from actual benchmarking results
+        current_value = None
+        if 'results' in benchmark_results:
+            for result in benchmark_results['results']:
+                if result.get('metric_name') == metric:
+                    current_value = result.get('value')
+                    break
+        
+        if current_value is None:
+            logger.warning(f"No benchmark value found for metric: {metric}")
+            continue
+            
         anomaly = await analytics.detect_anomalies(metric, current_value)
         if anomaly:
             anomalies.append({
-                'feature': anomaly.feature,
-                'severity': anomaly.severity,
-                'description': anomaly.description
+                'feature': anomaly.get('feature', 'unknown'),
+                'severity': anomaly.get('severity'),
+                'description': anomaly.get('description', 'No description')
             })
     
     return {
@@ -229,11 +245,44 @@ async def generate_detailed_reports(results: Dict[str, Any], output_path: Path, 
     with open(cost_file, 'w') as f:
         json.dump(cost_report, f, indent=2, default=str)
 
+def generate_executive_summary(results: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate executive summary from analysis results"""
+    parity = calculate_overall_parity(results.get('benchmarking_results', {}))
+    market_position = assess_market_position(parity)
+    growth_potential = assess_growth_potential(results)
+    
+    return {
+        'executive_summary': {
+            'overall_parity': round(parity, 1),
+            'market_position': market_position,
+            'growth_potential': growth_potential,
+            'key_strengths': identify_strengths(results),
+            'critical_concerns': identify_concerns(results),
+            'strategic_recommendations': generate_strategic_recommendations(results)
+        }
+    }
+
 def calculate_overall_parity(benchmark_results: Dict[str, Any]) -> float:
     """Calculate overall competitive parity"""
-    # This would be calculated from actual benchmarking results
-    # For now, return a competitive value
-    return 92.5
+    if not benchmark_results or 'results' not in benchmark_results:
+        logger.warning("No benchmark results available for parity calculation")
+        return 85.0  # Default fallback
+    
+    # Calculate weighted average from actual benchmarking results
+    total_parity = 0.0
+    count = 0
+    
+    for result in benchmark_results['results']:
+        parity = result.get('parity_percentage', 0)
+        if parity > 0:  # Valid parity percentage
+            total_parity += parity
+            count += 1
+    
+    if count == 0:
+        logger.warning("No valid parity percentages found")
+        return 85.0
+    
+    return total_parity / count
 
 def assess_market_position(parity: float) -> str:
     """Assess market position based on parity"""
@@ -256,8 +305,8 @@ def identify_strengths(results: Dict[str, Any]) -> List[str]:
     
     # From advanced analytics
     insights = results.get('advanced_analytics', {}).get('insights', [])
-    positive_insights = [insight['title'] for insight in insights if insight.get('impact') == 'high' and insight.get('insight_type') == 'opportunity']
-    strengths.extend(positive_insights)
+    positive_insights = [insight.get('title', 'Unknown insight') for insight in insights if insight.get('impact') == 'high' and insight.get('insight_type') == 'opportunity']
+    strengths.extend([insight for insight in positive_insights if insight])
     
     # From cost analysis
     cost_positioning = results.get('cost_analysis', {}).get('pricing_analysis', {}).get('market_positioning', {})
@@ -272,8 +321,8 @@ def identify_concerns(results: Dict[str, Any]) -> List[str]:
     
     # From advanced analytics
     anomalies = results.get('advanced_analytics', {}).get('anomalies', [])
-    critical_anomalies = [f"{anomaly['feature']} - {anomaly['severity']}" for anomaly in anomalies if anomaly.get('severity') in ['high', 'critical']]
-    concerns.extend(critical_anomalies)
+    critical_anomalies = [f"{anomaly.get('feature', 'unknown')} - {anomaly.get('severity', 'unknown')}" for anomaly in anomalies if anomaly.get('severity') in ['high', 'critical']]
+    concerns.extend([anomaly for anomaly in critical_anomalies if anomaly])
     
     # From predictions
     predictions = results.get('advanced_analytics', {}).get('predictions', {})
@@ -288,13 +337,13 @@ def generate_strategic_recommendations(results: Dict[str, Any]) -> List[str]:
     
     # From cost analysis
     cost_recs = results.get('cost_analysis', {}).get('strategic_recommendations', [])
-    recommendations.extend([rec['recommendation'] for rec in cost_recs[:3]])
+    recommendations.extend([rec.get('recommendation', '') for rec in cost_recs[:3] if rec.get('recommendation')])
     
     # From expanded competitors
     competitor_recs = results.get('expanded_competitors', {}).get('strategic_recommendations', [])
-    recommendations.extend([rec['recommendation'] for rec in competitor_recs[:2]])
+    recommendations.extend([rec.get('recommendation', '') for rec in competitor_recs[:2] if rec.get('recommendation')])
     
-    return recommendations[:5]  # Top 5 recommendations
+    return [rec for rec in recommendations if rec][:5]  # Top 5 recommendations
 
 def assess_growth_potential(results: Dict[str, Any]) -> str:
     """Assess growth potential"""
