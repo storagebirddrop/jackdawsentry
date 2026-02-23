@@ -4,9 +4,9 @@ Comprehensive competitive analysis and benchmarking tools
 """
 
 import asyncio
-import aiohttp
 import json
 import logging
+import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -47,17 +47,14 @@ class CompetitiveBenchmarkingSuite:
         self.base_url = base_url.rstrip('/')
         self.results: List[BenchmarkResult] = []
         self.competitive_metrics: List[CompetitiveMetric] = []
-        self.session: Optional[aiohttp.ClientSession] = None
         
     async def __aenter__(self):
         """Async context manager entry"""
-        self.session = aiohttp.ClientSession()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
-        if self.session:
-            await self.session.close()
+        pass
     
     async def run_all_benchmarks(self) -> Dict[str, Any]:
         """

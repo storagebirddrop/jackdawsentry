@@ -8,9 +8,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Optional
-import aiofiles
-import aiohttp
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,6 @@ class CompetitiveDashboard:
         self.base_url = base_url.rstrip('/')
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.session: Optional[aiohttp.ClientSession] = None
         self.is_running = False
         
         # Dashboard state
@@ -37,13 +34,11 @@ class CompetitiveDashboard:
         
     async def __aenter__(self):
         """Async context manager entry"""
-        self.session = aiohttp.ClientSession()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
-        if self.session:
-            await self.session.close()
+        pass
     
     async def start_monitoring(self):
         """Start the competitive monitoring dashboard"""
@@ -163,14 +158,14 @@ class CompetitiveDashboard:
         
         # Save to dashboard file
         dashboard_file = self.data_dir / "dashboard_current.json"
-        async with aiofiles.open(dashboard_file, 'w') as f:
-            await f.write(json.dumps(self.current_metrics, indent=2, default=str))
+        with open(dashboard_file, 'w') as f:
+            f.write(json.dumps(self.current_metrics, indent=2, default=str))
         
         # Generate HTML dashboard
         html_content = self._generate_html_dashboard()
         html_file = self.data_dir / "dashboard.html"
-        async with aiofiles.open(html_file, 'w') as f:
-            await f.write(html_content)
+        with open(html_file, 'w') as f:
+            f.write(html_content)
         
         # Print summary to console
         print(dashboard_output)
@@ -336,8 +331,8 @@ class CompetitiveDashboard:
             return
         
         historical_file = self.data_dir / "historical_data.json"
-        async with aiofiles.open(historical_file, 'w') as f:
-            await f.write(json.dumps(self.historical_data, indent=2, default=str))
+        with open(historical_file, 'w') as f:
+            f.write(json.dumps(self.historical_data, indent=2, default=str))
     
     async def _load_historical_data(self):
         """Load historical data from file"""
@@ -345,8 +340,8 @@ class CompetitiveDashboard:
         
         if historical_file.exists():
             try:
-                async with aiofiles.open(historical_file, 'r') as f:
-                    content = await f.read()
+                with open(historical_file, 'r') as f:
+                    content = f.read()
                     self.historical_data = json.loads(content)
                 logger.info(f"Loaded {len(self.historical_data)} historical data points")
             except Exception as e:
@@ -383,8 +378,8 @@ class CompetitiveDashboard:
             "trends": self._calculate_trends()
         }
         
-        async with aiofiles.open(output_file, 'w') as f:
-            await f.write(json.dumps(report, indent=2, default=str))
+        with open(output_file, 'w') as f:
+            f.write(json.dumps(report, indent=2, default=str))
         
         logger.info(f"Competitive report exported to {output_file}")
         return str(output_file)

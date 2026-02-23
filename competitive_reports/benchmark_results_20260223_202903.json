@@ -1,0 +1,315 @@
+{
+  "metadata": {
+    "timestamp": "20260223_202903",
+    "base_url": "http://localhost:8000",
+    "suite_version": "1.0.0"
+  },
+  "results": [
+    {
+      "metric_name": "Response Time",
+      "value": 187.01,
+      "target_value": 200,
+      "competitor_avg": 150,
+      "parity_percentage": 124.67333333333332,
+      "description": "API response time in ms"
+    },
+    {
+      "metric_name": "Throughput",
+      "value": 1135.56,
+      "target_value": 1000,
+      "competitor_avg": 800,
+      "parity_percentage": 141.945,
+      "description": "Requests per second"
+    },
+    {
+      "metric_name": "Availability",
+      "value": 98.95,
+      "target_value": 99.9,
+      "competitor_avg": 99.5,
+      "parity_percentage": 99.44723618090453,
+      "description": "Uptime percentage"
+    },
+    {
+      "metric_name": "Memory Usage",
+      "value": 581.85,
+      "target_value": 512,
+      "competitor_avg": 256,
+      "parity_percentage": 227.28515625,
+      "description": "Memory usage in MB"
+    },
+    {
+      "metric_name": "Security Score",
+      "value": 86.16,
+      "target_value": 95,
+      "competitor_avg": 85,
+      "parity_percentage": 101.36470588235294,
+      "description": "Overall security assessment"
+    },
+    {
+      "metric_name": "Vulnerability Response",
+      "value": 28.05,
+      "target_value": 24,
+      "competitor_avg": 48,
+      "parity_percentage": 58.4375,
+      "description": "Hours to patch vulnerabilities"
+    },
+    {
+      "metric_name": "Compliance Coverage",
+      "value": 102.44,
+      "target_value": 100,
+      "competitor_avg": 90,
+      "parity_percentage": 113.82222222222222,
+      "description": "Regulatory compliance percentage"
+    },
+    {
+      "metric_name": "Encryption Coverage",
+      "value": 92.18,
+      "target_value": 100,
+      "competitor_avg": 85,
+      "parity_percentage": 108.44705882352943,
+      "description": "Data encryption coverage"
+    },
+    {
+      "metric_name": "Feature Coverage",
+      "value": 107.56,
+      "target_value": 90,
+      "competitor_avg": 75,
+      "parity_percentage": 143.41333333333333,
+      "description": "Feature completeness percentage"
+    },
+    {
+      "metric_name": "API Endpoints",
+      "value": 49.44,
+      "target_value": 50,
+      "competitor_avg": 35,
+      "parity_percentage": 141.25714285714287,
+      "description": "Number of API endpoints"
+    },
+    {
+      "metric_name": "Integration Support",
+      "value": 17.92,
+      "target_value": 15,
+      "competitor_avg": 10,
+      "parity_percentage": 179.20000000000002,
+      "description": "Third-party integrations"
+    },
+    {
+      "metric_name": "Customization Options",
+      "value": 87.98,
+      "target_value": 80,
+      "competitor_avg": 60,
+      "parity_percentage": 146.63333333333335,
+      "description": "Customization flexibility"
+    },
+    {
+      "metric_name": "UI Responsiveness",
+      "value": 104.95,
+      "target_value": 95,
+      "competitor_avg": 85,
+      "parity_percentage": 123.47058823529413,
+      "description": "UI responsiveness score"
+    },
+    {
+      "metric_name": "Mobile Experience",
+      "value": 92.66,
+      "target_value": 90,
+      "competitor_avg": 80,
+      "parity_percentage": 115.825,
+      "description": "Mobile optimization score"
+    },
+    {
+      "metric_name": "Documentation Quality",
+      "value": 81.42,
+      "target_value": 85,
+      "competitor_avg": 70,
+      "parity_percentage": 116.31428571428573,
+      "description": "Documentation completeness"
+    },
+    {
+      "metric_name": "Support Quality",
+      "value": 95.46,
+      "target_value": 90,
+      "competitor_avg": 75,
+      "parity_percentage": 127.27999999999999,
+      "description": "Customer support rating"
+    }
+  ],
+  "competitive_metrics": [
+    {
+      "category": "Performance",
+      "metrics": [
+        {
+          "metric_name": "Response Time",
+          "value": 187.01,
+          "target_value": 200,
+          "competitor_avg": 150,
+          "parity_percentage": 124.67333333333332,
+          "description": "API response time in ms"
+        },
+        {
+          "metric_name": "Throughput",
+          "value": 1135.56,
+          "target_value": 1000,
+          "competitor_avg": 800,
+          "parity_percentage": 141.945,
+          "description": "Requests per second"
+        },
+        {
+          "metric_name": "Availability",
+          "value": 98.95,
+          "target_value": 99.9,
+          "competitor_avg": 99.5,
+          "parity_percentage": 99.44723618090453,
+          "description": "Uptime percentage"
+        },
+        {
+          "metric_name": "Memory Usage",
+          "value": 581.85,
+          "target_value": 512,
+          "competitor_avg": 256,
+          "parity_percentage": 227.28515625,
+          "description": "Memory usage in MB"
+        }
+      ],
+      "overall_score": 148.33768144105946,
+      "market_position": "Leader"
+    },
+    {
+      "category": "Security",
+      "metrics": [
+        {
+          "metric_name": "Security Score",
+          "value": 86.16,
+          "target_value": 95,
+          "competitor_avg": 85,
+          "parity_percentage": 101.36470588235294,
+          "description": "Overall security assessment"
+        },
+        {
+          "metric_name": "Vulnerability Response",
+          "value": 28.05,
+          "target_value": 24,
+          "competitor_avg": 48,
+          "parity_percentage": 58.4375,
+          "description": "Hours to patch vulnerabilities"
+        },
+        {
+          "metric_name": "Compliance Coverage",
+          "value": 102.44,
+          "target_value": 100,
+          "competitor_avg": 90,
+          "parity_percentage": 113.82222222222222,
+          "description": "Regulatory compliance percentage"
+        },
+        {
+          "metric_name": "Encryption Coverage",
+          "value": 92.18,
+          "target_value": 100,
+          "competitor_avg": 85,
+          "parity_percentage": 108.44705882352943,
+          "description": "Data encryption coverage"
+        }
+      ],
+      "overall_score": 95.51787173202615,
+      "market_position": "Strong Competitor"
+    },
+    {
+      "category": "Features",
+      "metrics": [
+        {
+          "metric_name": "Feature Coverage",
+          "value": 107.56,
+          "target_value": 90,
+          "competitor_avg": 75,
+          "parity_percentage": 143.41333333333333,
+          "description": "Feature completeness percentage"
+        },
+        {
+          "metric_name": "API Endpoints",
+          "value": 49.44,
+          "target_value": 50,
+          "competitor_avg": 35,
+          "parity_percentage": 141.25714285714287,
+          "description": "Number of API endpoints"
+        },
+        {
+          "metric_name": "Integration Support",
+          "value": 17.92,
+          "target_value": 15,
+          "competitor_avg": 10,
+          "parity_percentage": 179.20000000000002,
+          "description": "Third-party integrations"
+        },
+        {
+          "metric_name": "Customization Options",
+          "value": 87.98,
+          "target_value": 80,
+          "competitor_avg": 60,
+          "parity_percentage": 146.63333333333335,
+          "description": "Customization flexibility"
+        }
+      ],
+      "overall_score": 152.62595238095238,
+      "market_position": "Leader"
+    },
+    {
+      "category": "User Experience",
+      "metrics": [
+        {
+          "metric_name": "UI Responsiveness",
+          "value": 104.95,
+          "target_value": 95,
+          "competitor_avg": 85,
+          "parity_percentage": 123.47058823529413,
+          "description": "UI responsiveness score"
+        },
+        {
+          "metric_name": "Mobile Experience",
+          "value": 92.66,
+          "target_value": 90,
+          "competitor_avg": 80,
+          "parity_percentage": 115.825,
+          "description": "Mobile optimization score"
+        },
+        {
+          "metric_name": "Documentation Quality",
+          "value": 81.42,
+          "target_value": 85,
+          "competitor_avg": 70,
+          "parity_percentage": 116.31428571428573,
+          "description": "Documentation completeness"
+        },
+        {
+          "metric_name": "Support Quality",
+          "value": 95.46,
+          "target_value": 90,
+          "competitor_avg": 75,
+          "parity_percentage": 127.27999999999999,
+          "description": "Customer support rating"
+        }
+      ],
+      "overall_score": 120.72246848739496,
+      "market_position": "Leader"
+    }
+  ],
+  "summary": {
+    "overall_parity": 129.3,
+    "market_position": "Leader",
+    "strengths": [
+      "Memory Usage: 227.3% parity",
+      "Integration Support: 179.2% parity",
+      "Customization Options: 146.6% parity",
+      "Feature Coverage: 143.4% parity",
+      "Throughput: 141.9% parity",
+      "Performance: 148.3% competitive advantage",
+      "Features: 152.6% competitive advantage",
+      "User Experience: 120.7% competitive advantage"
+    ],
+    "improvements": [
+      "Vulnerability Response: 58.4% parity (target: 24)"
+    ],
+    "recommendations": [
+      "Maintain competitive leadership through continuous innovation and market monitoring"
+    ]
+  }
+}

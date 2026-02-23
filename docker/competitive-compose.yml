@@ -18,12 +18,13 @@ services:
       - competitive_reports:/app/reports
       - competitive_logs:/app/logs
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - jackdaw-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import aiohttp; asyncio.run(aiohttp.ClientSession().get('http://localhost:8080/api/summary'))"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/summary"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -43,7 +44,8 @@ services:
       - competitive_reports:/app/reports
       - competitive_logs:/app/logs
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - jackdaw-network
     # Run benchmarks every 6 hours
@@ -63,17 +65,19 @@ services:
     image: jackdaw-sentry:latest
     container_name: jackdaw-api
     environment:
-      - DATABASE_URL=postgresql://jackdaw:password@postgres:5432/jackdaw
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - ./config:/app/config
       - ./logs:/app/logs
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - jackdaw-network
     restart: unless-stopped
@@ -90,16 +94,17 @@ services:
     environment:
       - POSTGRES_DB=jackdaw
       - POSTGRES_USER=jackdaw
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/postgres/run_migrations.sh:/docker-entrypoint-initdb.d/run_migrations.sh
       - ./src/api/migrations:/docker-entrypoint-initdb.d/migrations
-    ports:
-      - "5432:5432"
     networks:
       - jackdaw-network
     restart: unless-stopped
+    secrets:
+      - postgres_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jackdaw -d jackdaw"]
       interval: 10s
@@ -110,16 +115,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: jackdaw-redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     networks:
       - jackdaw-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -131,14 +134,15 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/competitive-dashboards:/etc/grafana/provisioning/dashboards
       - ./docker/grafana/competitive-datasources:/etc/grafana/provisioning/datasources
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - jackdaw-network
     restart: unless-stopped
@@ -171,6 +175,12 @@ volumes:
   competitive_logs:
   grafana_data:
   prometheus_data:
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
 
 networks:
   jackdaw-network:

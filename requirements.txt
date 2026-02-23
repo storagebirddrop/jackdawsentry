@@ -20,6 +20,17 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 cryptography>=46.0.5
 
+# HTTP Client (for competitive assessment)
+aiohttp>=3.8.0
+aiofiles>=22.1.0
+
+# System Monitoring (for competitive assessment)
+psutil>=5.9.0
+
+# Machine Learning (for advanced analytics)
+scikit-learn>=1.3.0
+numpy>=1.21.0
+
 # =============================================================================
 # Blockchain Dependencies
 # =============================================================================

@@ -5,17 +5,18 @@ datasources:
     type: postgres
     access: proxy
     url: postgres:5432
-    database: jackdaw
     user: jackdaw
-    password: password
     isDefault: false
     jsonData:
-      sslmode: disable
+      database: jackdaw
+      sslmode: require
+    secureJsonData:
+      password: $POSTGRES_PASSWORD
 
   - name: Competitive-Metrics
     type: grafana-simple-json-datasource
     access: proxy
-    url: http://competitive-dashboard:8080
+    url: https://competitive-dashboard:8080
     isDefault: true
     jsonData:
-      query: "metric"
+      tlsSkipVerify: true

@@ -4,9 +4,12 @@
 -- Create competitive schema if it doesn't exist
 CREATE SCHEMA IF NOT EXISTS competitive;
 
+-- Create extension for UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Competitive benchmark results table
 CREATE TABLE IF NOT EXISTS competitive.benchmarks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_name VARCHAR(255) NOT NULL,
     metric_type VARCHAR(100) NOT NULL,
     value DECIMAL(15,6) NOT NULL,
@@ -20,7 +23,7 @@ CREATE TABLE IF NOT EXISTS competitive.benchmarks (
 
 -- Competitive metrics table
 CREATE TABLE IF NOT EXISTS competitive.metrics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     feature VARCHAR(255) NOT NULL,
     jackdaw_value DECIMAL(15,6) NOT NULL,
     competitor_values JSONB NOT NULL,
@@ -34,7 +37,7 @@ CREATE TABLE IF NOT EXISTS competitive.metrics (
 
 -- Competitive reports table
 CREATE TABLE IF NOT EXISTS competitive.reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_data JSONB NOT NULL,
     generated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     overall_parity DECIMAL(5,2) NOT NULL,
@@ -44,7 +47,7 @@ CREATE TABLE IF NOT EXISTS competitive.reports (
 
 -- Performance alerts table
 CREATE TABLE IF NOT EXISTS competitive.performance_alerts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     alert_type VARCHAR(20) NOT NULL,
     feature VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
@@ -57,7 +60,7 @@ CREATE TABLE IF NOT EXISTS competitive.performance_alerts (
 
 -- Competitive trends table
 CREATE TABLE IF NOT EXISTS competitive.trends (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     category_trends JSONB NOT NULL,
     overall_parity DECIMAL(5,2) NOT NULL,
@@ -114,11 +117,8 @@ BEGIN
             'message', message,
             'recommendation', recommendation,
             'timestamp', timestamp
-        )
+        ) ORDER BY timestamp DESC
     ) INTO alerts
-    FROM competitive.performance_alerts 
-    WHERE resolved = FALSE
-    ORDER BY timestamp DESC;
     
     RETURN COALESCE(alerts, '[]'::jsonb);
 END;
@@ -129,6 +129,11 @@ RETURNS JSONB AS $$
 DECLARE
     trends JSONB;
 BEGIN
+    -- Validate input
+    IF days IS NULL OR days <= 0 THEN
+        RAISE EXCEPTION 'invalid "days" parameter: must be a positive integer, got %', days;
+    END IF;
+    
     SELECT jsonb_agg(
         jsonb_build_object(
             'timestamp', timestamp,
@@ -151,7 +156,7 @@ SELECT
     cr.generated_at,
     cr.overall_parity,
     cr.market_position,
-    (cr.report_data->>'executive_summary')::jsonb as executive_summary,
+    cr.report_data->'executive_summary' as executive_summary,
     (SELECT COUNT(*) FROM competitive.performance_alerts WHERE resolved = FALSE) as active_alerts_count,
     (SELECT COUNT(*) FROM competitive.benchmarks WHERE timestamp >= NOW() - INTERVAL '24 hours') as benchmarks_today
 FROM competitive.reports cr
@@ -160,11 +165,11 @@ LIMIT 1;
 
 -- Grant permissions to the competitive schema
 GRANT USAGE ON SCHEMA competitive TO jackdaw_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON competitive.benchmarks TO jackdaw_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON competitive.metrics TO jackdaw_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON competitive.reports TO jackdaw_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON competitive.performance_alerts TO jackdaw_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON competitive.trends TO jackdaw_user;
+GRANT SELECT, INSERT, UPDATE ON competitive.benchmarks TO jackdaw_user;
+GRANT SELECT, INSERT, UPDATE ON competitive.metrics TO jackdaw_user;
+GRANT SELECT, INSERT, UPDATE ON competitive.reports TO jackdaw_user;
+GRANT SELECT, INSERT, UPDATE ON competitive.performance_alerts TO jackdaw_user;
+GRANT SELECT, INSERT, UPDATE ON competitive.trends TO jackdaw_user;
 GRANT EXECUTE ON FUNCTION competitive.get_latest_summary() TO jackdaw_user;
 GRANT EXECUTE ON FUNCTION competitive.get_active_alerts() TO jackdaw_user;
 GRANT EXECUTE ON FUNCTION competitive.get_performance_trends(INTEGER) TO jackdaw_user;

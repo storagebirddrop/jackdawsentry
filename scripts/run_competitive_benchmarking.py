@@ -124,6 +124,9 @@ async def start_dashboard(base_url: str, data_dir: str) -> int:
     except KeyboardInterrupt:
         logger.info("Dashboard stopped by user")
         return 0
+    except asyncio.CancelledError:
+        logger.info("Dashboard stopped by cancellation")
+        return 0
     except Exception as e:
         logger.error(f"Dashboard failed: {e}")
         return 2
