@@ -1,0 +1,177 @@
+# Competitive Assessment Docker Compose
+version: '3.8'
+
+services:
+  # Competitive Dashboard Service
+  competitive-dashboard:
+    build:
+      context: .
+      dockerfile: docker/competitive-dashboard.Dockerfile
+    container_name: jackdaw-competitive-dashboard
+    ports:
+      - "8080:8080"
+    environment:
+      - COMPETITIVE_BASE_URL=http://api:8000
+      - LOG_LEVEL=INFO
+    volumes:
+      - competitive_data:/app/data
+      - competitive_reports:/app/reports
+      - competitive_logs:/app/logs
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - jackdaw-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import aiohttp; asyncio.run(aiohttp.ClientSession().get('http://localhost:8080/api/summary'))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Benchmark Runner Service (for scheduled runs)
+  competitive-benchmark:
+    build:
+      context: .
+      dockerfile: docker/competitive-dashboard.Dockerfile
+    container_name: jackdaw-competitive-benchmark
+    environment:
+      - COMPETITIVE_BASE_URL=http://api:8000
+      - LOG_LEVEL=INFO
+    volumes:
+      - competitive_data:/app/data
+      - competitive_reports:/app/reports
+      - competitive_logs:/app/logs
+    depends_on:
+      - api
+    networks:
+      - jackdaw-network
+    # Run benchmarks every 6 hours
+    command: >
+      sh -c "
+        while true; do
+          echo 'Running competitive benchmarking...'
+          python scripts/run_competitive_benchmarking.py benchmark --output-dir /app/reports
+          echo 'Benchmarking completed, sleeping for 6 hours...'
+          sleep 21600
+        done
+      "
+    restart: unless-stopped
+
+  # Main API Service (existing)
+  api:
+    image: jackdaw-sentry:latest
+    container_name: jackdaw-api
+    environment:
+      - DATABASE_URL=postgresql://jackdaw:password@postgres:5432/jackdaw
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL (shared with main application)
+  postgres:
+    image: postgres:15
+    container_name: jackdaw-postgres
+    environment:
+      - POSTGRES_DB=jackdaw
+      - POSTGRES_USER=jackdaw
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./src/api/migrations:/docker-entrypoint-initdb.d/migrations
+    ports:
+      - "5432:5432"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jackdaw -d jackdaw"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (shared with main application)
+  redis:
+    image: redis:7-alpine
+    container_name: jackdaw-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Grafana for Competitive Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jackdaw-grafana-competitive
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/competitive-dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/competitive-datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - postgres
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jackdaw-prometheus-competitive
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./docker/prometheus/competitive.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  competitive_data:
+  competitive_reports:
+  competitive_logs:
+  grafana_data:
+  prometheus_data:
+
+networks:
+  jackdaw-network:
+    driver: bridge

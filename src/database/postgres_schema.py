@@ -30,6 +30,7 @@ class PostgresSchema:
         await self.create_compliance_schema()
         await self.create_audit_schema()
         await self.create_gdpr_schema()
+        await self.create_competitive_schema()  # Add competitive assessment schema
         await self.create_indexes()
         await self.create_triggers()
 
@@ -370,6 +371,166 @@ class PostgresSchema:
                         f"❌ Failed to create audit trigger: {trigger}, Error: {e}"
                     )
 
+    async def create_competitive_schema(self):
+        """Create competitive assessment schema tables"""
+        logger.info("Creating competitive assessment schema...")
+
+        competitive_tables = [
+            # Competitive benchmark results table
+            """
+            CREATE TABLE IF NOT EXISTS competitive.benchmarks (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                test_name VARCHAR(255) NOT NULL,
+                metric_type VARCHAR(100) NOT NULL,
+                value DECIMAL(15,6) NOT NULL,
+                unit VARCHAR(50) NOT NULL,
+                timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+                success BOOLEAN NOT NULL,
+                error_message TEXT,
+                metadata JSONB,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            """,
+            
+            # Competitive metrics table
+            """
+            CREATE TABLE IF NOT EXISTS competitive.metrics (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                feature VARCHAR(255) NOT NULL,
+                jackdaw_value DECIMAL(15,6) NOT NULL,
+                competitor_values JSONB NOT NULL,
+                unit VARCHAR(50) NOT NULL,
+                target_parity DECIMAL(5,2) NOT NULL,
+                achieved_parity DECIMAL(5,2) NOT NULL,
+                timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+                trend VARCHAR(20) DEFAULT 'stable',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            """,
+            
+            # Competitive reports table
+            """
+            CREATE TABLE IF NOT EXISTS competitive.reports (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                report_data JSONB NOT NULL,
+                generated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                overall_parity DECIMAL(5,2) NOT NULL,
+                market_position VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            """,
+            
+            # Performance alerts table
+            """
+            CREATE TABLE IF NOT EXISTS competitive.performance_alerts (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                alert_type VARCHAR(20) NOT NULL,
+                feature VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                recommendation TEXT,
+                timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+                resolved BOOLEAN DEFAULT FALSE,
+                resolved_at TIMESTAMP WITH TIME ZONE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            """,
+            
+            # Competitive trends table
+            """
+            CREATE TABLE IF NOT EXISTS competitive.trends (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+                category_trends JSONB NOT NULL,
+                overall_parity DECIMAL(5,2) NOT NULL,
+                market_position VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            """
+        ]
+
+        async with self.pool.acquire() as conn:
+            for table_sql in competitive_tables:
+                try:
+                    await conn.execute(table_sql)
+                    logger.info(f"✅ Created competitive table")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create competitive table: {e}")
+
+        # Create indexes
+        competitive_indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_competitive_benchmarks_test_name ON competitive.benchmarks(test_name)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_benchmarks_timestamp ON competitive.benchmarks(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_metrics_feature ON competitive.metrics(feature)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_metrics_timestamp ON competitive.metrics(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_reports_generated_at ON competitive.reports(generated_at)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_alerts_resolved ON competitive.performance_alerts(resolved)",
+            "CREATE INDEX IF NOT EXISTS idx_competitive_trends_timestamp ON competitive.trends(timestamp)"
+        ]
+
+        async with self.pool.acquire() as conn:
+            for index_sql in competitive_indexes:
+                try:
+                    await conn.execute(index_sql)
+                    logger.info(f"✅ Created competitive index: {index_sql}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create competitive index: {index_sql}, Error: {e}")
+
+        # Create functions
+        competitive_functions = [
+            # Function to get latest competitive summary
+            """
+            CREATE OR REPLACE FUNCTION competitive.get_latest_summary()
+            RETURNS JSONB AS $$
+            DECLARE
+                latest_report JSONB;
+            BEGIN
+                SELECT report_data INTO latest_report
+                FROM competitive.reports 
+                ORDER BY generated_at DESC 
+                LIMIT 1;
+                
+                RETURN COALESCE(latest_report, '{}'::jsonb);
+            END;
+            $$ LANGUAGE plpgsql;
+            """,
+            
+            # Function to get active alerts
+            """
+            CREATE OR REPLACE FUNCTION competitive.get_active_alerts()
+            RETURNS JSONB AS $$
+            DECLARE
+                alerts JSONB;
+            BEGIN
+                SELECT jsonb_agg(
+                    jsonb_build_object(
+                        'id', id,
+                        'alert_type', alert_type,
+                        'feature', feature,
+                        'message', message,
+                        'recommendation', recommendation,
+                        'timestamp', timestamp
+                    )
+                ) INTO alerts
+                FROM competitive.performance_alerts 
+                WHERE resolved = FALSE
+                ORDER BY timestamp DESC;
+                
+                RETURN COALESCE(alerts, '[]'::jsonb);
+            END;
+            $$ LANGUAGE plpgsql;
+            """
+        ]
+
+        async with self.pool.acquire() as conn:
+            for func_sql in competitive_functions:
+                try:
+                    await conn.execute(func_sql)
+                    logger.info(f"✅ Created competitive function")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create competitive function: {e}")
+
+        logger.info("✅ Competitive assessment schema created")
+
 
 async def create_postgres_schema():
     """Initialize PostgreSQL database schema"""
@@ -389,7 +550,8 @@ async def create_postgres_schema():
         # Create compliance schema namespace (actual tables are managed by the
         # API migration manager via src/api/migrations/*.sql on startup)
         await pool.execute("CREATE SCHEMA IF NOT EXISTS compliance")
-        logger.info("✅ compliance schema namespace ready")
+        await pool.execute("CREATE SCHEMA IF NOT EXISTS competitive")  # Add competitive schema
+        logger.info("✅ compliance and competitive schema namespaces ready")
 
         # Create initial admin user (idempotent — skips if already exists)
         await create_initial_admin_user(pool)

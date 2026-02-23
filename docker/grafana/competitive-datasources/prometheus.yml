@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL-Competitive
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: jackdaw
+    user: jackdaw
+    password: password
+    isDefault: false
+    jsonData:
+      sslmode: disable
+
+  - name: Competitive-Metrics
+    type: grafana-simple-json-datasource
+    access: proxy
+    url: http://competitive-dashboard:8080
+    isDefault: true
+    jsonData:
+      query: "metric"

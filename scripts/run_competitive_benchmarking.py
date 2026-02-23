@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def run_benchmarking_suite(base_url: str, output_dir: str) -> None:
+async def run_benchmarking_suite(base_url: str, output_dir: str) -> int:
     """Run the complete competitive benchmarking suite"""
     logger.info(f"Starting competitive benchmarking suite for {base_url}")
     
@@ -46,6 +46,13 @@ async def run_benchmarking_suite(base_url: str, output_dir: str) -> None:
             with open(results_file, 'w') as f:
                 json.dump(results, f, indent=2, default=str)
             
+            # Cache results to avoid redundant computation
+            overall_parity = suite.calculate_overall_parity()
+            market_position = suite.assess_market_position()
+            strengths = suite.identify_strengths()
+            improvements = suite.identify_improvement_areas()
+            recommendations = suite.generate_recommendations()
+            
             # Save benchmark results
             from dataclasses import asdict
             benchmark_file = output_path / f"benchmark_results_{timestamp}.json"
@@ -58,11 +65,11 @@ async def run_benchmarking_suite(base_url: str, output_dir: str) -> None:
                 "results": [asdict(result) for result in suite.results],
                 "competitive_metrics": [asdict(metric) for metric in suite.competitive_metrics],
                 "summary": {
-                    "overall_parity": suite.calculate_overall_parity(),
-                    "market_position": suite.assess_market_position(),
-                    "strengths": suite.identify_strengths(),
-                    "improvements": suite.identify_improvement_areas(),
-                    "recommendations": suite.generate_recommendations()
+                    "overall_parity": overall_parity,
+                    "market_position": market_position,
+                    "strengths": strengths,
+                    "improvements": improvements,
+                    "recommendations": recommendations
                 }
             }
             
@@ -74,53 +81,52 @@ async def run_benchmarking_suite(base_url: str, output_dir: str) -> None:
             print("COMPETITIVE BENCHMARKING RESULTS")
             print("="*60)
             
-            overall_parity = suite.calculate_overall_parity()
-            market_position = suite.assess_market_position()
-            
             print(f"\nOverall Competitive Parity: {overall_parity:.1f}%")
             print(f"Market Position: {market_position}")
             
-            print(f"\nKey Strengths:")
-            for strength in suite.identify_strengths()[:5]:
+            print("\nKey Strengths:")
+            for strength in strengths[:5]:
                 print(f"  ✓ {strength}")
             
-            print(f"\nImprovement Areas:")
-            for improvement in suite.identify_improvement_areas()[:5]:
+            print("\nImprovement Areas:")
+            for improvement in improvements[:5]:
                 print(f"  ○ {improvement}")
             
-            print(f"\nRecommendations:")
-            for rec in suite.generate_recommendations()[:5]:
+            print("\nRecommendations:")
+            for rec in recommendations[:5]:
                 print(f"  → {rec}")
             
-            print(f"\nDetailed Reports:")
+            print("\nDetailed Reports:")
             print(f"  Results: {results_file}")
             print(f"  Benchmark: {benchmark_file}")
             
             # Return success if parity is above threshold
             if overall_parity >= 80:
                 logger.info("Competitive benchmarking completed successfully")
-                sys.exit(0)
+                return 0
             else:
                 logger.warning("Competitive parity below acceptable threshold")
-                sys.exit(1)
+                return 1
                 
     except Exception as e:
         logger.error(f"Benchmarking suite failed: {e}")
-        sys.exit(2)
+        return 2
 
-async def start_dashboard(base_url: str, data_dir: str) -> None:
+async def start_dashboard(base_url: str, data_dir: str) -> int:
     """Start the competitive monitoring dashboard"""
     logger.info(f"Starting competitive dashboard for {base_url}")
     
     try:
-        async with CompetitiveDashboard(base_url) as dashboard:
+        async with CompetitiveDashboard(base_url, data_dir) as dashboard:
             await dashboard.start_monitoring()
+            return 0
             
     except KeyboardInterrupt:
         logger.info("Dashboard stopped by user")
+        return 0
     except Exception as e:
         logger.error(f"Dashboard failed: {e}")
-        sys.exit(2)
+        return 2
 
 def main():
     """Main entry point"""
@@ -164,16 +170,19 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
     
     if args.command == "benchmark":
-        asyncio.run(run_benchmarking_suite(args.url, args.output_dir))
+        return_code = asyncio.run(run_benchmarking_suite(args.url, args.output_dir))
+        sys.exit(return_code)
     elif args.command == "dashboard":
-        asyncio.run(start_dashboard(args.url, args.data_dir))
+        return_code = asyncio.run(start_dashboard(args.url, args.data_dir))
+        sys.exit(return_code)
     elif args.command == "both":
         # Run benchmarking first
-        asyncio.run(run_benchmarking_suite(args.url, args.output_dir))
+        benchmark_code = asyncio.run(run_benchmarking_suite(args.url, args.output_dir))
         
         # Then start dashboard
         print("\nStarting dashboard (Ctrl+C to stop)...")
-        asyncio.run(start_dashboard(args.url, args.data_dir))
+        dashboard_code = asyncio.run(start_dashboard(args.url, args.data_dir))
+        sys.exit(benchmark_code if benchmark_code != 0 else dashboard_code)
 
 if __name__ == "__main__":
     main()
