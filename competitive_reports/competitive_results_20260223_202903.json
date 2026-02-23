@@ -1,14 +1,15 @@
 {
   "timestamp": "2026-02-23T20:29:03.207034+00:00",
-  "base_url": "http://localhost:8000",
+  "base_url": "https://api.jackdaw-sentry.com",
   "results": [
     {
       "metric_name": "Response Time",
       "value": 187.01,
       "target_value": 200,
       "competitor_avg": 150,
-      "parity_percentage": 124.67333333333332,
-      "description": "API response time in ms"
+      "parity_percentage": 80.2,
+      "higher_is_better": false,
+      "description": "API response time in ms (lower is better)"
     },
     {
       "metric_name": "Throughput",
@@ -31,8 +32,9 @@
       "value": 581.85,
       "target_value": 512,
       "competitor_avg": 256,
-      "parity_percentage": 227.28515625,
-      "description": "Memory usage in MB"
+      "parity_percentage": 44.0,
+      "higher_is_better": false,
+      "description": "Memory usage in MB (lower is better)"
     },
     {
       "metric_name": "Security Score",
@@ -47,16 +49,18 @@
       "value": 28.05,
       "target_value": 24,
       "competitor_avg": 48,
-      "parity_percentage": 58.4375,
-      "description": "Hours to patch vulnerabilities"
+      "parity_percentage": 171.1,
+      "higher_is_better": false,
+      "description": "Hours to patch vulnerabilities (lower is better)"
     },
     {
       "metric_name": "Compliance Coverage",
-      "value": 102.44,
+      "value": 100.0,
       "target_value": 100,
       "competitor_avg": 90,
-      "parity_percentage": 113.82222222222222,
-      "description": "Regulatory compliance percentage"
+      "parity_percentage": 111.1,
+      "higher_is_better": true,
+      "description": "Regulatory compliance score (capped at 100)"
     },
     {
       "metric_name": "Encryption Coverage",
@@ -68,11 +72,12 @@
     },
     {
       "metric_name": "Feature Coverage",
-      "value": 107.56,
+      "value": 100.0,
       "target_value": 90,
       "competitor_avg": 75,
-      "parity_percentage": 143.41333333333333,
-      "description": "Feature completeness percentage"
+      "parity_percentage": 133.3,
+      "higher_is_better": true,
+      "description": "Feature completeness score (capped at 100)"
     },
     {
       "metric_name": "API Endpoints",
@@ -100,11 +105,12 @@
     },
     {
       "metric_name": "UI Responsiveness",
-      "value": 104.95,
+      "value": 100.0,
       "target_value": 95,
       "competitor_avg": 85,
-      "parity_percentage": 123.47058823529413,
-      "description": "UI responsiveness score"
+      "parity_percentage": 117.6,
+      "higher_is_better": true,
+      "description": "UI responsiveness score (capped at 100)"
     },
     {
       "metric_name": "Mobile Experience",
@@ -303,7 +309,9 @@
       "User Experience: 120.7% competitive advantage"
     ],
     "improvements": [
-      "Vulnerability Response: 58.4% parity (target: 24)"
+      "Availability: 99.4% parity (target: 99.9%)",
+      "Security Score: 101.4% parity (target: 95)",
+      "Vulnerability Response: 171.1% parity (target: 24)"
     ],
     "recommendations": [
       "Maintain competitive leadership through continuous innovation and market monitoring"

@@ -65,6 +65,10 @@ class CompetitiveBenchmarkingSuite:
         """
         logger.info("Starting comprehensive competitive benchmarking")
         
+        # Reset collections to prevent stale duplicates
+        self.results = []
+        self.competitive_metrics = []
+        
         # Core performance benchmarks
         await self._run_performance_benchmarks()
         
@@ -99,16 +103,23 @@ class CompetitiveBenchmarkingSuite:
         logger.info("Running performance benchmarks")
         
         performance_metrics = [
-            ("Response Time", 200, 150, "API response time in ms"),
-            ("Throughput", 1000, 800, "Requests per second"),
-            ("Availability", 99.9, 99.5, "Uptime percentage"),
-            ("Memory Usage", 512, 256, "Memory usage in MB")
+            ("Response Time", 200, 150, "API response time in ms", True),
+            ("Throughput", 1000, 800, "Requests per second", False),
+            ("Availability", 99.9, 99.5, "Uptime percentage", False),
+            ("Memory Usage", 512, 256, "Memory usage in MB", True)
         ]
         
-        for metric_name, target, competitor_avg, description in performance_metrics:
+        for metric_name, target, competitor_avg, description, is_lower_better in performance_metrics:
             # Simulate benchmark - in real implementation, would make actual API calls
-            value = await self._measure_metric(metric_name, target, competitor_avg)
-            parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
+            value = await self._measure_metric(metric_name, target, competitor_avg, is_lower_better)
+            
+            # Calculate parity based on whether lower is better
+            if is_lower_better:
+                # For lower-is-better metrics (like response time), lower values are better
+                parity = (competitor_avg / value) * 100 if value > 0 else 0
+            else:
+                # For higher-is-better metrics, higher values are better
+                parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
             
             result = BenchmarkResult(
                 metric_name=metric_name,
@@ -126,15 +137,20 @@ class CompetitiveBenchmarkingSuite:
         logger.info("Running security benchmarks")
         
         security_metrics = [
-            ("Security Score", 95, 85, "Overall security assessment"),
-            ("Vulnerability Response", 24, 48, "Hours to patch vulnerabilities"),
-            ("Compliance Coverage", 100, 90, "Regulatory compliance percentage"),
-            ("Encryption Coverage", 100, 85, "Data encryption coverage")
+            ("Security Score", 95, 85, "Overall security assessment", False),
+            ("Vulnerability Response", 24, 48, "Hours to patch vulnerabilities", True),
+            ("Compliance Coverage", 100, 90, "Regulatory compliance percentage", False),
+            ("Encryption Coverage", 100, 85, "Data encryption coverage", False)
         ]
         
-        for metric_name, target, competitor_avg, description in security_metrics:
-            value = await self._measure_metric(metric_name, target, competitor_avg)
-            parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
+        for metric_name, target, competitor_avg, description, is_lower_better in security_metrics:
+            value = await self._measure_metric(metric_name, target, competitor_avg, is_lower_better)
+            
+            # Calculate parity based on whether lower is better
+            if is_lower_better:
+                parity = (competitor_avg / value) * 100 if value > 0 else 0
+            else:
+                parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
             
             result = BenchmarkResult(
                 metric_name=metric_name,
@@ -152,15 +168,20 @@ class CompetitiveBenchmarkingSuite:
         logger.info("Running feature benchmarks")
         
         feature_metrics = [
-            ("Feature Coverage", 90, 75, "Feature completeness percentage"),
-            ("API Endpoints", 50, 35, "Number of API endpoints"),
-            ("Integration Support", 15, 10, "Third-party integrations"),
-            ("Customization Options", 80, 60, "Customization flexibility")
+            ("Feature Coverage", 90, 75, "Feature completeness percentage", False),
+            ("API Endpoints", 50, 35, "Number of API endpoints", False),
+            ("Integration Support", 15, 10, "Third-party integrations", False),
+            ("Customization Options", 80, 60, "Customization flexibility", False)
         ]
         
-        for metric_name, target, competitor_avg, description in feature_metrics:
-            value = await self._measure_metric(metric_name, target, competitor_avg)
-            parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
+        for metric_name, target, competitor_avg, description, is_lower_better in feature_metrics:
+            value = await self._measure_metric(metric_name, target, competitor_avg, is_lower_better)
+            
+            # Calculate parity based on whether lower is better
+            if is_lower_better:
+                parity = (competitor_avg / value) * 100 if value > 0 else 0
+            else:
+                parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
             
             result = BenchmarkResult(
                 metric_name=metric_name,
@@ -178,15 +199,20 @@ class CompetitiveBenchmarkingSuite:
         logger.info("Running UX benchmarks")
         
         ux_metrics = [
-            ("UI Responsiveness", 95, 85, "UI responsiveness score"),
-            ("Mobile Experience", 90, 80, "Mobile optimization score"),
-            ("Documentation Quality", 85, 70, "Documentation completeness"),
-            ("Support Quality", 90, 75, "Customer support rating")
+            ("UI Responsiveness", 95, 85, "UI responsiveness score", False),
+            ("Mobile Experience", 90, 80, "Mobile optimization score", False),
+            ("Documentation Quality", 85, 70, "Documentation completeness", False),
+            ("Support Quality", 90, 75, "Customer support rating", False)
         ]
         
-        for metric_name, target, competitor_avg, description in ux_metrics:
-            value = await self._measure_metric(metric_name, target, competitor_avg)
-            parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
+        for metric_name, target, competitor_avg, description, is_lower_better in ux_metrics:
+            value = await self._measure_metric(metric_name, target, competitor_avg, is_lower_better)
+            
+            # Calculate parity based on whether lower is better
+            if is_lower_better:
+                parity = (competitor_avg / value) * 100 if value > 0 else 0
+            else:
+                parity = (value / competitor_avg) * 100 if competitor_avg > 0 else 0
             
             result = BenchmarkResult(
                 metric_name=metric_name,
@@ -199,7 +225,7 @@ class CompetitiveBenchmarkingSuite:
             
             self.results.append(result)
     
-    async def _measure_metric(self, metric_name: str, target: float, competitor_avg: float) -> float:
+    async def _measure_metric(self, metric_name: str, target: float, competitor_avg: float, is_lower_better: bool = False) -> float:
         """
         Simulate metric measurement - in real implementation would make actual measurements
         
@@ -211,10 +237,12 @@ class CompetitiveBenchmarkingSuite:
         value = target * (1 + variance)
         
         # Ensure value is reasonable
-        if metric_name in ["Response Time", "Vulnerability Response"]:
-            value = max(value, target * 0.8)  # Don't be too fast for time metrics
+        if is_lower_better:
+            # For lower-is-better metrics, don't be too fast
+            value = max(value, target * 0.8)
         else:
-            value = min(value, target * 1.3)  # Don't exceed target by too much
+            # For higher-is-better metrics, don't exceed target by too much
+            value = min(value, target * 1.3)
             
         await asyncio.sleep(0.01)  # Simulate measurement time
         return round(value, 2)
@@ -310,28 +338,28 @@ class CompetitiveBenchmarkingSuite:
         recommendations = []
         
         # Performance recommendations
-        perf_metrics = [r for r in self.results if "Response Time" in r.metric_name or "Throughput" in r.metric_name]
+        perf_metrics = [r for r in self.results if r.metric_name in ["Response Time", "Throughput", "Availability", "Memory Usage"]]
         if perf_metrics:
             avg_perf_parity = sum(m.parity_percentage for m in perf_metrics) / len(perf_metrics)
             if avg_perf_parity < 90:
                 recommendations.append("Optimize API performance through caching and database query optimization")
         
         # Security recommendations
-        sec_metrics = [r for r in self.results if "Security" in r.metric_name or "Compliance" in r.metric_name]
+        sec_metrics = [r for r in self.results if r.metric_name in ["Security Score", "Vulnerability Response", "Compliance Coverage", "Encryption Coverage"]]
         if sec_metrics:
             avg_sec_parity = sum(m.parity_percentage for m in sec_metrics) / len(sec_metrics)
             if avg_sec_parity < 95:
                 recommendations.append("Enhance security posture through regular security audits and compliance updates")
         
         # Feature recommendations
-        feature_metrics = [r for r in self.results if "Feature" in r.metric_name or "API" in r.metric_name]
+        feature_metrics = [r for r in self.results if r.metric_name in ["Feature Coverage", "API Endpoints", "Integration Support", "Customization Options"]]
         if feature_metrics:
             avg_feature_parity = sum(m.parity_percentage for m in feature_metrics) / len(feature_metrics)
             if avg_feature_parity < 85:
                 recommendations.append("Expand feature set to match competitor offerings and market demands")
         
         # UX recommendations
-        ux_metrics = [r for r in self.results if "UI" in r.metric_name or "Mobile" in r.metric_name or "Documentation" in r.metric_name]
+        ux_metrics = [r for r in self.results if r.metric_name in ["UI Responsiveness", "Mobile Experience", "Documentation Quality", "Support Quality"]]
         if ux_metrics:
             avg_ux_parity = sum(m.parity_percentage for m in ux_metrics) / len(ux_metrics)
             if avg_ux_parity < 90:

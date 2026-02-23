@@ -1,0 +1,197 @@
+# Prometheus Rules for Competitive Assessment Monitoring
+groups:
+  - name: competitive_alerts
+    rules:
+      - alert: CompetitiveParityLow
+        expr: competitive_overall_parity < 80
+        for: 5m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Competitive parity is below 80%"
+          description: "Jackdaw Sentry's competitive parity has fallen below 80% for more than 5 minutes"
+          
+      - alert: CompetitiveParityCritical
+        expr: competitive_overall_parity < 70
+        for: 2m
+        labels:
+          severity: critical
+          service: competitive-dashboard
+        annotations:
+          summary: "Competitive parity is critically low"
+          description: "Jackdaw Sentry's competitive parity has fallen below 70% for more than 2 minutes"
+          
+      - alert: HighAnomalyCount
+        expr: competitive_anomaly_count > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "High number of anomalies detected"
+          description: "More than 5 anomalies have been detected in the competitive assessment"
+          
+      - alert: BenchmarkFailure
+        expr: rate(competitive_benchmark_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "High benchmark failure rate"
+          description: "Benchmark failure rate is above 10% over the last 5 minutes"
+          
+      - alert: DashboardUnresponsive
+        expr: up{job="competitive-dashboard"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: competitive-dashboard
+        annotations:
+          summary: "Competitive dashboard is down"
+          description: "The competitive dashboard service is not responding"
+          
+      - alert: APIResponseTimeHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "API response time is high"
+          description: "95th percentile API response time is above 2 seconds"
+          
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "Database connection count is high"
+          description: "Database has more than 80 active connections"
+          
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is above 90%"
+          
+      - alert: PerformanceDegradation
+        expr: competitive_performance_trend < -0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Performance degradation detected"
+          description: "Competitive performance trend shows degradation"
+          
+      - alert: CompetitorAdvantage
+        expr: competitive_competitor_advantage > 20
+        for: 10m
+        labels:
+          severity: info
+          service: competitive-dashboard
+        annotations:
+          summary: "Competitor has significant advantage"
+          description: "A competitor has more than 20% advantage in key metrics"
+          
+      - alert: CostEfficiencyLow
+        expr: competitive_cost_efficiency < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Cost efficiency is low"
+          description: "Cost efficiency ratio is below 0.5"
+
+  - name: infrastructure_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance_cpu_usage{job="competitive-dashboard"} * 100)) < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "High CPU usage on competitive dashboard"
+          description: "CPU usage is above 80% on competitive dashboard service"
+          
+      - alert: HighMemoryUsage
+        expr: 100 - (avg by (instance_memory_usage{job="competitive-dashboard"} * 100)) < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "High memory usage on competitive dashboard"
+          description: "Memory usage is above 80% on competitive dashboard service"
+          
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/app"} / node_filesystem_size_bytes{mountpoint="/app"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          service: competitive-dashboard
+        annotations:
+          summary: "Low disk space"
+          description: "Available disk space is below 10%"
+          
+      - alert: ContainerRestart
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Container restart detected"
+          description: "Container has restarted within the last hour"
+
+  - name: business_metrics
+    rules:
+      - alert: MarketPositionDecline
+        expr: competitive_market_position_score < 70
+        for: 30m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Market position is declining"
+          description: "Market position score has fallen below 70"
+          
+      - alert: ValuePropositionWeak
+        expr: competitive_value_proposition_score < 60
+        for: 30m
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "Value proposition is weak"
+          description: "Value proposition score has fallen below 60"
+          
+      - alert: GrowthOpportunityMissed
+        expr: competitive_growth_opportunities < 3
+        for: 1h
+        labels:
+          severity: info
+          service: competitive-dashboard
+        annotations:
+          summary: "Few growth opportunities identified"
+          description: "Less than 3 growth opportunities have been identified"
+          
+      - alert: ROINegative
+        expr: competitive_roi_3_year < 0
+        for: 1h
+        labels:
+          severity: warning
+          service: competitive-dashboard
+        annotations:
+          summary: "ROI is negative"
+          description: "3-year ROI is negative, indicating poor investment"

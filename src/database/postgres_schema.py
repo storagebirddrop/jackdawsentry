@@ -455,6 +455,7 @@ class PostgresSchema:
                     logger.info(f"✅ Created competitive table")
                 except Exception as e:
                     logger.error(f"❌ Failed to create competitive table: {e}")
+                    raise  # Re-raise to ensure schema creation fails properly
 
         # Create indexes
         competitive_indexes = [
@@ -509,11 +510,10 @@ class PostgresSchema:
                         'message', message,
                         'recommendation', recommendation,
                         'timestamp', timestamp
-                    )
+                    ) ORDER BY timestamp DESC
                 ) INTO alerts
                 FROM competitive.performance_alerts 
-                WHERE resolved = FALSE
-                ORDER BY timestamp DESC;
+                WHERE resolved = FALSE;
                 
                 RETURN COALESCE(alerts, '[]'::jsonb);
             END;

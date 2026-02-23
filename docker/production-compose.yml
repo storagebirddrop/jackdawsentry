@@ -1,0 +1,350 @@
+# Production Docker Compose for Jackdaw Sentry with Competitive Assessment
+version: '3.8'
+
+services:
+  # Main API Service (Production)
+  api:
+    image: jackdaw-sentry:production
+    container_name: jackdaw-api-prod
+    environment:
+      - DATABASE_URL=postgresql://jackdaw:${POSTGRES_PASSWORD}@postgres:5432/jackdaw
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - WORKERS=8
+      - MAX_CONNECTIONS=100
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jackdaw-network
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Competitive Dashboard Service (Production)
+  competitive-dashboard:
+    build:
+      context: .
+      dockerfile: docker/competitive-production.Dockerfile
+    container_name: jackdaw-competitive-dashboard-prod
+    environment:
+      - COMPETITIVE_BASE_URL=http://api:8000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - WORKERS=4
+    volumes:
+      - competitive_data:/app/data
+      - competitive_reports:/app/reports
+      - competitive_logs:/app/logs
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jackdaw-network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Competitive Monitoring Service (Production)
+  competitive-monitoring:
+    build:
+      context: .
+      dockerfile: docker/competitive-monitoring.Dockerfile
+    container_name: jackdaw-competitive-monitoring-prod
+    environment:
+      - COMPETITIVE_BASE_URL=http://api:8000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - SCHEDULE_INTERVAL=3600  # 1 hour
+    volumes:
+      - competitive_data:/app/data
+      - competitive_reports:/app/reports
+      - competitive_logs:/app/logs
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jackdaw-network
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # PostgreSQL (Production with High Availability)
+  postgres:
+    image: postgres:15
+    container_name: jackdaw-postgres-prod
+    environment:
+      - POSTGRES_DB=jackdaw
+      - POSTGRES_USER=jackdaw
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--max-connections=200
+      - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements,pg_trgm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./src/api/migrations:/docker-entrypoint-initdb.d/migrations
+      - postgres_backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jackdaw -d jackdaw"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis (Production with Persistence)
+  redis:
+    image: redis:7-alpine
+    container_name: jackdaw-redis-prod
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: jackdaw-nginx-prod
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - competitive-dashboard
+    restart: unless-stopped
+    networks:
+      - jackdaw-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Prometheus (Production Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jackdaw-prometheus-prod
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # Grafana (Production Dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jackdaw-grafana-prod
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=${GRAFANA_SMTP_USER}
+      - GF_SMTP_PASSWORD=${GRAFANA_SMTP_PASSWORD}
+      - GF_FROM_ADDRESS=${GRAFANA_FROM_ADDRESS}
+      - GF_FROM_NAME=Jackdaw Sentry
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # Loki (Log Aggregation)
+  loki:
+    image: grafana/loki:latest
+    container_name: jackdaw-loki-prod
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # Promtail (Log Collection)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: jackdaw-promtail-prod
+    volumes:
+      - ./docker/promtail/promtail-config.yaml:/etc/promtail/config.yml
+      - ./logs:/var/log/app
+      - /var/log:/var/log/host
+      - /var/lib/docker/containers:/var/lib/docker/containers
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - jackdaw-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_backups:
+    driver: local
+  redis_data:
+    driver: local
+  competitive_data:
+    driver: local
+  competitive_reports:
+    driver: local
+  competitive_logs:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  loki_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  jackdaw-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

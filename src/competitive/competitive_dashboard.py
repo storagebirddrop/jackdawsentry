@@ -182,7 +182,7 @@ class CompetitiveDashboard:
         output.append("\n" + "="*80)
         output.append("JACKDAW SENTRY - COMPETITIVE DASHBOARD")
         output.append("="*80)
-        output.append(f"Last Update: {self.last_update.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        output.append(f"Last Update: {self.last_update.strftime('%Y-%m-%d %H:%M:%S UTC') if self.last_update else 'N/A'}")
         output.append(f"Base URL: {self.base_url}")
         output.append("")
         
@@ -265,7 +265,7 @@ class CompetitiveDashboard:
         <div class="header">
             <h1>Jackdaw Sentry - Competitive Dashboard</h1>
             <p>Real-time competitive monitoring and analysis</p>
-            <p><strong>Last Update:</strong> {self.last_update.strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+            <p><strong>Last Update:</strong> {self.last_update.strftime('%Y-%m-%d %H:%M:%S UTC') if self.last_update else 'N/A'}</p>
         </div>
         
         <div class="status">
@@ -342,8 +342,14 @@ class CompetitiveDashboard:
             try:
                 with open(historical_file, 'r') as f:
                     content = f.read()
-                    self.historical_data = json.loads(content)
-                logger.info(f"Loaded {len(self.historical_data)} historical data points")
+                    loaded_data = json.loads(content)
+                    # Validate that loaded data is a list
+                    if isinstance(loaded_data, list):
+                        self.historical_data = loaded_data
+                        logger.info(f"Loaded {len(self.historical_data)} historical data points")
+                    else:
+                        logger.warning("Historical data file does not contain a valid list, starting fresh")
+                        self.historical_data = []
             except Exception as e:
                 logger.warning(f"Could not load historical data: {e}")
                 self.historical_data = []
