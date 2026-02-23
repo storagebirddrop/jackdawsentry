@@ -109,7 +109,7 @@ async def analyze_address_patterns(
 @router.post("/batch-analyze", response_model=BatchPatternResponse)
 async def batch_analyze_patterns(
     request: BatchPatternRequest,
-    current_user: User = Depends(check_permissions(PERMISSIONS.BULK_SCREENING))
+    current_user: User = Depends(check_permissions(PERMISSIONS["bulk_screening"]))
 ):
     """
     Analyze patterns for multiple addresses in batch
@@ -279,7 +279,7 @@ async def get_pattern_details(
 @router.put("/patterns/{pattern_id}/enable")
 async def enable_pattern(
     pattern_id: str,
-    current_user: User = Depends(check_permissions(PERMISSIONS.WRITE_ANALYSIS))
+    current_user: User = Depends(check_permissions(PERMISSIONS["write_analysis"]))
 ):
     """
     Enable a pattern for detection
@@ -312,7 +312,7 @@ async def enable_pattern(
 @router.put("/patterns/{pattern_id}/disable")
 async def disable_pattern(
     pattern_id: str,
-    current_user: User = Depends(check_permissions(PERMISSIONS.WRITE_ANALYSIS))
+    current_user: User = Depends(check_permissions(PERMISSIONS["write_analysis"]))
 ):
     """
     Disable a pattern for detection
@@ -344,7 +344,7 @@ async def disable_pattern(
 
 @router.get("/statistics", response_model=PatternStatistics)
 async def get_pattern_statistics(
-    current_user: User = Depends(check_permissions(PERMISSIONS.VIEW_ANALYTICS))
+    current_user: User = Depends(check_permissions(PERMISSIONS["view_analytics"]))
 ):
     """
     Get pattern detection system statistics
@@ -387,7 +387,7 @@ async def get_pattern_statistics(
 
 @router.post("/clear-cache")
 async def clear_pattern_cache(
-    current_user: User = Depends(check_permissions(PERMISSIONS.ADMIN_SYSTEM))
+    current_user: User = Depends(check_permissions(PERMISSIONS["admin_full"]))
 ):
     """
     Clear the pattern detection cache
@@ -409,7 +409,7 @@ async def clear_pattern_cache(
 
 @router.get("/metrics")
 async def get_pattern_metrics(
-    current_user: User = Depends(check_permissions(PERMISSIONS.VIEW_ANALYTICS))
+    current_user: User = Depends(check_permissions(PERMISSIONS["view_analytics"]))
 ):
     """
     Get detailed pattern detection metrics

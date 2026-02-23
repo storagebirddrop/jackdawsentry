@@ -1,12 +1,13 @@
 """
-Jackdaw Sentry — Locust Load Test (M7)
+Jackdaw Sentry — Locust Load Test (M7) - Phase 4 Performance Tests
 
-Simulates realistic user traffic against the API:
+Simulates realistic user traffic against Phase 4 intelligence modules:
   - Auth flow: login → get JWT → use for all subsequent requests
-  - Read-heavy mix (weights): 60 compliance/statistics, 20 blockchain/statistics,
-    10 analysis/statistics, 10 intelligence/alerts
-  - Write mix (weights): 5 audit/log, 3 risk/assessments, 2 cases
-  - Total weight = 110 → ~91% reads, ~9% writes
+  - Read-heavy mix (weights): 30 victim-reports, 20 threat-feeds, 15 attribution,
+    10 professional-services, 10 forensics
+  - Write mix (weights): 5 victim-reports, 4 threat-feeds, 3 attribution,
+    2 forensics, 1 professional-services
+  - Total weight = 100 → 85% reads, 15% writes
 
 Usage:
   # Headless baseline (dev compose — 1 replica)
@@ -31,7 +32,7 @@ from locust import HttpUser, between, task
 # Override via environment variables for CI / other envs
 # ---------------------------------------------------------------------------
 USERNAME = os.environ.get("LOCUST_USERNAME", "admin")
-PASSWORD = os.environ.get("LOCUST_PASSWORD", "ChangeMe!Admin2024")
+PASSWORD = os.environ.get("LOCUST_PASSWORD", "Admin123!@#")
 
 
 class JackdawUser(HttpUser):
@@ -69,74 +70,119 @@ class JackdawUser(HttpUser):
             path, json=json_body, headers=self.headers, **kwargs
         )
 
-    # ── READ tasks (total weight = 100) ──────────────────────────────
+    # ── READ tasks (total weight = 85) ──────────────────────────────
 
-    @task(60)
-    def get_compliance_statistics(self):
-        """GET /api/v1/compliance/statistics — weight 60."""
-        self._get("/api/v1/compliance/statistics",
-                  name="/api/v1/compliance/statistics")
+    @task(30)
+    def get_victim_reports(self):
+        """GET /api/v1/intelligence/victim-reports/ — weight 30."""
+        self._get("/api/v1/intelligence/victim-reports/",
+                  name="/api/v1/intelligence/victim-reports/")
 
     @task(20)
-    def get_blockchain_statistics(self):
-        """GET /api/v1/blockchain/statistics — weight 20."""
-        self._get("/api/v1/blockchain/statistics",
-                  name="/api/v1/blockchain/statistics")
+    def get_threat_feeds(self):
+        """GET /api/v1/intelligence/threat-feeds/ — weight 20."""
+        self._get("/api/v1/intelligence/threat-feeds/",
+                  name="/api/v1/intelligence/threat-feeds/")
+
+    @task(15)
+    def get_attribution(self):
+        """GET /api/v1/attribution/ — weight 15."""
+        self._get("/api/v1/attribution/",
+                  name="/api/v1/attribution/")
 
     @task(10)
-    def get_analysis_statistics(self):
-        """GET /api/v1/analysis/statistics — weight 10."""
-        self._get("/api/v1/analysis/statistics",
-                  name="/api/v1/analysis/statistics")
+    def get_professional_services(self):
+        """GET /api/v1/intelligence/professional-services/services — weight 10."""
+        self._get("/api/v1/intelligence/professional-services/services",
+                  name="/api/v1/intelligence/professional-services/services")
 
     @task(10)
-    def get_intelligence_alerts(self):
-        """GET /api/v1/intelligence/alerts — weight 10."""
-        self._get("/api/v1/intelligence/alerts",
-                  name="/api/v1/intelligence/alerts")
+    def get_forensics_cases(self):
+        """GET /api/v1/forensics/cases — weight 10."""
+        self._get("/api/v1/forensics/cases",
+                  name="/api/v1/forensics/cases")
 
-    # ── WRITE tasks (total weight = 10) ──────────────────────────────
+    # ── WRITE tasks (total weight = 15) ──────────────────────────────
 
     @task(5)
-    def post_audit_log(self):
-        """POST /api/v1/compliance/audit/log — weight 5."""
+    def create_victim_report(self):
+        """POST /api/v1/intelligence/victim-reports/ — weight 5."""
         self._post(
-            "/api/v1/compliance/audit/log",
+            "/api/v1/intelligence/victim-reports/",
             json_body={
-                "event_type": "USER_ACTION",
-                "user_id": "load-test-user",
-                "action": "load_test_audit_entry",
-                "details": f"Locust load-test entry {uuid.uuid4().hex[:8]}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "report_type": "phishing",
+                "victim_contact": f"load-test-victim-{uuid.uuid4().hex[:8]}@example.com",
+                "incident_date": datetime.now(timezone.utc).isoformat(),
+                "amount_lost": 1000.0,
+                "currency": "USD",
+                "description": f"Load test victim report {uuid.uuid4().hex[:8]}",
+                "related_addresses": [f"0x{uuid.uuid4().hex[:40]}"],
+                "related_transactions": [f"0x{uuid.uuid4().hex[:64]}"],
+                "severity": "medium",
+                "source_ip": "192.168.1.100",
+                "source_platform": "email"
             },
-            name="/api/v1/compliance/audit/log",
+            name="/api/v1/intelligence/victim-reports/",
+        )
+
+    @task(4)
+    def create_threat_feed(self):
+        """POST /api/v1/intelligence/threat-feeds/ — weight 4."""
+        self._post(
+            "/api/v1/intelligence/threat-feeds/",
+            json_body={
+                "name": f"Load-test Feed {uuid.uuid4().hex[:8]}",
+                "url": "https://example.com/threat-feed",
+                "feed_type": "ioc",
+                "format": "json",
+                "update_frequency": "hourly",
+                "is_active": True,
+                "description": "Load test threat intelligence feed"
+            },
+            name="/api/v1/intelligence/threat-feeds/",
         )
 
     @task(3)
-    def post_risk_assessment(self):
-        """POST /api/v1/compliance/risk/assessments — weight 3."""
+    def attribute_address(self):
+        """POST /api/v1/attribution/attribute-address — weight 3."""
         self._post(
-            "/api/v1/compliance/risk/assessments",
+            "/api/v1/attribution/attribute-address",
             json_body={
-                "entity_id": f"locust-entity-{uuid.uuid4().hex[:8]}",
-                "entity_type": "address",
-                "risk_score": 0.42,
-                "factors": ["load_test"],
-                "notes": "Automated load-test risk assessment",
+                "addresses": [f"0x{uuid.uuid4().hex[:40]}"],
+                "include_vasp_info": True,
+                "include_risk_assessment": True
             },
-            name="/api/v1/compliance/risk/assessments",
+            name="/api/v1/attribution/attribute-address",
         )
 
     @task(2)
-    def post_compliance_case(self):
-        """POST /api/v1/compliance/cases — weight 2."""
+    def create_forensic_case(self):
+        """POST /api/v1/forensics/cases — weight 2."""
         self._post(
-            "/api/v1/compliance/cases",
+            "/api/v1/forensics/cases",
             json_body={
-                "title": f"Load-test case {uuid.uuid4().hex[:8]}",
+                "title": f"Load-test Case {uuid.uuid4().hex[:8]}",
                 "description": "Created by Locust load test",
-                "priority": "low",
                 "case_type": "investigation",
+                "priority": "medium",
+                "assigned_to": "load-test-analyst",
+                "status": "open"
             },
-            name="/api/v1/compliance/cases",
+            name="/api/v1/forensics/cases",
+        )
+
+    @task(1)
+    def create_service_request(self):
+        """POST /api/v1/intelligence/professional-services/services — weight 1."""
+        self._post(
+            "/api/v1/intelligence/professional-services/services",
+            json_body={
+                "service_type": "investigation",
+                "title": f"Load-test Service {uuid.uuid4().hex[:8]}",
+                "description": "Created by Locust load test",
+                "priority": "medium",
+                "client_contact": f"load-test-client-{uuid.uuid4().hex[:8]}@example.com",
+                "estimated_duration": "2 hours"
+            },
+            name="/api/v1/intelligence/professional-services/services",
         )

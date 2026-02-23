@@ -13,6 +13,7 @@ const Nav = (function () {
         { href: '/compliance',     icon: 'shield-check',     label: 'Compliance' },
         { href: '/compliance/analytics', icon: 'bar-chart-3', label: 'Analytics' },
         { href: '/intelligence',   icon: 'radar',            label: 'Intelligence' },
+        { href: '/intelligence-hub', icon: 'brain',          label: 'Intelligence Hub' },
         { href: '/investigations', icon: 'briefcase',        label: 'Investigations' },
         { href: '/reports',        icon: 'file-text',        label: 'Reports' },
     ];
@@ -25,8 +26,15 @@ const Nav = (function () {
 
     /** Apply or remove dark class on <html> */
     function applyDark(dark) {
+        // Prevent flicker by adding transition class
+        document.documentElement.style.transition = 'background-color 0.2s ease, color 0.2s ease';
         document.documentElement.classList.toggle('dark', dark);
         localStorage.setItem(DARK_KEY, dark ? '1' : '0');
+        
+        // Remove transition after color change to prevent issues with other animations
+        setTimeout(() => {
+            document.documentElement.style.transition = '';
+        }, 200);
     }
 
     /** Read stored preference; default to system preference */
@@ -171,6 +179,23 @@ const Nav = (function () {
         });
         document.addEventListener('webkitfullscreenchange', function () {
             setTimeout(onResize, 50);
+        });
+
+        // Listen for storage changes to sync theme across tabs
+        window.addEventListener('storage', function (e) {
+            if (e.key === DARK_KEY) {
+                const newDark = e.newValue === '1';
+                applyDark(newDark);
+                // Update icon if toggle button exists
+                var darkBtn = document.getElementById('jds-dark-toggle');
+                if (darkBtn) {
+                    var icon = darkBtn.querySelector('[data-lucide]');
+                    if (icon) {
+                        icon.setAttribute('data-lucide', newDark ? 'sun' : 'moon');
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                }
+            }
         });
 
         // Dark mode toggle

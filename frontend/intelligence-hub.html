@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligence Hub - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    colors: {
+                        primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        // Prevent white flash by setting dark mode immediately using unified key
+        (function() {
+            const isDarkMode = localStorage.getItem('jds_dark_mode') === '1' || 
+                           (!localStorage.getItem('jds_dark_mode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/utils.js"></script>
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active { border-bottom-color: #3b82f6; color: #3b82f6; }
+        
+        /* Smooth theme transitions */
+        html { transition: background-color 0.2s ease, color 0.2s ease; }
+        body { transition: background-color 0.2s ease, color 0.2s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-full px-4 sm:px-6 py-8">
+            <!-- Page Header -->
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Intelligence Hub</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Unified intelligence platform - Victim Reports, Threat Feeds, Attribution, Professional Services, and Forensics</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 mb-6">
+                <div class="border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+                    <nav class="flex gap-1 px-2 min-w-max" id="tab-nav">
+                        <button onclick="switchTab('overview')" class="tab-btn active px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="overview">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4 inline mr-2"></i>Overview
+                        </button>
+                        <button onclick="switchTab('victim-reports')" class="tab-btn px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="victim-reports">
+                            <i data-lucide="user-check" class="w-4 h-4 inline mr-2"></i>Victim Reports
+                        </button>
+                        <button onclick="switchTab('threat-feeds')" class="tab-btn px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="threat-feeds">
+                            <i data-lucide="radio" class="w-4 h-4 inline mr-2"></i>Threat Feeds
+                        </button>
+                        <button onclick="switchTab('attribution')" class="tab-btn px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="attribution">
+                            <i data-lucide="link" class="w-4 h-4 inline mr-2"></i>Attribution
+                        </button>
+                        <button onclick="switchTab('services')" class="tab-btn px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="services">
+                            <i data-lucide="briefcase" class="w-4 h-4 inline mr-2"></i>Services
+                        </button>
+                        <button onclick="switchTab('forensics')" class="tab-btn px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white" data-tab="forensics">
+                            <i data-lucide="search" class="w-4 h-4 inline mr-2"></i>Forensics
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Contents -->
+                <div class="p-6">
+                    <!-- OVERVIEW TAB -->
+                    <div id="tab-overview" class="tab-content active">
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 card-hover">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30"><i data-lucide="user-check" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i></div>
+                                    <div>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Victim Reports</p>
+                                        <p id="stat-victim-total" class="text-xl font-bold">—</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex gap-2 text-xs">
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" id="stat-victim-pending">0 pending</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" id="stat-victim-verified">0 verified</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 card-hover">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-900/30"><i data-lucide="radio" class="w-5 h-5 text-rose-600 dark:text-rose-400"></i></div>
+                                    <div>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Threat Feeds</p>
+                                        <p id="stat-feeds-total" class="text-xl font-bold">—</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex gap-2 text-xs">
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" id="stat-feeds-active">0 active</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" id="stat-feeds-items">0 items</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 card-hover">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2.5 rounded-lg bg-violet-50 dark:bg-violet-900/30"><i data-lucide="link" class="w-5 h-5 text-violet-600 dark:text-violet-400"></i></div>
+                                    <div>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Attributions</p>
+                                        <p id="stat-attributions" class="text-xl font-bold">—</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex gap-2 text-xs">
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" id="stat-vasps">0 VASPs</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 card-hover">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/30"><i data-lucide="search" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i></div>
+                                    <div>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Forensics</p>
+                                        <p id="stat-forensics-cases" class="text-xl font-bold">—</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex gap-2 text-xs">
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" id="stat-forensics-open">0 open</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300" id="stat-forensics-evidence">0 evidence</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Row -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                                <h3 class="text-base font-semibold mb-4">Intelligence Module Distribution</h3>
+                                <div class="h-64"><canvas id="overview-chart-modules"></canvas></div>
+                            </div>
+                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                                <h3 class="text-base font-semibold mb-4">Recent Activity (7 Days)</h3>
+                                <div class="h-64"><canvas id="overview-chart-activity"></canvas></div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                            <h3 class="text-base font-semibold mb-4">Quick Actions</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button onclick="switchTab('victim-reports'); document.getElementById('vr-form').scrollIntoView({behavior:'smooth'})" class="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                    <i data-lucide="plus-circle" class="w-6 h-6 text-blue-600"></i>
+                                    <span class="text-sm font-medium">New Report</span>
+                                </button>
+                                <button onclick="switchTab('attribution')" class="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors">
+                                    <i data-lucide="search" class="w-6 h-6 text-violet-600"></i>
+                                    <span class="text-sm font-medium">Lookup Address</span>
+                                </button>
+                                <button onclick="switchTab('forensics'); document.getElementById('forensics-case-form').scrollIntoView({behavior:'smooth'})" class="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                                    <i data-lucide="folder-plus" class="w-6 h-6 text-amber-600"></i>
+                                    <span class="text-sm font-medium">New Case</span>
+                                </button>
+                                <button onclick="switchTab('services')" class="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                                    <i data-lucide="graduation-cap" class="w-6 h-6 text-emerald-600"></i>
+                                    <span class="text-sm font-medium">Training</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VICTIM REPORTS TAB -->
+                    <div id="tab-victim-reports" class="tab-content">
+                        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                            <h2 class="text-lg font-semibold">Victim Reports Management</h2>
+                            <div class="flex gap-2">
+                                <input type="text" id="vr-search" placeholder="Search reports..." class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" onkeyup="loadVictimReports()">
+                                <select id="vr-filter-status" onchange="loadVictimReports()" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="verified">Verified</option>
+                                    <option value="false_positive">False Positive</option>
+                                    <option value="investigating">Investigating</option>
+                                    <option value="resolved">Resolved</option>
+                                </select>
+                                <button onclick="showVictimReportForm()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>New Report
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Create Form (Hidden by default) -->
+                        <div id="vr-form" class="hidden bg-slate-50 dark:bg-slate-800 rounded-xl p-5 mb-6">
+                            <h3 class="font-semibold mb-4">Create Victim Report</h3>
+                            <form onsubmit="createVictimReport(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <input id="vr-type" type="text" placeholder="Report Type (scam, fraud, phishing...)" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <input id="vr-contact" type="text" placeholder="Victim Contact" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <input id="vr-amount" type="number" step="0.01" placeholder="Amount Lost" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <input id="vr-currency" type="text" placeholder="Currency (USD, ETH...)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <input id="vr-incident-date" type="date" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <select id="vr-severity" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="low">Low Severity</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                                <input id="vr-addresses" type="text" placeholder="Related Addresses (comma-separated)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm md:col-span-2">
+                                <textarea id="vr-description" placeholder="Description" required rows="2" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm md:col-span-3"></textarea>
+                                <div class="md:col-span-3 flex gap-2">
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Create Report</button>
+                                    <button type="button" onclick="document.getElementById('vr-form').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Reports Table -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700">
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Type</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Contact</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Amount</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Severity</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Status</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Date</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vr-tbody">
+                                    <tr><td colspan="7" class="py-8 text-center text-slate-400">Loading reports...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- THREAT FEEDS TAB -->
+                    <div id="tab-threat-feeds" class="tab-content">
+                        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                            <h2 class="text-lg font-semibold">Threat Intelligence Feeds</h2>
+                            <div class="flex gap-2">
+                                <button onclick="syncAllFeeds()" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-1"></i>Sync All
+                                </button>
+                                <button onclick="showFeedForm()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>Add Feed
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Create Feed Form -->
+                        <div id="feed-form" class="hidden bg-slate-50 dark:bg-slate-800 rounded-xl p-5 mb-6">
+                            <h3 class="font-semibold mb-4">Create Threat Feed</h3>
+                            <form onsubmit="createThreatFeed(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <input id="feed-name" type="text" placeholder="Feed Name" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <select id="feed-type" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="">Select Type</option>
+                                    <option value="sanctions">Sanctions</option>
+                                    <option value="scam">Scam</option>
+                                    <option value="phishing">Phishing</option>
+                                    <option value="dark_web">Dark Web</option>
+                                    <option value="mixer">Mixer</option>
+                                </select>
+                                <input id="feed-url" type="url" placeholder="Source URL" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <input id="feed-interval" type="number" placeholder="Sync Interval (min)" value="60" min="5" max="1440" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <textarea id="feed-desc" placeholder="Description" rows="2" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm lg:col-span-4"></textarea>
+                                <div class="lg:col-span-4 flex gap-2">
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Create Feed</button>
+                                    <button type="button" onclick="document.getElementById('feed-form').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Feeds Grid -->
+                        <div id="feeds-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                            <div class="col-span-full text-center py-8 text-slate-400">Loading feeds...</div>
+                        </div>
+
+                        <!-- Intelligence Items -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                            <h3 class="font-semibold mb-4">Recent Intelligence Items</h3>
+                            <div id="intelligence-items" class="space-y-3 max-h-96 overflow-y-auto">
+                                <p class="text-sm text-slate-400">Loading intelligence items...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ATTRIBUTION TAB -->
+                    <div id="tab-attribution" class="tab-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Address Lookup -->
+                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                                <h3 class="font-semibold mb-4">Address Attribution Lookup</h3>
+                                <form onsubmit="lookupAddress(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Blockchain</label>
+                                        <select id="attr-blockchain" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                            <option value="ethereum">Ethereum</option>
+                                            <option value="bitcoin">Bitcoin</option>
+                                            <option value="bsc">BNB Smart Chain</option>
+                                            <option value="polygon">Polygon</option>
+                                            <option value="solana">Solana</option>
+                                            <option value="tron">Tron</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Address</label>
+                                        <input id="attr-address" type="text" placeholder="0x..." required class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono">
+                                    </div>
+                                    <button type="submit" class="w-full px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium">
+                                        <i data-lucide="search" class="w-4 h-4 inline mr-1"></i>Lookup
+                                    </button>
+                                </form>
+                                <div id="attr-result" class="mt-4 hidden">
+                                    <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-sm font-medium">Result:</span>
+                                            <span id="attr-confidence" class="px-2 py-0.5 rounded-full text-xs font-semibold"></span>
+                                        </div>
+                                        <p id="attr-entity" class="text-lg font-bold"></p>
+                                        <p id="attr-type" class="text-sm text-slate-500"></p>
+                                        <div id="attr-sources" class="mt-3 text-xs text-slate-400"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VASP Search -->
+                            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                                <h3 class="font-semibold mb-4">VASP Registry Search</h3>
+                                <div class="space-y-3 mb-4">
+                                    <input id="vasp-search" type="text" placeholder="Search VASP name or description..." class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" onkeyup="searchVasps()">
+                                    <div class="flex gap-2">
+                                        <select id="vasp-entity-filter" onchange="searchVasps()" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                            <option value="">All Entity Types</option>
+                                            <option value="exchange">Exchange</option>
+                                            <option value="mixer">Mixer</option>
+                                            <option value="defi">DeFi</option>
+                                            <option value="nft">NFT</option>
+                                            <option value="gambling">Gambling</option>
+                                        </select>
+                                        <select id="vasp-risk-filter" onchange="searchVasps()" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                            <option value="">All Risk Levels</option>
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="high">High</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="vasp-results" class="space-y-2 max-h-80 overflow-y-auto">
+                                    <p class="text-sm text-slate-400">Enter search criteria to find VASPs...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Attribution Stats -->
+                        <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                            <h3 class="font-semibold mb-4">Attribution Statistics</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="text-center p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p id="stat-vasp-total" class="text-2xl font-bold text-blue-600">—</p>
+                                    <p class="text-sm text-slate-500">Total VASPs</p>
+                                </div>
+                                <div class="text-center p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p id="stat-attr-total" class="text-2xl font-bold text-violet-600">—</p>
+                                    <p class="text-sm text-slate-500">Attributions</p>
+                                </div>
+                                <div class="text-center p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p id="stat-attr-sources" class="text-2xl font-bold text-emerald-600">—</p>
+                                    <p class="text-sm text-slate-500">Sources</p>
+                                </div>
+                                <div class="text-center p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p id="stat-attr-confidence" class="text-2xl font-bold text-amber-600">—</p>
+                                    <p class="text-sm text-slate-500">Avg Confidence</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROFESSIONAL SERVICES TAB -->
+                    <div id="tab-services" class="tab-content">
+                        <!-- Services Sub-tabs -->
+                        <div class="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">
+                            <button onclick="switchServiceSubtab('requests')" class="service-subtab px-3 py-2 text-sm font-medium rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" data-subtab="requests">Service Requests</button>
+                            <button onclick="switchServiceSubtab('experts')" class="service-subtab px-3 py-2 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" data-subtab="experts">Experts</button>
+                            <button onclick="switchServiceSubtab('training')" class="service-subtab px-3 py-2 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" data-subtab="training">Training</button>
+                        </div>
+
+                        <!-- Service Requests -->
+                        <div id="services-requests" class="service-content">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <h3 class="font-semibold">Professional Service Requests</h3>
+                                <button onclick="showServiceRequestForm()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>New Request
+                                </button>
+                            </div>
+                            <div id="service-requests-list" class="space-y-3">
+                                <p class="text-slate-400">Loading service requests...</p>
+                            </div>
+                        </div>
+
+                        <!-- Experts -->
+                        <div id="services-experts" class="service-content hidden">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <h3 class="font-semibold">Expert Profiles</h3>
+                                <button onclick="showExpertForm()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>Add Expert
+                                </button>
+                            </div>
+                            <div id="experts-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <p class="col-span-full text-slate-400">Loading experts...</p>
+                            </div>
+                        </div>
+
+                        <!-- Training -->
+                        <div id="services-training" class="service-content hidden">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <h3 class="font-semibold">Training Programs</h3>
+                                <button onclick="showTrainingForm()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">
+                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>Create Program
+                                </button>
+                            </div>
+                            <div id="training-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <p class="col-span-full text-slate-400">Loading training programs...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FORENSICS TAB -->
+                    <div id="tab-forensics" class="tab-content">
+                        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                            <h2 class="text-lg font-semibold">Forensic Case Management</h2>
+                            <button onclick="showForensicsCaseForm()" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">
+                                <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>New Case
+                            </button>
+                        </div>
+
+                        <!-- Create Case Form -->
+                        <div id="forensics-case-form" class="hidden bg-slate-50 dark:bg-slate-800 rounded-xl p-5 mb-6">
+                            <h3 class="font-semibold mb-4">Create Forensic Case</h3>
+                            <form onsubmit="createForensicCase(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <input id="fc-title" type="text" placeholder="Case Title" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <select id="fc-type" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="">Select Type</option>
+                                    <option value="blockchain_analysis">Blockchain Analysis</option>
+                                    <option value="fraud">Fraud Investigation</option>
+                                    <option value="compliance">Compliance Review</option>
+                                    <option value="dispute">Dispute Resolution</option>
+                                </select>
+                                <select id="fc-priority" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                                <select id="fc-jurisdiction" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="federal_us">US Federal</option>
+                                    <option value="state_us">US State</option>
+                                    <option value="eu">EU</option>
+                                    <option value="international">International</option>
+                                </select>
+                                <select id="fc-legal" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                    <option value="preponderance">Preponderance</option>
+                                    <option value="clear_and_convincing">Clear & Convincing</option>
+                                    <option value="beyond_reasonable_doubt">Beyond Reasonable Doubt</option>
+                                    <option value="reasonable_certainty">Reasonable Certainty</option>
+                                </select>
+                                <textarea id="fc-description" placeholder="Case Description" rows="2" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm lg:col-span-3"></textarea>
+                                <div class="lg:col-span-3 flex gap-2">
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">Create Case</button>
+                                    <button type="button" onclick="document.getElementById('forensics-case-form').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Cases Stats -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+                                <p id="fc-stat-total" class="text-2xl font-bold text-amber-600">—</p>
+                                <p class="text-sm text-slate-500">Total Cases</p>
+                            </div>
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+                                <p id="fc-stat-open" class="text-2xl font-bold text-emerald-600">—</p>
+                                <p class="text-sm text-slate-500">Open</p>
+                            </div>
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+                                <p id="fc-stat-progress" class="text-2xl font-bold text-blue-600">—</p>
+                                <p class="text-sm text-slate-500">In Progress</p>
+                            </div>
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+                                <p id="fc-stat-evidence" class="text-2xl font-bold text-violet-600">—</p>
+                                <p class="text-sm text-slate-500">Evidence Items</p>
+                            </div>
+                        </div>
+
+                        <!-- Cases List -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700">
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Case</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Type</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Priority</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Status</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Evidence</th>
+                                        <th class="text-left py-3 px-4 font-medium text-slate-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fc-tbody">
+                                    <tr><td colspan="6" class="py-8 text-center text-slate-400">Loading cases...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
+            <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
+                <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
+                <a href="/docs" class="hover:text-slate-600 dark:hover:text-slate-300">API Docs</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Tab switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector('[data-tab="' + tabId + '"]').classList.add('active');
+            
+            // Load data for tab
+            if (tabId === 'overview') loadOverviewStats();
+            if (tabId === 'victim-reports') loadVictimReports();
+            if (tabId === 'threat-feeds') loadThreatFeeds();
+            if (tabId === 'attribution') loadAttributionStats();
+            if (tabId === 'services') loadServiceData();
+            if (tabId === 'forensics') loadForensicCases();
+            
+            lucide.createIcons();
+        }
+
+        // Service sub-tab switching
+        function switchServiceSubtab(subtabId) {
+            document.querySelectorAll('.service-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.service-subtab').forEach(b => {
+                b.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+                b.classList.add('text-slate-600', 'dark:text-slate-400');
+            });
+            document.getElementById('services-' + subtabId).classList.remove('hidden');
+            document.querySelector('[data-subtab="' + subtabId + '"]').classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-700', 'dark:text-blue-300');
+            document.querySelector('[data-subtab="' + subtabId + '"]').classList.remove('text-slate-600', 'dark:text-slate-400');
+        }
+
+        // Severity/Status colors
+        const severityColors = {
+            low: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+            medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+            high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
+            critical: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+            severe: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+        };
+        const statusColors = {
+            pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+            verified: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+            false_positive: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
+            investigating: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+            resolved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+            open: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+            in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+            active: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+            inactive: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
+        };
+
+        // Helper to escape HTML
+        const esc = function(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return {'&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;'}[m];
+            });
+        };
+
+        // ==================== OVERVIEW ====================
+        async function loadOverviewStats() {
+            try {
+                // Victim reports stats
+                const vrStats = await Auth.fetchJSON('/api/v1/intelligence/victim-reports/statistics/overview');
+                if (vrStats) {
+                    document.getElementById('stat-victim-total').textContent = vrStats.total_reports || 0;
+                    document.getElementById('stat-victim-pending').textContent = (vrStats.reports_by_status?.pending || 0) + ' pending';
+                    document.getElementById('stat-victim-verified').textContent = (vrStats.reports_by_status?.verified || 0) + ' verified';
+                }
+            } catch(e) { document.getElementById('stat-victim-total').textContent = '0'; }
+            try {
+                const tfStats = await Auth.fetchJSON('/api/v1/intelligence/threat-feeds/statistics/overview');
+                if (tfStats) {
+                    document.getElementById('stat-feeds-total').textContent = tfStats.total_feeds || 0;
+                    document.getElementById('stat-feeds-active').textContent = (tfStats.active_feeds || 0) + ' active';
+                    document.getElementById('stat-feeds-items').textContent = (tfStats.total_intelligence_items || 0) + ' items';
+                }
+            } catch(e) { document.getElementById('stat-feeds-total').textContent = '0'; }
+            try {
+                const attrStats = await Auth.fetchJSON('/api/v1/attribution/statistics');
+                if (attrStats && attrStats.vasp_registry) {
+                    document.getElementById('stat-attributions').textContent = attrStats.attributions?.total || 0;
+                    document.getElementById('stat-vasps').textContent = (attrStats.vasp_registry.total || 0) + ' VASPs';
+                }
+            } catch(e) { document.getElementById('stat-attributions').textContent = '0'; }
+            try {
+                const fcStats = await Auth.fetchJSON('/api/v1/forensics/statistics/overview');
+                if (fcStats) {
+                    document.getElementById('stat-forensics-cases').textContent = fcStats.total_cases || 0;
+                    document.getElementById('stat-forensics-open').textContent = (fcStats.open_cases || 0) + ' open';
+                    document.getElementById('stat-forensics-evidence').textContent = (fcStats.total_evidence || 0) + ' evidence';
+                }
+            } catch(e) { document.getElementById('stat-forensics-cases').textContent = '0'; }
+
+            // Initialize charts
+            initOverviewCharts();
+        }
+
+        function initOverviewCharts() {
+            // Module distribution chart
+            const modCtx = document.getElementById('overview-chart-modules');
+            if (modCtx && !modCtx.chart) {
+                modCtx.chart = new Chart(modCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Victim Reports', 'Threat Feeds', 'Attribution', 'Services', 'Forensics'],
+                        datasets: [{
+                            data: [12, 8, 45, 6, 15],
+                            backgroundColor: ['#3b82f6', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { color: Nav.isDark() ? '#94a3b8' : '#64748b', padding: 16 } } }
+                    }
+                });
+            }
+            // Activity chart
+            const actCtx = document.getElementById('overview-chart-activity');
+            if (actCtx && !actCtx.chart) {
+                actCtx.chart = new Chart(actCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Activities',
+                            data: [12, 19, 8, 15, 22, 8, 5],
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, grid: { color: Nav.isDark() ? '#334155' : '#e2e8f0' } }, x: { grid: { display: false } } }
+                    }
+                });
+            }
+        }
+
+        // ==================== VICTIM REPORTS ====================
+        let _victimReports = [];
+
+        async function loadVictimReports() {
+            const tbody = document.getElementById('vr-tbody');
+            try {
+                const status = document.getElementById('vr-filter-status').value;
+                let url = '/api/v1/intelligence/victim-reports/';
+                if (status) url += '?status=' + encodeURIComponent(status);
+                
+                const data = await Auth.fetchJSON(url);
+                _victimReports = Array.isArray(data) ? data : [];
+                
+                renderVictimReports();
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">Failed to load reports</td></tr>';
+            }
+        }
+
+        function renderVictimReports() {
+            const tbody = document.getElementById('vr-tbody');
+            const search = document.getElementById('vr-search').value.toLowerCase();
+            
+            let filtered = _victimReports;
+            if (search) {
+                filtered = _victimReports.filter(r => 
+                    (r.report_type || '').toLowerCase().includes(search) ||
+                    (r.victim_contact || '').toLowerCase().includes(search) ||
+                    (r.description || '').toLowerCase().includes(search)
+                );
+            }
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">No reports found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.slice(0, 50).map(r => {
+                const sev = r.severity || 'medium';
+                const sta = r.status || 'pending';
+                return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
+                    + '<td class="py-3 px-4 font-medium">' + esc(r.report_type) + '</td>'
+                    + '<td class="py-3 px-4 text-slate-500">' + esc(r.victim_contact) + '</td>'
+                    + '<td class="py-3 px-4 text-slate-500">' + (r.amount_lost ? esc(r.amount_lost + ' ' + (r.currency || '')) : '—') + '</td>'
+                    + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (severityColors[sev] || severityColors.medium) + '">' + esc(sev) + '</span></td>'
+                    + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (statusColors[sta] || statusColors.pending) + '">' + esc(sta) + '</span></td>'
+                    + '<td class="py-3 px-4 text-slate-500 text-xs">' + (r.incident_date ? new Date(r.incident_date).toLocaleDateString() : '—') + '</td>'
+                    + '<td class="py-3 px-4"><button onclick="verifyReport(\'' + esc(r.id) + '\')" class="text-blue-600 hover:text-blue-700 text-xs mr-2">Verify</button><button onclick="deleteReport(\'' + esc(r.id) + '\')" class="text-rose-600 hover:text-rose-700 text-xs">Delete</button></td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function showVictimReportForm() {
+            document.getElementById('vr-form').classList.toggle('hidden');
+        }
+
+        async function createVictimReport(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/victim-reports/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        report_type: document.getElementById('vr-type').value,
+                        victim_contact: document.getElementById('vr-contact').value,
+                        incident_date: document.getElementById('vr-incident-date').value,
+                        amount_lost: parseFloat(document.getElementById('vr-amount').value) || undefined,
+                        currency: document.getElementById('vr-currency').value || undefined,
+                        severity: document.getElementById('vr-severity').value,
+                        description: document.getElementById('vr-description').value,
+                        related_addresses: (document.getElementById('vr-addresses').value || '').split(',').map(a => a.trim()).filter(a => a)
+                    })
+                });
+                document.getElementById('vr-form').classList.add('hidden');
+                loadVictimReports();
+                loadOverviewStats();
+            } catch(err) { alert('Failed to create report: ' + err); }
+        }
+
+        async function verifyReport(id) {
+            const status = prompt('Verification status (verified, false_positive, investigating):');
+            if (!status) return;
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/victim-reports/' + id + '/verify', {
+                    method: 'POST',
+                    body: JSON.stringify({ status: status })
+                });
+                loadVictimReports();
+            } catch(err) { alert('Failed to verify: ' + err); }
+        }
+
+        async function deleteReport(id) {
+            if (!confirm('Delete this report?')) return;
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/victim-reports/' + id, { method: 'DELETE' });
+                loadVictimReports();
+            } catch(err) { alert('Failed to delete: ' + err); }
+        }
+
+        // ==================== THREAT FEEDS ====================
+        async function loadThreatFeeds() {
+            const grid = document.getElementById('feeds-grid');
+            try {
+                const feeds = await Auth.fetchJSON('/api/v1/intelligence/threat-feeds/');
+                if (!feeds || !feeds.length) {
+                    grid.innerHTML = '<p class="col-span-full text-center py-8 text-slate-400">No feeds configured</p>';
+                    return;
+                }
+                grid.innerHTML = feeds.slice(0, 6).map(f => {
+                    const sta = f.status || 'inactive';
+                    return '<div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">'
+                        + '<div class="flex items-center justify-between mb-2">'
+                        + '<h4 class="font-medium">' + esc(f.name) + '</h4>'
+                        + '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (statusColors[sta] || statusColors.inactive) + '">' + esc(sta) + '</span>'
+                        + '</div>'
+                        + '<p class="text-xs text-slate-500 mb-2">' + esc(f.feed_type) + '</p>'
+                        + '<div class="flex items-center justify-between text-xs text-slate-400">'
+                        + '<span>' + (f.total_items || 0) + ' items</span>'
+                        + '<button onclick="syncFeed(\'' + esc(f.id) + '\')" class="text-blue-600 hover:text-blue-700"><i data-lucide="refresh-cw" class="w-3 h-3"></i> Sync</button>'
+                        + '</div></div>';
+                }).join('');
+                lucide.createIcons();
+            } catch(e) {
+                grid.innerHTML = '<p class="col-span-full text-center py-8 text-slate-400">Failed to load feeds</p>';
+            }
+
+            // Load recent intelligence items
+            try {
+                const items = await Auth.fetchJSON('/api/v1/intelligence/threat-feeds/items/recent?limit=10');
+                const container = document.getElementById('intelligence-items');
+                if (!items || !items.length) {
+                    container.innerHTML = '<p class="text-sm text-slate-400">No recent intelligence items</p>';
+                    return;
+                }
+                container.innerHTML = items.map(i => {
+                    const lvl = i.threat_level || 'medium';
+                    return '<div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">'
+                        + '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (severityColors[lvl] || severityColors.medium) + '">' + esc(lvl) + '</span>'
+                        + '<div class="flex-1 min-w-0">'
+                        + '<p class="font-medium text-sm truncate">' + esc(i.title) + '</p>'
+                        + '<p class="text-xs text-slate-500 truncate">' + esc(i.description) + '</p>'
+                        + '</div></div>';
+                }).join('');
+            } catch(e) {
+                document.getElementById('intelligence-items').innerHTML = '<p class="text-sm text-slate-400">Failed to load intelligence items</p>';
+            }
+        }
+
+        function showFeedForm() {
+            document.getElementById('feed-form').classList.toggle('hidden');
+        }
+
+        async function createThreatFeed(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/threat-feeds/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('feed-name').value,
+                        feed_type: document.getElementById('feed-type').value,
+                        source_url: document.getElementById('feed-url').value,
+                        sync_interval_minutes: parseInt(document.getElementById('feed-interval').value) || 60,
+                        description: document.getElementById('feed-desc').value
+                    })
+                });
+                document.getElementById('feed-form').classList.add('hidden');
+                loadThreatFeeds();
+            } catch(err) { alert('Failed to create feed: ' + err); }
+        }
+
+        async function syncFeed(id) {
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/threat-feeds/' + id + '/sync', { method: 'POST' });
+                alert('Sync triggered');
+                loadThreatFeeds();
+            } catch(err) { alert('Failed to sync: ' + err); }
+        }
+
+        async function syncAllFeeds() {
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/threat-feeds/sync/all', { method: 'POST' });
+                alert('Sync triggered for all feeds');
+                loadThreatFeeds();
+            } catch(err) { alert('Failed to sync: ' + err); }
+        }
+
+        // ==================== ATTRIBUTION ====================
+        async function loadAttributionStats() {
+            try {
+                const stats = await Auth.fetchJSON('/api/v1/attribution/statistics');
+                if (stats) {
+                    if (stats.vasp_registry) {
+                        document.getElementById('stat-vasp-total').textContent = stats.vasp_registry.total || 0;
+                    }
+                    if (stats.attributions) {
+                        document.getElementById('stat-attr-total').textContent = stats.attributions.total || 0;
+                        document.getElementById('stat-attr-confidence').textContent = (stats.attributions.confidence?.average || 0).toFixed(2);
+                    }
+                    if (stats.sources) {
+                        document.getElementById('stat-attr-sources').textContent = Object.keys(stats.sources).length || 0;
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function lookupAddress(e) {
+            e.preventDefault();
+            const resultDiv = document.getElementById('attr-result');
+            try {
+                const res = await Auth.fetchWithAuth('/api/v1/attribution/attribute-address', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        addresses: [document.getElementById('attr-address').value],
+                        blockchain: document.getElementById('attr-blockchain').value,
+                        include_evidence: true,
+                        min_confidence: 0
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.entity_type) {
+                    resultDiv.classList.remove('hidden');
+                    document.getElementById('attr-entity').textContent = data.entity_name || data.entity_type || 'Unknown';
+                    document.getElementById('attr-type').textContent = data.entity_type || '';
+                    
+                    const conf = (data.confidence_score || 0) * 100;
+                    const confEl = document.getElementById('attr-confidence');
+                    confEl.textContent = conf.toFixed(0) + '% confidence';
+                    confEl.className = 'px-2 py-0.5 rounded-full text-xs font-semibold ' + (conf > 70 ? 'bg-emerald-100 text-emerald-800' : conf > 40 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+                    
+                    if (data.risk_factors && data.risk_factors.length) {
+                        document.getElementById('attr-sources').innerHTML = '<strong>Risk Factors:</strong> ' + data.risk_factors.join(', ');
+                    }
+                } else {
+                    resultDiv.classList.remove('hidden');
+                    document.getElementById('attr-entity').textContent = 'No attribution found';
+                    document.getElementById('attr-type').textContent = 'Address not in database';
+                    document.getElementById('attr-confidence').textContent = 'N/A';
+                    document.getElementById('attr-sources').textContent = '';
+                }
+            } catch(err) {
+                alert('Lookup failed: ' + err);
+            }
+        }
+
+        async function searchVasps() {
+            const container = document.getElementById('vasp-results');
+            const query = document.getElementById('vasp-search').value;
+            const entity = document.getElementById('vasp-entity-filter').value;
+            const risk = document.getElementById('vasp-risk-filter').value;
+            
+            let url = '/api/v1/attribution/vasp-search?';
+            if (query) url += 'query=' + encodeURIComponent(query) + '&';
+            if (entity) url += 'entity_types=' + encodeURIComponent(entity) + '&';
+            if (risk) url += 'risk_levels=' + encodeURIComponent(risk);
+            
+            try {
+                const vasps = await Auth.fetchJSON(url);
+                if (!vasps || !vasps.length) {
+                    container.innerHTML = '<p class="text-sm text-slate-400">No VASPs found</p>';
+                    return;
+                }
+                container.innerHTML = vasps.slice(0, 20).map(v => {
+                    const risk = v.vasp?.risk_level || 'unknown';
+                    return '<div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900">'
+                        + '<div class="flex items-center justify-between">'
+                        + '<span class="font-medium text-sm">' + esc(v.vasp?.name || 'Unknown') + '</span>'
+                        + '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (severityColors[risk] || 'bg-slate-200') + '">' + esc(risk) + '</span>'
+                        + '</div>'
+                        + '<p class="text-xs text-slate-500 mt-1">' + esc(v.vasp?.entity_type) + ' • ' + (v.vasp?.jurisdictions?.join(', ') || 'No jurisdiction') + '</p></div>';
+                }).join('');
+            } catch(e) {
+                container.innerHTML = '<p class="text-sm text-slate-400">Search failed</p>';
+            }
+        }
+
+        // ==================== SERVICES ====================
+        async function loadServiceData() {
+            loadServiceRequests();
+            loadExperts();
+            loadTraining();
+        }
+
+        async function loadServiceRequests() {
+            const container = document.getElementById('service-requests-list');
+            try {
+                const data = await Auth.fetchJSON('/api/v1/intelligence/professional-services/services');
+                if (!data || !data.length) {
+                    container.innerHTML = '<p class="text-slate-400">No service requests</p>';
+                    return;
+                }
+                container.innerHTML = data.slice(0, 10).map(s => {
+                    const sta = s.status || 'pending';
+                    const pri = s.priority || 'medium';
+                    return '<div class="flex items-center justify-between p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">'
+                        + '<div>'
+                        + '<p class="font-medium">' + esc(s.title) + '</p>'
+                        + '<p class="text-sm text-slate-500">' + esc(s.service_type) + '</p>'
+                        + '</div>'
+                        + '<div class="text-right">'
+                        + '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (statusColors[sta] || statusColors.pending) + '">' + esc(sta) + '</span>'
+                        + '<p class="text-xs text-slate-400 mt-1">' + (s.created_date ? new Date(s.created_date).toLocaleDateString() : '') + '</p>'
+                        + '</div></div>';
+                }).join('');
+            } catch(e) { container.innerHTML = '<p class="text-slate-400">Failed to load</p>'; }
+        }
+
+        async function loadExperts() {
+            const container = document.getElementById('experts-list');
+            try {
+                const data = await Auth.fetchJSON('/api/v1/intelligence/professional-services/professionals');
+                if (!data || !data.length) {
+                    container.innerHTML = '<p class="col-span-full text-slate-400">No experts available</p>';
+                    return;
+                }
+                container.innerHTML = data.slice(0, 6).map(p => {
+                    return '<div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">'
+                        + '<div class="flex items-center gap-3 mb-2">'
+                        + '<div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">' + (p.name || 'X').substring(0,2).toUpperCase() + '</div>'
+                        + '<div><p class="font-medium">' + esc(p.name) + '</p><p class="text-xs text-slate-500">' + esc(p.expertise_level) + '</p></div>'
+                        + '</div>'
+                        + '<p class="text-sm text-slate-500 line-clamp-2">' + esc(p.bio || p.specializations?.join(', ') || 'No bio') + '</p></div>';
+                }).join('');
+            } catch(e) { container.innerHTML = '<p class="col-span-full text-slate-400">Failed to load experts</p>'; }
+        }
+
+        async function loadTraining() {
+            const container = document.getElementById('training-list');
+            try {
+                const data = await Auth.fetchJSON('/api/v1/intelligence/professional-services/training');
+                if (!data || !data.length) {
+                    container.innerHTML = '<p class="col-span-full text-slate-400">No training programs</p>';
+                    return;
+                }
+                container.innerHTML = data.slice(0, 6).map(t => {
+                    return '<div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">'
+                        + '<h4 class="font-medium mb-1">' + esc(t.title) + '</h4>'
+                        + '<p class="text-sm text-slate-500 mb-2">' + esc(t.description) + '</p>'
+                        + '<div class="flex items-center justify-between text-xs">'
+                        + '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">' + esc(t.level) + '</span>'
+                        + '<span>' + t.duration_hours + ' hours • $' + t.price_per_participant + '</span>'
+                        + '</div></div>';
+                }).join('');
+            } catch(e) { container.innerHTML = '<p class="col-span-full text-slate-400">Failed to load training</p>'; }
+        }
+
+        function showServiceRequestForm() { alert('Service request form - implement modal'); }
+        function showExpertForm() { alert('Expert form - implement modal'); }
+        function showTrainingForm() { alert('Training form - implement modal'); }
+
+        // ==================== FORENSICS ====================
+        async function loadForensicCases() {
+            const tbody = document.getElementById('fc-tbody');
+            try {
+                const data = await Auth.fetchJSON('/api/v1/forensics/cases');
+                if (!data || !data.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No cases found</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.slice(0, 50).map(c => {
+                    const sta = c.status || 'open';
+                    const pri = c.priority || 'medium';
+                    return '<tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">'
+                        + '<td class="py-3 px-4 font-medium">' + esc(c.title) + '</td>'
+                        + '<td class="py-3 px-4 text-slate-500">' + esc(c.case_type) + '</td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (severityColors[pri] || severityColors.medium) + '">' + esc(pri) + '</span></td>'
+                        + '<td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + (statusColors[sta] || statusColors.open) + '">' + esc(sta) + '</span></td>'
+                        + '<td class="py-3 px-4 text-slate-500">' + (c.evidence_count || 0) + '</td>'
+                        + '<td class="py-3 px-4"><button onclick="viewCase(\'' + esc(c.id) + '\')" class="text-blue-600 hover:text-blue-700 text-xs mr-2">View</button><button onclick="addEvidence(\'' + esc(c.id) + '\')" class="text-amber-600 hover:text-amber-700 text-xs">Add Evidence</button></td>'
+                        + '</tr>';
+                }).join('');
+                
+                // Update stats
+                const open = data.filter(c => c.status === 'open').length;
+                const inProgress = data.filter(c => c.status === 'in_progress').length;
+                const totalEvidence = data.reduce((sum, c) => sum + (c.evidence_count || 0), 0);
+                document.getElementById('fc-stat-total').textContent = data.length;
+                document.getElementById('fc-stat-open').textContent = open;
+                document.getElementById('fc-stat-progress').textContent = inProgress;
+                document.getElementById('fc-stat-evidence').textContent = totalEvidence;
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Failed to load cases</td></tr>';
+            }
+        }
+
+        function showForensicsCaseForm() {
+            document.getElementById('forensics-case-form').classList.toggle('hidden');
+        }
+
+        async function createForensicCase(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/forensics/cases', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: document.getElementById('fc-title').value,
+                        case_type: document.getElementById('fc-type').value,
+                        priority: document.getElementById('fc-priority').value,
+                        jurisdiction: document.getElementById('fc-jurisdiction').value,
+                        legal_standard: document.getElementById('fc-legal').value,
+                        description: document.getElementById('fc-description').value
+                    })
+                });
+                document.getElementById('forensics-case-form').classList.add('hidden');
+                loadForensicCases();
+            } catch(err) { alert('Failed to create case: ' + err); }
+        }
+
+        function viewCase(id) { alert('View case: ' + id); }
+        function addEvidence(caseId) { alert('Add evidence to case: ' + caseId); }
+
+        // Initial load
+        loadOverviewStats();
+    </script>
+</body>
+</html>

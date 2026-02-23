@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Test - Jackdaw Sentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+            primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+        }}}}
+    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+    <script>Auth.requireAuth();</script>
+
+    <div id="jds-main" class="transition-all duration-200">
+        <main class="max-w-full px-4 sm:px-6 py-8">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold mb-4">Theme Test Page</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Test page to verify dark mode switching</p>
+            </div>
+
+            <!-- Test Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <h3 class="text-lg font-semibold mb-2">Light/Dark Test Card</h3>
+                    <p class="text-slate-600 dark:text-slate-300">This card should change colors based on theme.</p>
+                    <div class="mt-4">
+                        <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">Test Badge</span>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 card-hover">
+                    <h3 class="text-lg font-semibold mb-2">Theme Status</h3>
+                    <p id="theme-status" class="text-slate-600 dark:text-slate-300">Checking theme...</p>
+                    <div class="mt-4">
+                        <button onclick="testThemeToggle()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Manual Test Toggle</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Info -->
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                <h3 class="text-lg font-semibold mb-4">Debug Information</h3>
+                <div id="debug-info" class="font-mono text-sm space-y-2">
+                    <div>Checking debug info...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function testThemeToggle() {
+            if (typeof Nav !== 'undefined' && Nav.applyDark) {
+                const currentDark = Nav.isDark();
+                Nav.applyDark(!currentDark);
+                updateDebugInfo();
+            }
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            const themeStatus = document.getElementById('theme-status');
+            
+            if (typeof Nav !== 'undefined') {
+                const isDark = Nav.isDark();
+                const localStorageValue = localStorage.getItem('jds_dark_mode');
+                const hasDarkClass = document.documentElement.classList.contains('dark');
+                
+                debugDiv.innerHTML = `
+                    <div>Nav.isDark(): ${isDark}</div>
+                    <div>localStorage['jds_dark_mode']: ${localStorageValue}</div>
+                    <div>html.dark class: ${hasDarkClass}</div>
+                    <div>System prefers dark: ${window.matchMedia('(prefers-color-scheme: dark)').matches}</div>
+                `;
+                
+                themeStatus.textContent = isDark ? 'Dark mode active' : 'Light mode active';
+            } else {
+                debugDiv.innerHTML = '<div>Nav object not available</div>';
+                themeStatus.textContent = 'Nav not loaded';
+            }
+        }
+
+        // Update debug info when page loads and when theme changes
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateDebugInfo, 100);
+            
+            // Listen for storage changes
+            window.addEventListener('storage', updateDebugInfo);
+            
+            // Update debug info periodically
+            setInterval(updateDebugInfo, 2000);
+        });
+    </script>
+</body>
+</html>

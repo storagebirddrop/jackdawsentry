@@ -3,8 +3,8 @@ Jackdaw Sentry - Pattern Detection Module
 Advanced pattern signatures library for suspicious behavior detection
 """
 
-from .pattern_library import PatternSignature, PatternLibrary, ADVANCED_PATTERNS
-from .detection_engine import AdvancedPatternDetector, PatternAnalysisResult, PatternResult
+from .pattern_library import PatternSignature, PatternLibrary, ADVANCED_PATTERNS, get_pattern_library
+from .detection_engine import AdvancedPatternDetector, PatternAnalysisResult, PatternResult, get_pattern_detector
 from .algorithms import (
     PeelingChainDetector,
     LayeringDetector,
@@ -17,7 +17,12 @@ from .models import (
     PatternRequest,
     PatternResponse,
     PatternConfig,
-    PatternMetrics
+    PatternMetrics,
+    BatchPatternRequest,
+    BatchPatternResponse,
+    PatternStatistics,
+    PatternType,
+    PatternSeverity
 )
 
 __all__ = [
@@ -27,6 +32,8 @@ __all__ = [
     "AdvancedPatternDetector",
     "PatternAnalysisResult",
     "PatternResult",
+    "get_pattern_detector",
+    "get_pattern_library",
     "PeelingChainDetector",
     "LayeringDetector", 
     "CustodyChangeDetector",
@@ -36,5 +43,10 @@ __all__ = [
     "PatternRequest",
     "PatternResponse",
     "PatternConfig",
-    "PatternMetrics"
+    "PatternMetrics",
+    "BatchPatternRequest",
+    "BatchPatternResponse",
+    "PatternStatistics",
+    "PatternType",
+    "PatternSeverity"
 ]

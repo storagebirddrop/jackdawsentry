@@ -235,7 +235,7 @@ async def attribute_address(
 @router.post("/attribute-batch", response_model=BatchAttributionResponse)
 async def batch_attribute_addresses(
     request: AddressAttributionRequest,
-    current_user: User = Depends(check_permissions(PERMISSIONS.BULK_SCREENING))
+    current_user: User = Depends(check_permissions(PERMISSIONS["bulk_screening"]))
 ):
     """
     Attribute multiple addresses in batch
@@ -318,7 +318,7 @@ async def get_attribution_sources(
 
 @router.get("/statistics")
 async def get_attribution_statistics(
-    current_user: User = Depends(check_permissions(PERMISSIONS.VIEW_ANALYTICS))
+    current_user: User = Depends(check_permissions(PERMISSIONS["view_analytics"]))
 ):
     """
     Get attribution system statistics

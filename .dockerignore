@@ -92,6 +92,17 @@ training_data/
 .clinerules/
 .continue/
 
+# ── Overhaul Reports & Analysis ────────────────────────────────────────────────
+bandit_report.json
+safety_report.json
+dependency_audit.json
+database_optimization_report.json
+api_benchmark_report.json
+test_expansion_report.json
+security_audit/
+code_quality/
+performance_analysis/
+
 # ── Package Manager Lock Files ───────────────────────────────────────────────
 poetry.lock
 Pipfile

@@ -255,7 +255,7 @@ class PatternLibrary:
                 ),
                 PatternIndicator(
                     indicator_type=IndicatorType.AMOUNT,
-                    threshold=0.0,
+                    threshold=0.01,
                     weight=0.2,
                     description="Any amount (frequency-based pattern)"
                 )

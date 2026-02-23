@@ -42,11 +42,51 @@ case "$MODE" in
     USERS=20
     SPAWN_RATE=5
     DURATION="1m"
-    echo "▸ CI gate: $USERS users, $DURATION against $HOST"
+    echo "▸ CI gate: $USERS users, $DURATION against $HOST)"
+    ;;
+  phase4)
+    HOST="http://localhost:8000"
+    TAG="phase4"
+    USERS=50
+    SPAWN_RATE=5
+    DURATION="3m"
+    echo "▸ Phase 4 benchmark: $USERS users, $DURATION against dev compose ($HOST)"
+    ;;
+  comprehensive)
+    HOST="http://localhost:8000"
+    TAG="comprehensive"
+    USERS=100
+    SPAWN_RATE=10
+    DURATION="5m"
+    echo "▸ Comprehensive benchmark: $USERS users, $DURATION against dev compose ($HOST)"
+    ;;
+  legacy)
+    HOST="http://localhost:8000"
+    TAG="legacy"
+    USERS=80
+    SPAWN_RATE=8
+    DURATION="3m"
+    echo "▸ Legacy benchmark: $USERS users, $DURATION against dev compose ($HOST)"
     ;;
   *)
-    echo "Usage: $0 {dev|prod|ci}" >&2
+    echo "Usage: $0 {dev|prod|ci|phase4|comprehensive|legacy}" >&2
     exit 1
+    ;;
+esac
+
+# ── Select appropriate locustfile ────────────────────────────────────────
+case "$MODE" in
+  comprehensive)
+    LOCUSTFILE="$SCRIPT_DIR/locustfile_comprehensive.py"
+    ;;
+  legacy)
+    LOCUSTFILE="$SCRIPT_DIR/locustfile_legacy.py"
+    ;;
+  phase4)
+    LOCUSTFILE="$SCRIPT_DIR/locustfile.py"
+    ;;
+  *)
+    LOCUSTFILE="$SCRIPT_DIR/locustfile.py"
     ;;
 esac
 
@@ -75,5 +115,13 @@ echo "  HTML: $HTML_REPORT"
 if [ "$MODE" = "ci" ]; then
   echo ""
   echo "▸ Checking CI thresholds..."
+  python3 "$SCRIPT_DIR/check_thresholds.py" "${CSV_PREFIX}_stats.csv"
+elif [ "$MODE" = "phase4" ]; then
+  echo ""
+  echo "▸ Checking Phase 4 thresholds..."
+  python3 "$SCRIPT_DIR/check_phase4_thresholds.py" "${CSV_PREFIX}_stats.csv"
+elif [ "$MODE" = "comprehensive" ]; then
+  echo ""
+  echo "▸ Checking comprehensive thresholds..."
   python3 "$SCRIPT_DIR/check_thresholds.py" "${CSV_PREFIX}_stats.csv"
 fi

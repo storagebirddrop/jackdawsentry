@@ -314,7 +314,7 @@ class IntelligenceAggregator:
             recommendations = self._generate_recommendations(intelligence_items, correlations, risk_level)
             
             # Create aggregated intelligence
-            target_id = hashlib.md5(f"{target_value}_{target_type}".encode()).hexdigest()
+            target_id = hashlib.sha256(f"{target_value}_{target_type}".encode()).hexdigest()
             aggregated = AggregatedIntelligence(
                 target_id=target_id,
                 target_type=target_type,

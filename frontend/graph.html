@@ -14,6 +14,16 @@
             primary: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
         }}}}
     </script>
+    <script>
+        // Prevent white flash by setting dark mode immediately using unified key
+        (function() {
+            const isDarkMode = localStorage.getItem('jds_dark_mode') === '1' || 
+                           (!localStorage.getItem('jds_dark_mode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <script src="js/auth.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/graph.js"></script>

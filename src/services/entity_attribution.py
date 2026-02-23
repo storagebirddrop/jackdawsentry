@@ -416,8 +416,8 @@ async def sync_all_labels(requested_by: str = "system") -> Dict[str, Any]:
                         source_key,
                         str(exc)[:500],
                     )
-            except Exception:
-                pass
+            except Exception as inner_exc:
+                logger.error(f"Error logging attribution failure for {source_key}: {str(inner_exc)}")
             results[source_key] = {"status": "error", "error": str(exc)[:200]}
 
     return results

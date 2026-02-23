@@ -178,7 +178,7 @@ class AutomatedRiskAssessmentEngine:
         metadata: Optional[Dict[str, Any]] = None
     ) -> RiskAssessment:
         """Create a new risk assessment."""
-        assessment_id = f"risk_assessment_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(entity_id.encode()).hexdigest()[:8]}"
+        assessment_id = f"risk_assessment_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.sha256(entity_id.encode()).hexdigest()[:8]}"
         
         # Select workflow
         if workflow_id:
@@ -315,7 +315,7 @@ class AutomatedRiskAssessmentEngine:
         """
         
         now = datetime.now(timezone.utc)
-        update_id = f"update_{now.strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(assessment_id.encode()).hexdigest()[:8]}"
+        update_id = f"update_{now.strftime('%Y%m%d_%H%M%S')}_{hashlib.sha256(assessment_id.encode()).hexdigest()[:8]}"
         
         result = await self.neo4j_session.run(
             query,
@@ -405,7 +405,7 @@ class AutomatedRiskAssessmentEngine:
         description: str = ""
     ) -> RiskThreshold:
         """Create a new risk threshold."""
-        threshold_id = f"threshold_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(f'{category.value}_{risk_level.value}'.encode()).hexdigest()[:8]}"
+        threshold_id = f"threshold_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.sha256(f'{category.value}_{risk_level.value}'.encode()).hexdigest()[:8]}"
         
         threshold = RiskThreshold(
             threshold_id=threshold_id,
@@ -701,7 +701,7 @@ class AutomatedRiskAssessmentEngine:
         category: RiskCategory
     ) -> Optional[RiskFactor]:
         """Assess a single risk factor."""
-        factor_id = f"factor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{category.value}_{hashlib.md5(entity_id.encode()).hexdigest()[:8]}"
+        factor_id = f"factor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{category.value}_{hashlib.sha256(entity_id.encode()).hexdigest()[:8]}"
         
         # Simulate risk factor assessment
         if category == RiskCategory.TRANSACTION_VOLUME:
@@ -921,7 +921,7 @@ class AutomatedRiskAssessmentEngine:
 
     async def _execute_workflow(self, workflow: RiskWorkflow, assessment: RiskAssessment):
         """Execute risk assessment workflow."""
-        execution_id = f"execution_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.md5(assessment.assessment_id.encode()).hexdigest()[:8]}"
+        execution_id = f"execution_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hashlib.sha256(assessment.assessment_id.encode()).hexdigest()[:8]}"
         
         execution = WorkflowExecution(
             execution_id=execution_id,

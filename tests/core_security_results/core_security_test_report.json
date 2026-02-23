@@ -1,0 +1,24 @@
+{
+  "summary": {
+    "timestamp": "2026-02-23T16:18:14.112257+00:00",
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "success_rate": 0.0
+  },
+  "test_results": {
+    "test_auth_security.py": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": [],
+      "duration": 0.06392693519592285,
+      "module": "test_auth_security.py"
+    }
+  },
+  "errors": [
+    "Test module test_auth_security.py failed"
+  ]
+}

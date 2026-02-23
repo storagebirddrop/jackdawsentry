@@ -10,39 +10,106 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 import asyncio
+import json
+from datetime import datetime
 from typing import Optional
+
+# Custom JSON encoder for datetime serialization
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+# Custom JSONResponse class that uses our encoder
+class CustomJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            cls=DateTimeEncoder,
+            ensure_ascii=False,
+            allow_nan=False
+        ).encode("utf-8")
+
+# Custom middleware to handle datetime serialization
+class DateTimeMiddleware:
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            # Let the app handle the request first
+            async def receive_wrapper():
+                return await receive()
+            
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    # Modify the response to use our custom JSON response
+                    pass
+                elif message["type"] == "http.response.body":
+                    # Try to serialize the body with our encoder
+                    try:
+                        if message.get("body"):
+                            body = message["body"]
+                            if isinstance(body, bytes):
+                                # Try to decode and re-encode with datetime handling
+                                try:
+                                    content = json.loads(body.decode())
+                                    serialized = json.dumps(
+                                        content,
+                                        cls=DateTimeEncoder,
+                                        ensure_ascii=False,
+                                        allow_nan=False
+                                    ).encode("utf-8")
+                                    message["body"] = serialized
+                                except:
+                                    pass  # If it fails, use original body
+                    except:
+                        pass  # If anything fails, use original message
+                await send(message)
+            
+            await self.app(scope, receive_wrapper, send_wrapper)
+        else:
+            await self.app(scope, receive, send)
 
 from src.api.config import settings
 from src.api.database import init_databases, close_databases
 from src.api.auth import get_current_user, require_admin, User
 from src.api.routers import (
     alerts,
-    analysis,
-    analytics,
+    # analysis,  # Temporarily disabled due to dependency issues
+    # analytics,  # Temporarily disabled due to dependency issues
     attribution,
+    blockchain,
     bulk,
     compliance,
+    cross_platform,
     entities,
     export,
-    investigations,
-    blockchain,
+    forensics,
+    graph,
     intelligence,
     patterns,
+    # advanced_analytics,  # Temporarily disabled due to dependency issues
     reports,
     admin,
     teams,
     travel_rule,
-    webhooks,
-    workflows,
+    tracing,
+    mobile,
     monitoring,
     rate_limit,
     risk_config,
-    tracing,
-    visualization,
-    scheduler,
-    mobile,
-    graph,
     sanctions,
+    scheduler,
+    setup,
+    webhooks,
+    workflows,
+    victim_reports,
+    threat_feeds,
+    professional_services,
+    investigations,
+    visualization
 )
 from src.api.routers import auth as auth_router
 from src.api.routers import setup as setup_router
@@ -118,6 +185,15 @@ async def start_background_tasks():
     from src.analysis.manager import AnalysisManager
     from src.attribution import get_attribution_engine
     from src.patterns import get_pattern_detector
+    from src.analytics import get_analytics_engine
+    from src.intelligence.victim_reports import get_victim_reports_db
+    from src.intelligence.threat_feeds import get_threat_intelligence_manager
+    from src.intelligence.cross_platform import get_cross_platform_attribution_engine
+    from src.intelligence.professional_services import get_professional_services_manager
+    from src.forensics.forensic_engine import get_forensic_engine
+    from src.forensics.evidence_manager import get_evidence_manager
+    from src.forensics.report_generator import get_report_generator
+    from src.forensics.court_defensible import get_court_defensible_evidence
     
     tasks = []
     
@@ -167,6 +243,17 @@ async def start_background_tasks():
         logger.error(f"❌ Failed to initialize pattern detector: {e}")
         # Continue with other tasks even if patterns fail
     
+    try:
+        # Initialize advanced analytics engine
+        logger.info("Initializing advanced analytics engine...")
+        analytics_engine = get_analytics_engine()
+        await analytics_engine.initialize()
+        logger.info("✅ Advanced analytics engine initialized")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize advanced analytics engine: {e}")
+        # Continue with other tasks even if analytics fails
+    
     # Start sanctions sync background loop
     try:
         from src.services.sanctions import sync_all as _sanctions_sync
@@ -192,6 +279,79 @@ async def start_background_tasks():
         logger.info("Transaction monitor started (ethereum, bitcoin)")
     except Exception as e:
         logger.error(f"Failed to start transaction monitor: {e}")
+
+    # Initialize Phase 4 Intelligence Integration Hub components
+    try:
+        # Initialize victim reports database
+        logger.info("Initializing victim reports database...")
+        victim_reports_db = await get_victim_reports_db()
+        await victim_reports_db.initialize()
+        logger.info("✅ Victim reports database initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize victim reports database: {e}")
+
+    try:
+        # Initialize threat intelligence manager
+        logger.info("Initializing threat intelligence manager...")
+        threat_manager = await get_threat_intelligence_manager()
+        await threat_manager.initialize()
+        logger.info("✅ Threat intelligence manager initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize threat intelligence manager: {e}")
+
+    try:
+        # Initialize cross-platform attribution engine
+        logger.info("Initializing cross-platform attribution engine...")
+        attribution_engine = await get_cross_platform_attribution_engine()
+        await attribution_engine.initialize()
+        logger.info("✅ Cross-platform attribution engine initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize cross-platform attribution engine: {e}")
+
+    try:
+        # Initialize professional services manager
+        logger.info("Initializing professional services manager...")
+        services_manager = await get_professional_services_manager()
+        await services_manager.initialize()
+        logger.info("✅ Professional services manager initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize professional services manager: {e}")
+
+    try:
+        # Initialize forensic engine
+        logger.info("Initializing forensic engine...")
+        forensic_engine = await get_forensic_engine()
+        await forensic_engine.initialize()
+        logger.info("✅ Forensic engine initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize forensic engine: {e}")
+
+    try:
+        # Initialize evidence manager
+        logger.info("Initializing evidence manager...")
+        evidence_manager = await get_evidence_manager()
+        await evidence_manager.initialize()
+        logger.info("✅ Evidence manager initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize evidence manager: {e}")
+
+    try:
+        # Initialize report generator
+        logger.info("Initializing report generator...")
+        report_generator = await get_report_generator()
+        await report_generator.initialize()
+        logger.info("✅ Report generator initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize report generator: {e}")
+
+    try:
+        # Initialize court defensible evidence system
+        logger.info("Initializing court defensible evidence system...")
+        court_defensible = await get_court_defensible_evidence()
+        await court_defensible.initialize()
+        logger.info("✅ Court defensible evidence system initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize court defensible evidence system: {e}")
 
     # Store task references for monitoring and cleanup
     if hasattr(start_background_tasks, '_tasks'):
@@ -275,8 +435,29 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
+    default_response_class=CustomJSONResponse
 )
+
+# Override the default JSON response class
+from fastapi.responses import JSONResponse
+import json as _json
+
+# Monkey patch the JSONResponse.render method to use our encoder
+original_render = JSONResponse.render
+def patched_render(self, content) -> bytes:
+    try:
+        return _json.dumps(
+            content,
+            cls=DateTimeEncoder,
+            ensure_ascii=False,
+            allow_nan=False
+        ).encode("utf-8")
+    except (TypeError, ValueError):
+        # Fallback to original render if our encoder fails
+        return original_render(self, content)
+
+JSONResponse.render = patched_render
 
 # Add middleware
 app.add_middleware(
@@ -428,12 +609,12 @@ app.include_router(
     tags=["Authentication"]
 )
 
-app.include_router(
-    analysis.router,
-    prefix="/api/v1/analysis",
-    tags=["Analysis"],
-    dependencies=[Depends(get_current_user)]
-)
+# app.include_router(
+#     analysis.router,
+#     prefix="/api/v1/analysis",
+#     tags=["Analysis"],
+#     dependencies=[Depends(get_current_user)]
+# )
 
 app.include_router(
     compliance.router,
@@ -497,6 +678,13 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+# app.include_router(
+#     advanced_analytics.router,
+#     prefix="/api/v1/analytics",
+#     tags=["Advanced Analytics"],
+#     dependencies=[Depends(get_current_user)]
+# )
+
 app.include_router(
     tracing.router,
     prefix="/api/v1/tracing",
@@ -518,6 +706,41 @@ app.include_router(
 )
 
 app.include_router(
+    victim_reports.router,
+    prefix="/api/v1/intelligence/victim-reports",
+    tags=["Victim Reports"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    threat_feeds.router,
+    prefix="/api/v1/intelligence/threat-feeds",
+    tags=["Threat Feeds"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    cross_platform.router,
+    prefix="/api/v1/intelligence/attribution",
+    tags=["Cross-Platform Attribution"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    professional_services.router,
+    prefix="/api/v1/intelligence/professional-services",
+    tags=["Professional Services"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    forensics.router,
+    prefix="/api/v1/forensics",
+    tags=["Forensics"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
     reports.router,
     prefix="/api/v1/reports",
     tags=["Reports"],
@@ -531,12 +754,12 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
-app.include_router(
-    analytics.router,
-    prefix="/api/v1/compliance/analytics",
-    tags=["Analytics"],
-    dependencies=[Depends(get_current_user)]
-)
+# app.include_router(
+#     analytics.router,
+#     prefix="/api/v1/compliance/analytics",
+#     tags=["Analytics"],
+#     dependencies=[Depends(get_current_user)]
+# )
 
 app.include_router(
     export.router,

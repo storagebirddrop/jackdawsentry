@@ -30,6 +30,19 @@ in-memory/local-DB queries (Google/AWS benchmarks):
 | **Error rate** | < 0.1% | Near-zero failures under load |
 | **RPS** | > 500 | 100 concurrent users, sustained 5 min |
 
+### Phase 4 Intelligence Module Thresholds
+
+Phase 4 modules perform complex intelligence processing, so thresholds are adjusted:
+
+| Metric | Threshold | Rationale |
+|---|---|---|
+| **p50 latency** | < 100ms | Higher due to complex processing |
+| **p95 latency** | < 500ms | Allowing for database queries |
+| **p99 latency** | < 1000ms | Worst-case complex analysis |
+| **Error rate** | < 0.5% | Higher tolerance for complex operations |
+| **RPS** | > 200 | Lower due to heavier processing |
+| **Pathfinding** | < 2s | Multi-hop analysis on 500+ nodes |
+
 ---
 
 ## 3. Load Test Profile
@@ -47,6 +60,24 @@ WRITE (10% of requests):
    5%  POST /api/v1/compliance/audit/log
    3%  POST /api/v1/compliance/risk/assessments
    2%  POST /api/v1/compliance/cases
+```
+
+### Phase 4 Traffic Mix (weights)
+
+```
+READ  (85% of requests):
+  30%  GET /api/v1/intelligence/victim-reports/
+  20%  GET /api/v1/intelligence/threat-feeds/
+  15%  GET /api/v1/attribution/
+  10%  GET /api/v1/intelligence/professional-services/services
+  10%  GET /api/v1/forensics/cases
+
+WRITE (15% of requests):
+   5%  POST /api/v1/intelligence/victim-reports/
+   4%  POST /api/v1/intelligence/threat-feeds/
+   3%  POST /api/v1/attribution/attribute-address
+   2%  POST /api/v1/forensics/cases
+   1%  POST /api/v1/intelligence/professional-services/services
 ```
 
 ### User behaviour
@@ -79,6 +110,37 @@ locust --headless -u 100 -r 10 -t 5m \
   -f tests/load/locustfile.py \
   --csv tests/load/results/dev --html tests/load/results/dev.html \
   --only-summary
+```
+
+### Prod benchmark (2 API replicas behind Nginx)
+
+```bash
+./tests/load/run_benchmark.sh prod
+# or manually:
+
+### Phase 4 Intelligence Module Benchmark
+
+```bash
+./tests/load/run_phase4_benchmark.sh dev
+# or use the integrated Phase 4 mode:
+./tests/load/run_benchmark.sh phase4
+# or manually:
+locust --headless -u 50 -r 5 -t 3m \
+  -H http://localhost:8000 \
+  -f tests/load/locustfile.py \
+  --csv tests/load/results/phase4 --html tests/load/results/phase4.html \
+  --only-summary
+```
+
+### Generate Phase 4 Test Data
+
+```bash
+# Generate test data for realistic load testing
+python tests/load/generate_test_data.py --victim-reports 100
+python tests/load/generate_test_data.py --threat-feeds 20
+python tests/load/generate_test_data.py --attribution-data 50
+python tests/load/generate_test_data.py --forensics-cases 25
+python tests/load/generate_test_data.py --professional-services 30
 ```
 
 ### Prod benchmark (2 API replicas behind Nginx)
