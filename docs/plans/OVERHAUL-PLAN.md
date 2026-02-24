@@ -1,6 +1,5 @@
 # OVERHAUL-PLAN.md — Leave No Stone Unturned v2.1 (Universal – Cline + Windsurf)
 
-**Status**: Draft → Approved → In Progress → Completed  
 **Branch**: `overhaul-2026` (create if missing)  
 **Last updated**: February 24, 2026  
 **Last checkpoint**: Project Rescan Complete - Real File Inventory Validated  
@@ -8,11 +7,13 @@
 **Active tools**: Cline + Windsurf (both respect this single plan)
 
 ## PROJECT METADATA (Real Data - February 24, 2026)
-- Tech stack & architecture: FastAPI 0.131.0, Neo4j 5.14.1, PostgreSQL, Redis 5.0.1, Docker, Cytoscape.js
+- Tech stack & architecture: FastAPI 0.131.0, Neo4j 5.14.1, PostgreSQL, redis-py 5.0.1, Docker, Cytoscape.js
 - Total files: source 178 | tests 55 | docs 45 | dependencies 230+
-- Git status: Clean working tree, 1 commit ahead of origin/main
+- Git status: Run `git status` at deploy time to confirm working tree state
 - Test coverage: 55 comprehensive test files covering all major modules
-- TODO/FIXME/XXX count: 2 remaining issues in specific files
+- TODO/FIXME/XXX count: 2 remaining issues (JACK-001, JACK-002)
+  - JACK-001: `src/attribution/models.py:49` - Deprecated 'severe' → 'critical' mapping (low priority)
+  - JACK-002: `src/services/sanctions.py:131` - XML feature type reference (documentation cleanup)
 - Linter errors: 0 critical errors (automated quality gates active)
 - Recent security updates: Multiple Snyk vulnerability fixes applied
 
@@ -65,8 +66,8 @@ grep -r --include="*.md" -E "TODO|FIXME|XXX|DEPRECATED" . --exclude-dir={node_mo
 
 ## PHASE 3 – TESTING FRAMEWORK EXPANSION 
 ### 3.1 Test Suite Expansion (Real Inventory)
-- **Baseline**: 136 tests → **Current**: 55 comprehensive test files
-- **Test coverage**: Major module coverage across 178 source files
+- **Baseline**: 136 tests → **Current**: 55 comprehensive test files (consolidated for efficiency)
+- **Test coverage**: Major module coverage across 178 source files maintained through consolidation
 - **Security tests**: SQL injection, JWT validation, rate limiting
 - **API integration tests**: Complete workflow validation
 - **Database tests**: Connection pooling and transaction testing
@@ -210,7 +211,10 @@ tests/
 ├── load/                        # Load testing scenarios (6 files)
 │   ├── locustfile.py            # Load testing scenarios
 │   ├── locustfile_comprehensive.py # Comprehensive load tests
-│   └── locustfile_legacy.py     # Legacy compatibility tests
+│   ├── locustfile_legacy.py     # Legacy compatibility tests
+│   ├── check_phase4_thresholds.py # Phase 4 threshold checks
+│   ├── check_thresholds.py      # General threshold checks
+│   └── generate_test_data.py    # Test data generation
 ├── security_tests/              # Security testing (1 file)
 │   └── test_security_tests.py   # Comprehensive security validation
 ├── performance_tests/           # Performance testing (1 file)
@@ -220,7 +224,9 @@ tests/
 ├── blockchain_tests/           # Blockchain testing (1 file)
 ├── compliance_tests/           # Compliance testing (1 file)
 ├── database_tests/             # Database testing (1 file)
-└── error_handling_tests/      # Error handling testing (1 file)
+├── error_handling_tests/      # Error handling testing (1 file)
+├── conftest.py                 # Test configuration and fixtures (1 file)
+└── __init__.py                 # Test package initialization (1 file)
 ```
 
 ### Competitive Assessment Testing
@@ -251,11 +257,11 @@ tests/
 
 ## FINAL IMPLEMENTATION SUMMARY
 
-### ✅ OVERHAUL COMPLETE - PRODUCTION READY
+### 🔄 STAGING READY - PENDING PRODUCTION GATES
 
 **Date**: February 24, 2026  
-**Status**: SUCCESSFULLY COMPLETED  
-**Production Readiness**: ✅ YES
+**Status**: STAGING READY / AWAITING PRODUCTION SIGN-OFF  
+**Production Readiness**: ⏳ PENDING FINAL VALIDATION
 
 #### Key Achievements with Real Data:
 - **Security**: 0 vulnerabilities (all patched via Snyk)
@@ -272,12 +278,16 @@ tests/
 - Documentation and deployment guides ready
 - Automated quality gates and CI/CD configured
 
-#### Next Steps:
-1. Deploy to staging environment for final validation
-2. Run production security scans and penetration testing
-3. Execute performance benchmarks under load
-4. Deploy to production with blue-green strategy
-5. Enable ongoing monitoring and competitive assessment
+#### Pre-production Gates (must complete before production):
+1. **Deploy to staging environment** for final validation
+2. **Run production security scans** and penetration testing
+3. **Execute performance benchmarks** under load
+4. **Complete final compliance validation**
+5. **Obtain production sign-off** from security team
+
+#### Post-production Steps:
+6. Deploy to production with blue-green strategy
+7. Enable ongoing monitoring and competitive assessment
 
 ---
 
