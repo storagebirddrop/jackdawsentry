@@ -768,3 +768,30 @@ def get_forensic_engine() -> ForensicEngine:
     if _forensic_engine is None:
         _forensic_engine = ForensicEngine()
     return _forensic_engine
+
+
+# Aliases and additional types for API compatibility
+CaseStatus = ForensicCaseStatus
+
+
+class CasePriority(str, Enum):
+    """Case priority levels"""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    URGENT = "urgent"
+
+
+@dataclass
+class CaseStatistics:
+    """Statistics for forensic cases"""
+
+    total_cases: int = 0
+    open_cases: int = 0
+    closed_cases: int = 0
+    cases_by_status: Dict[str, int] = field(default_factory=dict)
+    cases_by_priority: Dict[str, int] = field(default_factory=dict)
+    average_resolution_days: float = 0.0
+    total_evidence_items: int = 0

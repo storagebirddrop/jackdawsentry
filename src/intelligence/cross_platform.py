@@ -7,6 +7,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
@@ -974,3 +975,8 @@ def get_cross_platform_engine() -> CrossPlatformAttributionEngine:
     if _cross_platform_engine is None:
         _cross_platform_engine = CrossPlatformAttributionEngine()
     return _cross_platform_engine
+
+
+# Aliases for API compatibility
+ConfidenceMetrics = AttributionConfidence
+get_cross_platform_attribution_engine = get_cross_platform_engine

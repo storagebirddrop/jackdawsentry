@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from .routers import auth, users, blockchain, analysis, intelligence, competitive
+from .routers import auth, blockchain, analysis, intelligence, competitive
 from .webhooks.competitive_webhooks import startup as webhook_startup, shutdown as webhook_shutdown
 from .schedulers.competitive_scheduler import startup as scheduler_startup, shutdown as scheduler_shutdown
 

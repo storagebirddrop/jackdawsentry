@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 import logging
 import asyncpg
-import aioredis
+import redis.asyncio as aioredis
 
 logger = logging.getLogger(__name__)
 

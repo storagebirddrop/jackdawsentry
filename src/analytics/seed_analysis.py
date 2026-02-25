@@ -9,13 +9,17 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
 
-import bip_utils
+try:
+    import bip_utils
+except ImportError:  # pragma: no cover
+    bip_utils = None  # type: ignore[assignment]
 from mnemonic import Mnemonic
 
 from src.api.database import get_postgres_connection
@@ -276,7 +280,7 @@ class SeedPhraseAnalyzer:
 
     async def _derive_bip44_wallets(
         self,
-        master_key: bip_utils.Bip32MasterKey,
+        master_key: Any,
         blockchain: str,
         max_derivations: int,
     ) -> List[WalletDerivation]:
@@ -357,7 +361,7 @@ class SeedPhraseAnalyzer:
 
     async def _derive_bip49_wallets(
         self,
-        master_key: bip_utils.Bip32MasterKey,
+        master_key: Any,
         blockchain: str,
         max_derivations: int,
     ) -> List[WalletDerivation]:
@@ -408,7 +412,7 @@ class SeedPhraseAnalyzer:
 
     async def _derive_bip84_wallets(
         self,
-        master_key: bip_utils.Bip32MasterKey,
+        master_key: Any,
         blockchain: str,
         max_derivations: int,
     ) -> List[WalletDerivation]:
@@ -459,7 +463,7 @@ class SeedPhraseAnalyzer:
 
     async def _derive_bip32_wallets(
         self,
-        master_key: bip_utils.Bip32MasterKey,
+        master_key: Any,
         blockchain: str,
         max_derivations: int,
     ) -> List[WalletDerivation]:
@@ -504,7 +508,7 @@ class SeedPhraseAnalyzer:
 
     async def _derive_custom_wallets(
         self,
-        master_key: bip_utils.Bip32MasterKey,
+        master_key: Any,
         blockchain: str,
         max_derivations: int,
     ) -> List[WalletDerivation]:

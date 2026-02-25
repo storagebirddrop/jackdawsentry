@@ -1138,3 +1138,19 @@ def get_report_generator() -> ReportGenerator:
     if _report_generator is None:
         _report_generator = ReportGenerator()
     return _report_generator
+
+
+# Aliases and additional types for API compatibility
+ForensicReport = GeneratedReport
+
+
+@dataclass
+class ReportStatistics:
+    """Statistics for generated reports"""
+
+    total_reports: int = 0
+    reports_by_type: Dict[str, int] = field(default_factory=dict)
+    reports_by_status: Dict[str, int] = field(default_factory=dict)
+    reports_by_format: Dict[str, int] = field(default_factory=dict)
+    average_generation_time_seconds: float = 0.0
+    total_pages: int = 0

@@ -200,7 +200,7 @@ class TestCourtDefensibleEvidence:
     # ---- Court Submission Preparation Tests ----
 
     @pytest.mark.unit
-    @pytestmark.asyncio
+    @pytest.mark.asyncio
     async def test_prepare_court_submission(self, court_defensible, mock_db_pool):
         """Test successful court submission preparation"""
         mock_conn = AsyncMock()
@@ -595,7 +595,7 @@ class TestCourtDefensibleEvidence:
             )
 
     @pytest.mark.unit
-    @pytest_mark.asyncio
+    @pytest.mark.asyncio
     async def test_invalid_legal_standard_error(self, court_defensible):
         """Test handling of invalid legal standard"""
         with pytest.raises(ValueError, match="Invalid legal standard"):
@@ -911,7 +911,7 @@ class TestTestimonyPreparationModel:
 class TestExhibitPreparationModel:
     """Test suite for ExhibitPreparation data model"""
 
-    @pytest.unit
+    @pytest.mark.unit
     def test_exhibit_preparation_creation(self):
         """Test ExhibitPreparation model creation"""
         preparation_data = {

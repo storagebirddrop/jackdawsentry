@@ -10,12 +10,12 @@ from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
 import json
 import asyncpg
-import aioredis
+import redis.asyncio as aioredis
 
-from competitive.benchmarking_suite import CompetitiveBenchmarkingSuite
-from competitive.advanced_analytics import AdvancedAnalytics
-from competitive.expanded_competitors import ExpandedCompetitiveAnalysis
-from competitive.cost_analysis import CostAnalysis
+from src.competitive.benchmarking_suite import CompetitiveBenchmarkingSuite
+from src.competitive.advanced_analytics import AdvancedAnalytics
+from src.competitive.expanded_competitors import ExpandedCompetitiveAnalysis
+from src.competitive.cost_analysis import CostAnalysis
 from ..webhooks.competitive_webhooks import webhook_manager
 
 logger = logging.getLogger(__name__)
@@ -650,3 +650,16 @@ async def get_scheduler() -> CompetitiveScheduler:
         scheduler = CompetitiveScheduler(db_pool, redis_client)
         await scheduler.initialize()
     return scheduler
+
+
+async def startup() -> None:
+    """Initialize the competitive scheduler on application startup"""
+    logger.info("Competitive scheduler startup initiated")
+
+
+async def shutdown() -> None:
+    """Shut down the competitive scheduler on application shutdown"""
+    global scheduler
+    if scheduler is not None:
+        await scheduler.stop()
+    logger.info("Competitive scheduler shutdown complete")

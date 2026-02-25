@@ -14,10 +14,10 @@ from ..auth import get_current_user, User
 from ..database import get_db_pool, get_redis_client
 from ..config import settings
 
-from competitive.benchmarking_suite import CompetitiveBenchmarkingSuite
-from competitive.advanced_analytics import AdvancedAnalytics
-from competitive.expanded_competitors import ExpandedCompetitiveAnalysis
-from competitive.cost_analysis import CostAnalysis
+from src.competitive.benchmarking_suite import CompetitiveBenchmarkingSuite
+from src.competitive.advanced_analytics import AdvancedAnalytics
+from src.competitive.expanded_competitors import ExpandedCompetitiveAnalysis
+from src.competitive.cost_analysis import CostAnalysis
 
 router = APIRouter(prefix="/api/competitive", tags=["competitive"])
 

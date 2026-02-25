@@ -7,7 +7,9 @@ import asyncio
 import hashlib
 import json
 import logging
+import uuid
 from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -1196,3 +1198,44 @@ def get_professional_services_manager() -> ProfessionalServicesManager:
     if _professional_services_manager is None:
         _professional_services_manager = ProfessionalServicesManager()
     return _professional_services_manager
+
+
+# Aliases and additional types for API compatibility
+ProfessionalProfile = Expert
+
+
+class TrainingStatus(str, Enum):
+    """Status of training programs"""
+
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    ARCHIVED = "archived"
+
+
+@dataclass
+class TrainingEnrollment:
+    """Record of a user enrolled in a training program"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    training_program_id: str = ""
+    user_id: str = ""
+    enrolled_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_date: Optional[datetime] = None
+    status: TrainingStatus = TrainingStatus.IN_PROGRESS
+    progress_percent: float = 0.0
+    score: Optional[float] = None
+
+
+@dataclass
+class ServiceStatistics:
+    """Aggregate statistics for professional services"""
+
+    total_services: int = 0
+    services_by_type: Dict[str, int] = field(default_factory=dict)
+    services_by_status: Dict[str, int] = field(default_factory=dict)
+    total_experts: int = 0
+    total_training_programs: int = 0
+    active_enrollments: int = 0

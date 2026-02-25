@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -788,3 +789,16 @@ async def get_victim_reports_db() -> VictimReportsDatabase:
         _victim_reports_db = VictimReportsDatabase()
         await _victim_reports_db.initialize()
     return _victim_reports_db
+
+
+@dataclass
+class ReportStatistics:
+    """Statistics for victim reports"""
+
+    total_reports: int = 0
+    reports_by_type: Dict[str, int] = field(default_factory=dict)
+    reports_by_status: Dict[str, int] = field(default_factory=dict)
+    reports_by_severity: Dict[str, int] = field(default_factory=dict)
+    total_amount_lost: float = 0.0
+    verified_count: int = 0
+    false_positive_count: int = 0

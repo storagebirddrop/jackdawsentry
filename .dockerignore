@@ -92,6 +92,7 @@ training_data/
 .clinerules/
 .continue/
 .windsurf/
+.mcp.json
 
 # ── Competitive Assessment & Testing Reports ────────────────────────────────────
 competitive_assessment_report.json

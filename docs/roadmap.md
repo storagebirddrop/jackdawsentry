@@ -542,7 +542,7 @@ Pure frontend milestone. All backend APIs were already complete (M0–M16).
 ---
 
 ## M18 — "It competes" - Enterprise Intelligence Platform
-**Status**: 🔄 IN PROGRESS
+**Status**: ✅ Phases 1–3 + Phase 4.5 Complete · Phase 4.6+ In Progress
 
 Transform Jackdaw Sentry from a compliance tool into a competitive enterprise intelligence platform with advanced attribution, pattern detection, and investigative capabilities comparable to Elliptic and TRM Labs.
 
@@ -581,28 +581,28 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Entity Database Schema - PostgreSQL tables for VASP registry (`src/attribution/vasp_registry.py`) | ⬜ Pending |
-| 2 | Attribution Engine - Core attribution logic with confidence scoring (`src/attribution/attribution_engine.py`) | ⬜ Pending |
-| 3 | VASP Screening API - REST endpoints for entity lookup and classification (`src/api/routers/attribution.py`) | ⬜ Pending |
-| 4 | Glass Box Attribution - Source tracking and transparency features (`src/attribution/models.py`) | ⬜ Pending |
+| 1 | Entity Database Schema - PostgreSQL tables for VASP registry (`src/attribution/vasp_registry.py`) | ✅ Complete |
+| 2 | Attribution Engine - Core attribution logic with confidence scoring (`src/attribution/attribution_engine.py`) | ✅ Complete |
+| 3 | VASP Screening API - REST endpoints for entity lookup and classification (`src/api/routers/attribution.py`) | ✅ Complete |
+| 4 | Glass Box Attribution - Source tracking and transparency features (`src/attribution/models.py`, `src/attribution/confidence_scoring.py`) | ✅ Complete |
 
 #### Phase 2: Pattern Intelligence (Week 5-6)
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Pattern Library - Expanded pattern detection beyond current 14 AML patterns (`src/patterns/library.py`) | ⬜ Pending |
-| 2 | Automatic Detection - Real-time pattern surfacing and alerting (`src/patterns/detector.py`) | ⬜ Pending |
-| 3 | Pattern Scoring - Confidence levels and statistical validation (`src/patterns/scoring.py`) | ⬜ Pending |
-| 4 | Pattern API - Management and configuration of pattern detection rules (`src/api/routers/patterns.py`) | ⬜ Pending |
+| 1 | Pattern Library - Expanded pattern detection beyond current 14 AML patterns (`src/patterns/pattern_library.py`) | ✅ Complete |
+| 2 | Automatic Detection - Real-time pattern surfacing and alerting (`src/patterns/detection_engine.py`) | ✅ Complete |
+| 3 | Pattern Scoring - Confidence levels and statistical validation (`src/patterns/algorithms/`) | ✅ Complete |
+| 4 | Pattern API - Management and configuration of pattern detection rules (`src/api/routers/patterns.py`) | ✅ Complete |
 
 #### Phase 3: Advanced Analytics (Week 7-8)
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Multi-Route Algorithms - Advanced pathfinding visualization (`src/analysis/pathfinding.py`) | ⬜ Pending |
-| 2 | Seed Analysis Tools - Wallet cluster recovery from seed phrases (`src/analysis/seed_analysis.py`) | ⬜ Pending |
-| 3 | Transaction Fingerprinting - Pattern-based transaction search (`src/analysis/fingerprinting.py`) | ⬜ Pending |
-| 4 | Graph Enhancement - Professional visualization and customization tools (`src/analysis/graph_enhancement.py`) | ⬜ Pending |
+| 1 | Multi-Route Algorithms - Advanced pathfinding visualization (`src/analytics/pathfinding.py`) | ✅ Complete |
+| 2 | Seed Analysis Tools - Wallet cluster recovery from seed phrases (`src/analytics/seed_analysis.py`) | ✅ Complete |
+| 3 | Transaction Fingerprinting - Pattern-based transaction search (`src/analytics/fingerprinting.py`) | ✅ Complete |
+| 4 | Graph Enhancement - Professional visualization and customization tools (`src/analysis/graph_enhancement.py`) | ✅ Complete |
 
 #### Phase 4: Intelligence Integration (Week 9-10)
 
@@ -625,7 +625,7 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 | 10 | Main Application Integration - Wire new routers into FastAPI app with proper authentication and error handling | ✅ Complete |
 | 11 | Background Task Integration - Initialize intelligence services, threat feeds, attribution engine on startup | ✅ Complete |
 | 12 | Comprehensive Testing Suite - Unit tests, integration tests, performance benchmarks for all Phase 4 modules | ✅ Complete |
-| 13 | Frontend Intelligence Dashboard - Web interface for intelligence management and forensic workflows | ⬜ Pending |
+| 13 | Frontend Intelligence Dashboard - Web interface for intelligence management and forensic workflows (`frontend/intelligence-hub.html`) | ✅ Complete |
 
 #### Phase 4.6: Testing Implementation (Week 13-14)
 

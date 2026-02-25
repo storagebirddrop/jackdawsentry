@@ -45,6 +45,7 @@ class AttributionEngine:
         self.cache = {}
         self.cache_ttl = 1800  # 30 minutes
         self._initialized = False
+        self.metrics: dict = {}
 
     async def initialize(self):
         """Initialize the attribution engine"""

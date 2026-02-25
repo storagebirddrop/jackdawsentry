@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -1136,3 +1137,29 @@ def get_threat_intelligence_manager() -> ThreatIntelligenceManager:
     if _threat_intelligence_manager is None:
         _threat_intelligence_manager = ThreatIntelligenceManager()
     return _threat_intelligence_manager
+
+
+# Aliases and additional types for API compatibility
+ThreatIntelligenceItem = ThreatIntelligence
+
+
+@dataclass
+class FeedStatistics:
+    """Aggregate statistics for threat intelligence feeds"""
+
+    total_feeds: int = 0
+    active_feeds: int = 0
+    feeds_by_status: Dict[str, int] = field(default_factory=dict)
+    total_indicators: int = 0
+    indicators_by_type: Dict[str, int] = field(default_factory=dict)
+    last_sync_date: Optional[datetime] = None
+
+
+class FeedHealthStatus(str, Enum):
+    """Health status of a threat intelligence feed"""
+
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+    UNKNOWN = "unknown"
+    OFFLINE = "offline"

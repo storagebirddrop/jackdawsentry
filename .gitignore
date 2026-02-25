@@ -6,6 +6,9 @@
 .env
 .env.*
 !.env.example
+
+# ── MCP (Model Context Protocol) ─────────────────────────────────────────────
+.mcp.json
 config/secrets/
 config/local/
 config/production/
@@ -174,3 +177,8 @@ Pipfile
 Pipfile.lock
 pdm.lock
 *.toml.lock
+
+# ── Inventory & Analysis Files ───────────────────────────────────────────────────
+inventory-*.txt
+tree-*..txt
+*=

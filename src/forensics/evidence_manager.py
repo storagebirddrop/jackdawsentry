@@ -693,3 +693,23 @@ def get_evidence_manager() -> EvidenceManager:
     if _evidence_manager is None:
         _evidence_manager = EvidenceManager()
     return _evidence_manager
+
+
+# Re-export from forensic_engine for API compatibility
+from src.forensics.forensic_engine import EvidenceType, EvidenceIntegrity  # noqa: E402, F401
+
+# Aliases and additional types
+ChainOfCustody = EvidenceChain
+Evidence = EvidenceChain
+
+
+@dataclass
+class EvidenceStatistics:
+    """Statistics for evidence items"""
+
+    total_items: int = 0
+    items_by_type: Dict[str, int] = field(default_factory=dict)
+    items_by_status: Dict[str, int] = field(default_factory=dict)
+    verified_count: int = 0
+    tampered_count: int = 0
+    total_size_bytes: int = 0

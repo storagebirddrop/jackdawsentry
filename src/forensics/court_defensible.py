@@ -1018,3 +1018,93 @@ def get_court_defensible_evidence() -> CourtDefensibleEvidence:
     if _court_defensible is None:
         _court_defensible = CourtDefensibleEvidence()
     return _court_defensible
+
+
+# Additional types for API compatibility
+
+class ComplianceCategory(str, Enum):
+    """Categories of legal compliance requirements"""
+
+    AUTHENTICATION = "authentication"
+    CHAIN_OF_CUSTODY = "chain_of_custody"
+    INTEGRITY = "integrity"
+    RELEVANCE = "relevance"
+    RELIABILITY = "reliability"
+    COMPLETENESS = "completeness"
+
+
+@dataclass
+class EvidenceRequirement:
+    """A specific evidentiary requirement"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    category: ComplianceCategory = ComplianceCategory.INTEGRITY
+    description: str = ""
+    is_met: bool = False
+    notes: str = ""
+
+
+@dataclass
+class LegalCompliance:
+    """Legal compliance status for evidence"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    evidence_id: str = ""
+    jurisdiction: LegalJurisdiction = LegalJurisdiction.FEDERAL_US
+    requirements: List[EvidenceRequirement] = field(default_factory=list)
+    overall_compliant: bool = False
+    compliance_score: float = 0.0
+    reviewed_date: Optional[datetime] = None
+
+
+@dataclass
+class CourtReadinessAssessment:
+    """Assessment of evidence readiness for court"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    evidence_id: str = ""
+    court_type: CourtType = CourtType.CRIMINAL
+    readiness_score: float = 0.0
+    gaps: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+    assessed_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
+class FoundationRequirement:
+    """Foundation requirement for evidence admissibility"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    requirement_type: str = ""
+    description: str = ""
+    is_satisfied: bool = False
+    supporting_evidence: List[str] = field(default_factory=list)
+
+
+@dataclass
+class TestimonyPreparation:
+    """Expert testimony preparation materials"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    case_id: str = ""
+    expert_name: str = ""
+    key_points: List[str] = field(default_factory=list)
+    anticipated_questions: List[Dict[str, str]] = field(default_factory=list)
+    prepared_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
+class ExhibitPreparation:
+    """Court exhibit preparation record"""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    exhibit_number: str = ""
+    evidence_id: str = ""
+    description: str = ""
+    format: str = ""
+    is_ready: bool = False
+    prepared_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# Plural alias for API compatibility
+FoundationRequirements = FoundationRequirement
