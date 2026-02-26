@@ -144,6 +144,7 @@ class CaseStatistics:
     cases_by_priority: Dict[str, int] = field(default_factory=dict)
     average_resolution_days: float = 0.0
     total_evidence_items: int = 0
+    total_reports: int = 0
 
 
 @dataclass
@@ -665,7 +666,7 @@ class ForensicEngine:
                     title=row["title"],
                     description=row["description"],
                     status=ForensicCaseStatus(row["status"]),
-                    priority=row["priority"],
+                    priority=CasePriority(row["priority"]),
                     assigned_investigator=row["assigned_investigator"],
                     created_date=row["created_date"],
                     updated_date=row["updated_date"],
@@ -755,7 +756,7 @@ class ForensicEngine:
                     title=row["title"],
                     description=row["description"],
                     status=ForensicCaseStatus(row["status"]),
-                    priority=row["priority"],
+                    priority=CasePriority(row["priority"]),
                     assigned_investigator=row["assigned_investigator"],
                     created_date=row["created_date"],
                     updated_date=row["updated_date"],
