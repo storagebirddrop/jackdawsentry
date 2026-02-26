@@ -3,6 +3,7 @@ Jackdaw Sentry - Competitive Assessment API Router
 REST API endpoints for competitive analysis and reporting
 """
 
+from dataclasses import asdict
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Any, Optional

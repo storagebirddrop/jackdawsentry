@@ -38,6 +38,7 @@ from src.analytics import get_analytics_engine
 from src.api.auth import PERMISSIONS
 from src.api.auth import User
 from src.api.auth import check_permissions
+from src.api.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 

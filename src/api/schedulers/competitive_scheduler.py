@@ -7,7 +7,7 @@ import asyncio
 import logging
 from typing import Dict, List, Any, Optional, Callable
 from datetime import datetime, timezone, timedelta
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import json
 import asyncpg
 import redis.asyncio as aioredis

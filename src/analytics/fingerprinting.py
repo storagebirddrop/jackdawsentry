@@ -4,6 +4,7 @@ Advanced transaction pattern matching and fingerprinting
 """
 
 import asyncio
+import json
 import logging
 import re
 from collections import defaultdict
