@@ -1219,9 +1219,9 @@ class TrainingStatus(str, Enum):
 class TrainingEnrollment:
     """Record of a user enrolled in a training program"""
 
+    training_program_id: str
+    user_id: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    training_program_id: str = ""
-    user_id: str = ""
     enrolled_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_date: Optional[datetime] = None
     status: TrainingStatus = TrainingStatus.IN_PROGRESS

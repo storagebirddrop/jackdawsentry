@@ -655,11 +655,30 @@ async def get_scheduler() -> CompetitiveScheduler:
 async def startup() -> None:
     """Initialize the competitive scheduler on application startup"""
     logger.info("Competitive scheduler startup initiated")
+    
+    # Initialize and start the global scheduler
+    scheduler_instance = await get_scheduler()
+    await scheduler_instance.start()
+    
+    logger.info("Competitive scheduler startup complete")
 
 
 async def shutdown() -> None:
     """Shut down the competitive scheduler on application shutdown"""
     global scheduler
     if scheduler is not None:
-        await scheduler.stop()
+        try:
+            # Stop the scheduler
+            await scheduler.stop()
+            
+            # Clean up benchmarking_suite if it was initialized
+            if scheduler.benchmarking_suite is not None:
+                await scheduler.benchmarking_suite.__aexit__(None, None, None)
+                
+        except Exception as e:
+            logger.error(f"Error during competitive scheduler shutdown: {e}")
+        finally:
+            # Clear the global scheduler
+            scheduler = None
+    
     logger.info("Competitive scheduler shutdown complete")

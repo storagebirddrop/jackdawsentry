@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 import uuid
 from dataclasses import dataclass
 from dataclasses import field
@@ -123,6 +124,8 @@ class GeneratedReport:
     metadata: Dict[str, Any] = field(default_factory=dict)
     generated_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     generated_by: str = ""
+    generation_duration_seconds: float = 0.0
+    page_count: int = 0
     reviewed_by: Optional[str] = None
     reviewed_date: Optional[datetime] = None
     approved_by: Optional[str] = None
@@ -375,6 +378,8 @@ class ReportGenerator:
         generated_by: str,
     ) -> GeneratedReport:
         """Generate forensic report from template"""
+        start_time = time.monotonic()
+        
         template = await self.get_template(template_id)
         if not template:
             raise ValueError(f"Template {template_id} not found")
@@ -449,7 +454,13 @@ class ReportGenerator:
             await self._save_report_to_db(report)
 
         self.reports[report.id] = report
-        logger.info(f"Generated report: {report.id}")
+        
+        # Calculate generation duration and estimate page count
+        end_time = time.monotonic()
+        report.generation_duration_seconds = end_time - start_time
+        report.page_count = max(1, len(sections) * 2)  # Estimate: 2 pages per section
+        
+        logger.info(f"Generated report: {report.id} in {report.generation_duration_seconds:.2f}s")
         return report
 
     async def get_template(self, template_id: str) -> Optional[ReportTemplate]:
@@ -1126,6 +1137,41 @@ class ReportGenerator:
             query = "UPDATE generated_reports SET status = $1 WHERE id = $2"
             async with self.db_pool.acquire() as conn:
                 await conn.execute(query, new_status.value, report_id)
+
+    async def get_statistics(self) -> ReportStatistics:
+        """Get report generation statistics"""
+        total_reports = len(self.reports)
+        reports_by_type = {}
+        reports_by_status = {}
+        reports_by_format = {}
+        total_duration = 0.0
+        total_pages = 0
+
+        for report in self.reports.values():
+            # Count by type
+            reports_by_type[report.report_type.value] = reports_by_type.get(report.report_type.value, 0) + 1
+            
+            # Count by status
+            reports_by_status[report.status.value] = reports_by_status.get(report.status.value, 0) + 1
+            
+            # Count by format
+            reports_by_format[report.format.value] = reports_by_format.get(report.format.value, 0) + 1
+            
+            # Aggregate timing and pages
+            total_duration += report.generation_duration_seconds
+            total_pages += report.page_count
+
+        # Calculate averages
+        avg_generation_time = total_duration / total_reports if total_reports > 0 else 0.0
+
+        return ReportStatistics(
+            total_reports=total_reports,
+            reports_by_type=reports_by_type,
+            reports_by_status=reports_by_status,
+            reports_by_format=reports_by_format,
+            average_generation_time_seconds=avg_generation_time,
+            total_pages=total_pages
+        )
 
 
 # Global report generator instance

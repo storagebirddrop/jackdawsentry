@@ -679,7 +679,7 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 
 ---
 
-## M18 — "It competes" (Competitive Assessment & Enterprise Validation) 
+## M18b — "It competes" (Competitive Assessment & Enterprise Validation) 
 **Status**: 🔄 IN PROGRESS
 
 ### Phase 1: Competitive Feature Matrix Analysis
@@ -765,7 +765,7 @@ Transform Jackdaw Sentry from a compliance tool into a competitive enterprise in
 2. ~~**Main Application Integration**~~ - ✅ Complete: Wire routers into FastAPI app
 3. ~~**Background Task Integration**~~ - ✅ Complete: Initialize intelligence services on startup
 4. ~~**Comprehensive Testing**~~ - ✅ Complete: Unit, integration, and API tests (15 files)
-5. **Frontend Integration** - ⬜ Remaining: Intelligence dashboard and forensic workflows
+5. ~~**Frontend Integration**~~ - ✅ Complete: Intelligence dashboard and forensic workflows
 
 ### Updated Success Metrics
 - **API Coverage**: 100% of Phase 4 modules accessible via REST endpoints

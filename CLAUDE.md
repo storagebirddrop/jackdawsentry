@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Context
 
-**Jackdaw Sentry** is a blockchain on-chain analysis platform for compliance professionals. Core capabilities: multi-chain transaction flow tracking (18 blockchains), stablecoin/bridge/DEX monitoring, EU AMLR/GDPR/DORA/MiCA compliance reporting, ML-powered risk scoring, and sanctions screening.
+**Jackdaw Sentry** is a blockchain on-chain analysis platform for compliance professionals. Core capabilities: multi-chain transaction flow tracking (16 blockchains), stablecoin/bridge/DEX monitoring, EU AMLR/GDPR/DORA/MiCA compliance reporting, ML-powered risk scoring, and sanctions screening.
 
 Primary stack: Python/FastAPI backend, Rust (performance-critical paths), TypeScript/Node.js (tooling/frontend), PostgreSQL + Neo4j + Redis, Nginx proxy.
 
@@ -77,7 +77,8 @@ for var in API_SECRET_KEY NEO4J_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD ENCRYP
   echo "$var=$(openssl rand -hex 32)"
 done
 ```
-Default seeded admin credentials: `admin` / `Admin123!@#` — change immediately after first login.
+Default seeded admin credentials: `admin` / `Admin123!@#` — change immediately after first login. 
+**Security Policy:** Automated agents and scripts must never print, log, store, or transmit the default credential `Admin123!@#` in plaintext; replace with secure secret references during setup and redact in diagnostics.
 
 Key env groups: database URIs, API secrets, per-chain RPC URLs, compliance toggles (sanctions update frequency, GDPR retention), ML thresholds, third-party API keys (Chainalysis, Elliptic, Arkham).
 
@@ -93,7 +94,7 @@ Browser/client → Nginx (:80/:443) → FastAPI (:8000) → Neo4j / PostgreSQL /
 ### FastAPI (`src/api/main.py`)
 16 routers at `/api/v1/`: `auth`, `blockchain`, `analysis`, `intelligence`, `investigations`, `compliance`, `attribution`, `reports`, `analytics`, `competitive`, `forensics`, `mobile`, `admin`, `teams`, `webhooks`, `workflows`.
 
-Middleware order: `SecurityMiddleware` (JWT/CORS) → `AuditMiddleware` (compliance logging) → `RateLimitMiddleware` → `DateTimeMiddleware`.
+Middleware order: `AuditMiddleware` (compliance logging) → `SecurityMiddleware` (JWT/CORS) → `RateLimitMiddleware` → `DateTimeMiddleware`.
 
 Startup hooks initialise all three databases. `/health` is the Docker health check endpoint.
 
@@ -101,7 +102,7 @@ Startup hooks initialise all three databases. `/health` is the Docker health che
 | DB | Schema file | Purpose |
 |----|-------------|---------|
 | **Neo4j** | `src/database/neo4j_schema.py` | Transaction graph — Address, Transaction, Entity, Block, Stablecoin nodes; SENT/CONTAINS/ISSUED_ON edges. Cross-chain flow analysis and pattern detection. |
-| **PostgreSQL** | `src/database/postgres_schema.py` | Compliance layer — users, investigations, evidence, audit_logs, sar_reports, sanctions_lists. 7-year GDPR retention. |
+| **PostgreSQL** | `src/database/postgres_schema.py` | Compliance layer — users, investigations, evidence, audit_logs, sar_reports, sanctions_lists. 7-year AMLR/AMLD retention (GDPR storage‑limitation applies; separate legal‑basis analysis required). |
 | **Redis** | — | Session storage, query cache, rate-limit counters, WebSocket broadcast bus. |
 
 ### Domain modules (`src/`)
@@ -111,7 +112,7 @@ Startup hooks initialise all three databases. `/health` is the Docker health che
 | `intelligence/` | ML risk scoring, sanctions screening, dark web feed integration |
 | `compliance/` | EU AMLR / GDPR / DORA / MiCA report generation, audit trails |
 | `attribution/` | Entity clustering, VASP database (50+ entities), graph algorithms |
-| `collectors/` | Live RPC collectors for 18 blockchains (Bitcoin, EVM chains, Solana, Tron, XRP, etc.) |
+| `collectors/` | Live RPC collectors for 16 blockchains (Bitcoin, EVM chains, Solana, Tron, XRP, etc.) |
 | `patterns/` | Low-level graph pattern library shared by `analysis/` |
 | `forensics/` | Court-defensible evidence chains, advanced investigation tools |
 | `automation/` | Webhooks, Travel Rule automation, scheduled bulk screening |
@@ -120,7 +121,7 @@ Startup hooks initialise all three databases. `/health` is the Docker health che
 JWT tokens, roles: `admin` / `analyst` / `viewer`. RBAC enforced on all endpoints via `SecurityMiddleware`.
 
 ### Supported chains & stablecoins
-18 blockchains: Ethereum, Bitcoin + Lightning, Solana, Tron, XRP, BSC, Polygon, Arbitrum, Base, Avalanche, Optimism, Starknet, Injective, Cosmos, Sui.
+16 blockchains: Ethereum, Bitcoin + Lightning, Solana, Tron, XRP, BSC, Polygon, Arbitrum, Base, Avalanche, Optimism, Starknet, Injective, Cosmos, Sui.
 13 stablecoins tracked: USDT, USDC, USDe, EURC, and others.
 
 ---

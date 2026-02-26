@@ -1106,5 +1106,5 @@ class ExhibitPreparation:
     prepared_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-# Plural alias for API compatibility
-FoundationRequirements = FoundationRequirement
+# Plural alias for API compatibility - represents a list of foundation requirements
+FoundationRequirements = List[FoundationRequirement]

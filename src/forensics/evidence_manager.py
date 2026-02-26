@@ -700,7 +700,27 @@ from src.forensics.forensic_engine import EvidenceType, EvidenceIntegrity  # noq
 
 # Aliases and additional types
 ChainOfCustody = EvidenceChain
-Evidence = EvidenceChain
+
+
+@dataclass
+class Evidence:
+    """Individual evidence artifact"""
+    
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    type: str = ""
+    status: str = ""
+    file_path: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert evidence to dictionary representation"""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "status": self.status,
+            "file_path": self.file_path,
+            "metadata": self.metadata
+        }
 
 
 @dataclass

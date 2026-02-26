@@ -170,6 +170,7 @@ performance_analysis/
 *.console
 console_output*
 terminal_dump*
+*=
 
 # ── Package Managers ───────────────────────────────────────────────────────────
 poetry.lock
@@ -180,5 +181,4 @@ pdm.lock
 
 # ── Inventory & Analysis Files ───────────────────────────────────────────────────
 inventory-*.txt
-tree-*..txt
-*=
+tree-*.txt

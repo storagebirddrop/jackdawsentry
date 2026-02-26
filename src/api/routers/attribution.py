@@ -435,7 +435,7 @@ def _get_vasp_risk_factors(vasp: VASP) -> List[str]:
         risk_factors.append("Gambling platform - high-risk jurisdiction")
 
     # Risk level factors
-    if vasp.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
+    if vasp.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL, RiskLevel.SEVERE]:
         risk_factors.append(f"High risk classification: {vasp.risk_level.value}")
 
     # Compliance factors

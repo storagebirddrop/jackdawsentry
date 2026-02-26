@@ -39,8 +39,7 @@ class RiskLevel(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-    # Note: SEVERE was removed to avoid ambiguity with CRITICAL
-    # Migration: existing 'severe' values should be mapped to 'critical'
+    SEVERE = "severe"
 
     @classmethod
     def from_value(cls, value: str):

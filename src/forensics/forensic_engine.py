@@ -132,7 +132,7 @@ class ForensicCase:
     title: str = ""
     description: str = ""
     status: ForensicCaseStatus = ForensicCaseStatus.OPEN
-    priority: str = "medium"  # low, medium, high, critical
+    priority: CasePriority = CasePriority.MEDIUM
     assigned_investigator: str = ""
     created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -305,7 +305,7 @@ class ForensicEngine:
             case_number=case_data.get("case_number", ""),
             title=case_data["title"],
             description=case_data.get("description", ""),
-            priority=case_data.get("priority", "medium"),
+            priority=CasePriority(case_data.get("priority", "medium").lower()),
             assigned_investigator=case_data.get("assigned_investigator", ""),
             client_id=case_data.get("client_id"),
             jurisdiction=case_data.get("jurisdiction", ""),
@@ -459,7 +459,7 @@ class ForensicEngine:
 
         return results
 
-    async def get_case_statistics(self) -> Dict[str, Any]:
+    async def get_case_statistics(self) -> CaseStatistics:
         """Get forensic case statistics"""
         total_cases = len(self.cases)
         if self.db_pool:
@@ -467,20 +467,35 @@ class ForensicEngine:
 
         status_counts = {}
         priority_counts = {}
+        open_cases = 0
+        closed_cases = 0
+        resolution_days = []
 
         for case in self.cases.values():
             status_counts[case.status.value] = (
                 status_counts.get(case.status.value, 0) + 1
             )
-            priority_counts[case.priority] = priority_counts.get(case.priority, 0) + 1
+            priority_counts[case.priority.value] = priority_counts.get(case.priority.value, 0) + 1
+            
+            if case.status == ForensicCaseStatus.OPEN:
+                open_cases += 1
+            elif case.status == ForensicCaseStatus.CLOSED and case.closed_date:
+                closed_cases += 1
+                resolution_days.append((case.closed_date - case.created_date).days)
 
-        return {
-            "total_cases": total_cases,
-            "status_distribution": status_counts,
-            "priority_distribution": priority_counts,
-            "total_evidence": len(self.evidence),
-            "total_reports": len(self.reports),
-        }
+        # Calculate average resolution days (skip unresolved cases)
+        avg_resolution_days = sum(resolution_days) / len(resolution_days) if resolution_days else 0.0
+
+        return CaseStatistics(
+            total_cases=total_cases,
+            open_cases=open_cases,
+            closed_cases=closed_cases,
+            cases_by_status=status_counts,
+            cases_by_priority=priority_counts,
+            average_resolution_days=avg_resolution_days,
+            total_evidence_items=len(self.evidence),
+            total_reports=len(self.reports)
+        )
 
     # Database helper methods
     async def _save_case_to_db(self, case: ForensicCase) -> None:

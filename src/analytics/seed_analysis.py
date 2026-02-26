@@ -243,6 +243,11 @@ class SeedPhraseAnalyzer:
     ) -> List[WalletDerivation]:
         """Derive wallets from seed for specific derivation type and blockchain"""
 
+        if bip_utils is None:
+            raise ImportError(
+                "bip_utils is required for _derive_wallets; install bip_utils"
+            )
+
         derivations = []
 
         try:
@@ -271,10 +276,16 @@ class SeedPhraseAnalyzer:
                     master_key, blockchain, max_derivations
                 )
 
-        except Exception as e:
+        except AttributeError as e:
             logger.error(
                 f"Error deriving wallets for {derivation_type.value} on {blockchain}: {e}"
             )
+            raise
+        except Exception as e:
+            logger.error(
+                f"Unexpected error deriving wallets for {derivation_type.value} on {blockchain}: {e}"
+            )
+            raise
 
         return derivations
 
