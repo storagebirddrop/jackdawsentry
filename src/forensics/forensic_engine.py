@@ -123,6 +123,34 @@ class ForensicEvidence:
         return is_valid
 
 
+# Defensive parsing helpers for enum conversions
+def _parse_priority(value: str) -> CasePriority:
+    """Parse case priority with defensive error handling"""
+    try:
+        return CasePriority(value)
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid priority value '{value}', defaulting to MEDIUM")
+        return CasePriority.MEDIUM
+
+
+def _parse_status(value: str) -> ForensicCaseStatus:
+    """Parse case status with defensive error handling"""
+    try:
+        return ForensicCaseStatus(value)
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid status value '{value}', defaulting to OPEN")
+        return ForensicCaseStatus.OPEN
+
+
+def _parse_legal_standard(value: str) -> LegalStandard:
+    """Parse legal standard with defensive error handling"""
+    try:
+        return LegalStandard(value)
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid legal standard value '{value}', defaulting to PREPONDERANCE")
+        return LegalStandard.PREPONDERANCE
+
+
 class CasePriority(str, Enum):
     """Case priority levels"""
 
@@ -665,15 +693,15 @@ class ForensicEngine:
                     case_number=row["case_number"],
                     title=row["title"],
                     description=row["description"],
-                    status=ForensicCaseStatus(row["status"]),
-                    priority=CasePriority(row["priority"]),
+                    status=_parse_status(row["status"]),
+                    priority=_parse_priority(row["priority"]),
                     assigned_investigator=row["assigned_investigator"],
                     created_date=row["created_date"],
                     updated_date=row["updated_date"],
                     closed_date=row["closed_date"],
                     client_id=row["client_id"],
                     jurisdiction=row["jurisdiction"],
-                    legal_standard=LegalStandard(row["legal_standard"]),
+                    legal_standard=_parse_legal_standard(row["legal_standard"]),
                     tags=json.loads(row["tags"]) if row["tags"] else [],
                     notes=json.loads(row["notes"]) if row["notes"] else [],
                     metadata=json.loads(row["metadata"]) if row["metadata"] else {},
@@ -755,15 +783,15 @@ class ForensicEngine:
                     case_number=row["case_number"],
                     title=row["title"],
                     description=row["description"],
-                    status=ForensicCaseStatus(row["status"]),
-                    priority=CasePriority(row["priority"]),
+                    status=_parse_status(row["status"]),
+                    priority=_parse_priority(row["priority"]),
                     assigned_investigator=row["assigned_investigator"],
                     created_date=row["created_date"],
                     updated_date=row["updated_date"],
                     closed_date=row["closed_date"],
                     client_id=row["client_id"],
                     jurisdiction=row["jurisdiction"],
-                    legal_standard=LegalStandard(row["legal_standard"]),
+                    legal_standard=_parse_legal_standard(row["legal_standard"]),
                     tags=json.loads(row["tags"]) if row["tags"] else [],
                     notes=json.loads(row["notes"]) if row["notes"] else [],
                     metadata=json.loads(row["metadata"]) if row["metadata"] else {},
