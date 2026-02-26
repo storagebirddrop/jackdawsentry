@@ -13,15 +13,15 @@
 
 ## Implementation Steps
 
-- [ ] 1. Create intelligence-hub.html with tabbed navigation structure (6 tabs)
-- [ ] 2. Implement Overview Dashboard with unified statistics and quick actions
-- [ ] 3. Build Victim Reports Interface (CRUD + verification workflow)
-- [ ] 4. Develop Threat Feeds Control Panel (feed management + sync status)
-- [ ] 5. Create Attribution Analysis Interface (address lookup + confidence scoring)
-- [ ] 6. Build Professional Services Portal (service requests + experts + training)
-- [ ] 7. Implement Forensics Workflow Interface (case management + evidence)
-- [ ] 8. Add navigation link to nav.js
-- [ ] 9. Test and validate all API integrations
+- [x] 1. Create intelligence-hub.html with tabbed navigation structure (6 tabs)
+- [x] 2. Implement Overview Dashboard with unified statistics and quick actions
+- [x] 3. Build Victim Reports Interface (CRUD + verification workflow)
+- [x] 4. Develop Threat Feeds Control Panel (feed management + sync status)
+- [x] 5. Create Attribution Analysis Interface (address lookup + confidence scoring)
+- [x] 6. Build Professional Services Portal (service requests + experts + training) — full modals
+- [x] 7. Implement Forensics Workflow Interface (case management + evidence) — case detail + evidence modals
+- [x] 8. Add navigation link to nav.js
+- [ ] 9. Test and validate all API integrations (requires running stack)
 
 ## Files to Create/Modify
 

@@ -23,6 +23,7 @@ import aiohttp
 from src.api.config import settings
 from src.api.database import get_neo4j_session
 from src.api.database import get_redis_connection
+from .anchain_integration import AnChainIntegration
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class ProfessionalToolType(Enum):
     MISTTRACK = "misttrack"
     COINPATH = "coinpath"
     STORYLINE = "storyline"
+    ANCHAIN_AI = "anchain_ai"
 
 
 @dataclass
@@ -512,6 +514,11 @@ class ProfessionalToolsManager:
             self.tools[ProfessionalToolType.ARKHAM] = ArkhamIntegration()
             self.enabled_tools.add(ProfessionalToolType.ARKHAM)
 
+        # AnChain.ai — free-tier AML/sanctions + IP screening
+        if getattr(settings, "ANCHAIN_API_KEY", None):
+            self.tools[ProfessionalToolType.ANCHAIN_AI] = AnChainIntegration()
+            self.enabled_tools.add(ProfessionalToolType.ANCHAIN_AI)
+
         logger.info(f"Initialized professional tools: {list(self.enabled_tools)}")
 
     async def analyze_with_all_tools(self, address: str) -> Dict[str, Any]:
@@ -548,6 +555,17 @@ class ProfessionalToolsManager:
                     async with tool:
                         result = await tool.get_entity_graph(address)
                         results["tool_results"]["arkham"] = result
+
+                elif tool_type == ProfessionalToolType.ANCHAIN_AI:
+                    async with tool:
+                        screening = await tool.screen_address(address, "ethereum")
+                        result = {
+                            "address": address,
+                            "anchain_data": screening.__dict__,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "source": "anchain_ai",
+                        }
+                        results["tool_results"]["anchain_ai"] = result
 
                 # Add evidence
                 if "error" not in result:

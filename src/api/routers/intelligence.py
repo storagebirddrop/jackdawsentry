@@ -593,3 +593,177 @@ async def get_intelligence_statistics(
             message=f"Intelligence statistics failed: {str(e)}",
             error_code="STATISTICS_FAILED",
         )
+
+
+# ---------------------------------------------------------------------------
+# AnChain.ai screening endpoints
+# ---------------------------------------------------------------------------
+
+class AnChainAddressScreenRequest(BaseModel):
+    """Request body for AnChain.ai address risk + sanctions screening."""
+
+    address: str
+    blockchain: str = "ethereum"
+
+
+class AnChainEntityScreenRequest(BaseModel):
+    """Request body for AnChain.ai entity/individual sanctions screening."""
+
+    name: str
+    id_number: Optional[str] = None
+    country: Optional[str] = None
+    entity_type: str = "individual"
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, v: str) -> str:
+        """Ensure entity_type is one of the accepted values."""
+        if v not in {"individual", "organization"}:
+            raise ValueError("entity_type must be 'individual' or 'organization'")
+        return v
+
+
+class AnChainIPScreenRequest(BaseModel):
+    """Request body for AnChain.ai IP address risk screening."""
+
+    ip_address: str
+
+
+@router.post("/anchain/screen/address")
+async def anchain_screen_address(
+    request: AnChainAddressScreenRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
+) -> Dict[str, Any]:
+    """Screen a crypto address for risk score and sanctions matches via AnChain.ai.
+
+    Returns combined address risk assessment and sanctions screening result.
+    Requires ``ANCHAIN_API_KEY`` to be configured; returns 503 otherwise.
+    """
+    from src.intelligence.anchain_integration import AnChainIntegration
+    from src.api.config import settings
+
+    api_key = getattr(settings, "ANCHAIN_API_KEY", None)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AnChain.ai integration is not configured (ANCHAIN_API_KEY missing)",
+        )
+
+    try:
+        async with AnChainIntegration(api_key) as anchain:
+            risk_result = await anchain.screen_address(request.address, request.blockchain)
+            sanctions_result = await anchain.screen_sanctions(request.address, request.blockchain)
+
+        return {
+            "success": True,
+            "address": request.address,
+            "blockchain": request.blockchain,
+            "risk_screening": {
+                k: v for k, v in risk_result.__dict__.items() if k != "raw_data"
+            },
+            "sanctions_screening": {
+                k: v for k, v in sanctions_result.__dict__.items() if k != "raw_data"
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "anchain_ai",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("AnChain address screen failed: %s", exc)
+        raise JackdawException(
+            message=f"AnChain.ai address screening failed: {exc}",
+            error_code="ANCHAIN_SCREEN_FAILED",
+        )
+
+
+@router.post("/anchain/screen/entity")
+async def anchain_screen_entity(
+    request: AnChainEntityScreenRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
+) -> Dict[str, Any]:
+    """Screen an individual or organisation against global sanctions/PEP lists.
+
+    Useful for VASP customer due-diligence (CDD) and EU AMLR Travel Rule checks.
+    Requires ``ANCHAIN_API_KEY`` to be configured; returns 503 otherwise.
+    """
+    from src.intelligence.anchain_integration import AnChainIntegration
+    from src.api.config import settings
+
+    api_key = getattr(settings, "ANCHAIN_API_KEY", None)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AnChain.ai integration is not configured (ANCHAIN_API_KEY missing)",
+        )
+
+    try:
+        async with AnChainIntegration(api_key) as anchain:
+            result = await anchain.screen_entity(
+                name=request.name,
+                id_number=request.id_number,
+                country=request.country,
+                entity_type=request.entity_type,
+            )
+
+        return {
+            "success": True,
+            "name": request.name,
+            "entity_type": request.entity_type,
+            "screening": {k: v for k, v in result.__dict__.items() if k != "raw_data"},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "anchain_ai",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("AnChain entity screen failed: %s", exc)
+        raise JackdawException(
+            message=f"AnChain.ai entity screening failed: {exc}",
+            error_code="ANCHAIN_ENTITY_SCREEN_FAILED",
+        )
+
+
+@router.post("/anchain/screen/ip")
+async def anchain_screen_ip(
+    request: AnChainIPScreenRequest,
+    current_user: User = Depends(check_permissions([PERMISSIONS["read_intelligence"]])),
+) -> Dict[str, Any]:
+    """Screen an IP address for geographic and threat-actor risk via AnChain.ai.
+
+    Unique capability — no other integrated provider covers IP risk screening.
+    Useful for geo-risk signals in compliance reports and Travel Rule workflows.
+    Requires ``ANCHAIN_API_KEY`` to be configured; returns 503 otherwise.
+    """
+    from src.intelligence.anchain_integration import AnChainIntegration
+    from src.api.config import settings
+
+    api_key = getattr(settings, "ANCHAIN_API_KEY", None)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AnChain.ai integration is not configured (ANCHAIN_API_KEY missing)",
+        )
+
+    try:
+        async with AnChainIntegration(api_key) as anchain:
+            result = await anchain.screen_ip(request.ip_address)
+
+        return {
+            "success": True,
+            "ip_address": request.ip_address,
+            "screening": {k: v for k, v in result.__dict__.items() if k != "raw_data"},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "anchain_ai",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("AnChain IP screen failed: %s", exc)
+        raise JackdawException(
+            message=f"AnChain.ai IP screening failed: {exc}",
+            error_code="ANCHAIN_IP_SCREEN_FAILED",
+        )

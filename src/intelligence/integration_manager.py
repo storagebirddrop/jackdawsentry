@@ -52,6 +52,7 @@ class IntegrationCapability(Enum):
     THREAT_INTELLIGENCE = "threat_intelligence"
     EVIDENCE_COLLECTION = "evidence_collection"
     RISK_ASSESSMENT = "risk_assessment"
+    ANCHAIN_SCREENING = "anchain_screening"
 
 
 @dataclass
@@ -129,6 +130,7 @@ class IntegrationManager:
             "arkham": bool(settings.ARKHAM_API_KEY),
             "etherscan_labels": True,  # Always available
             "osint_workflows": True,  # Always available
+            "anchain_ai": bool(getattr(settings, "ANCHAIN_API_KEY", None)),
         }
 
         logger.info(
@@ -184,6 +186,9 @@ class IntegrationManager:
 
             if IntegrationCapability.EVIDENCE_COLLECTION in capabilities:
                 await self._collect_evidence(analysis)
+
+            if IntegrationCapability.ANCHAIN_SCREENING in capabilities:
+                await self._execute_anchain_screening(analysis, target)
 
             # Calculate processing time
             analysis.processing_time = (
@@ -808,6 +813,49 @@ law enforcement agencies, and compliance professionals.
         except Exception as e:
             logger.error(f"Cleanup failed: {e}")
             return 0
+
+
+    async def _execute_anchain_screening(
+        self, analysis: IntegratedAnalysis, target: str
+    ):
+        """Run AnChain.ai address/sanctions screening and merge results into analysis.
+
+        Skipped silently when ``ANCHAIN_API_KEY`` is not configured.
+        """
+        from .anchain_integration import AnChainIntegration
+
+        api_key = getattr(settings, "ANCHAIN_API_KEY", None)
+        if not api_key:
+            return
+
+        try:
+            async with AnChainIntegration(api_key) as anchain:
+                # Heuristic: treat 42-char 0x strings as Ethereum addresses
+                blockchain = "ethereum" if target.startswith("0x") else "bitcoin"
+                risk_result = await anchain.screen_address(target, blockchain)
+                sanctions_result = await anchain.screen_sanctions(target, blockchain)
+
+            analysis.results["anchain_screening"] = {
+                "risk": risk_result.__dict__,
+                "sanctions": sanctions_result.__dict__,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+            if sanctions_result.sanctions_match:
+                analysis.evidence.append(
+                    {
+                        "type": "sanctions_match",
+                        "data": sanctions_result.__dict__,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "source": "anchain_ai",
+                    }
+                )
+
+            logger.info("AnChain.ai screening completed for %s", target)
+
+        except Exception as exc:
+            logger.error("AnChain.ai screening error for %s: %s", target, exc)
+            analysis.results["anchain_screening"] = {"error": str(exc)}
 
 
 # Global integration manager instance

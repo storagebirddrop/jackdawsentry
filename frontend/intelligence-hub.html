@@ -523,6 +523,155 @@
             </div>
         </main>
 
+        <!-- ======= MODALS ======= -->
+
+        <!-- Service Request Modal -->
+        <div id="svc-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-semibold text-lg">New Service Request</h3>
+                    <button onclick="hideServiceModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form id="svc-form" onsubmit="submitServiceRequest(event)" class="p-6 space-y-4">
+                    <input id="svc-title" type="text" placeholder="Request Title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="svc-type" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="">Service Type</option>
+                            <option value="investigation">Investigation</option>
+                            <option value="compliance_review">Compliance Review</option>
+                            <option value="expert_witness">Expert Witness</option>
+                            <option value="training">Training</option>
+                            <option value="consulting">Consulting</option>
+                        </select>
+                        <select id="svc-priority" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="low">Low Priority</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <input id="svc-budget" type="number" step="100" placeholder="Budget (USD, optional)" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <textarea id="svc-desc" placeholder="Description" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideServiceModal()" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Expert Modal -->
+        <div id="expert-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-semibold text-lg">Add Expert Profile</h3>
+                    <button onclick="hideExpertModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form id="expert-form" onsubmit="submitExpert(event)" class="p-6 space-y-4">
+                    <input id="expert-name" type="text" placeholder="Full Name" required class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="expert-level" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="junior">Junior</option>
+                            <option value="mid" selected>Mid-Level</option>
+                            <option value="senior">Senior</option>
+                            <option value="principal">Principal</option>
+                        </select>
+                        <input id="expert-rate" type="number" step="10" placeholder="Hourly Rate (USD)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    </div>
+                    <input id="expert-specs" type="text" placeholder="Specializations (comma-separated)" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <textarea id="expert-bio" placeholder="Bio" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideExpertModal()" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Add Expert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Create Training Modal -->
+        <div id="training-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-semibold text-lg">Create Training Program</h3>
+                    <button onclick="hideTrainingModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form id="training-form" onsubmit="submitTraining(event)" class="p-6 space-y-4">
+                    <input id="tr-title" type="text" placeholder="Program Title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <textarea id="tr-desc" placeholder="Description" required rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"></textarea>
+                    <div class="grid grid-cols-3 gap-4">
+                        <select id="tr-level" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate" selected>Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                        <input id="tr-hours" type="number" min="1" placeholder="Hours" value="8" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                        <input id="tr-price" type="number" step="50" placeholder="Price/person ($)" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideTrainingModal()" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Create Program</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Case Detail Modal -->
+        <div id="case-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 id="case-modal-title" class="font-semibold text-lg">Case Details</h3>
+                    <button onclick="hideCaseModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div id="case-modal-body" class="p-6"></div>
+                <div class="px-6 pb-6 flex justify-end">
+                    <button onclick="hideCaseModal()" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Evidence Modal -->
+        <div id="evidence-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-semibold text-lg">Add Evidence</h3>
+                    <button onclick="hideEvidenceModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form id="evidence-form" onsubmit="submitEvidence(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="ev-case-id">
+                    <input id="ev-title" type="text" placeholder="Evidence Title" required class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="ev-type" required class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="">Evidence Type</option>
+                            <option value="blockchain_transaction">Blockchain Transaction</option>
+                            <option value="address_analysis">Address Analysis</option>
+                            <option value="on_chain_data">On-Chain Data</option>
+                            <option value="wallet_analysis">Wallet Analysis</option>
+                            <option value="smart_contract">Smart Contract</option>
+                            <option value="document">Document</option>
+                            <option value="screenshot">Screenshot</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <select id="ev-blockchain" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm">
+                            <option value="">Chain (optional)</option>
+                            <option value="ethereum">Ethereum</option>
+                            <option value="bitcoin">Bitcoin</option>
+                            <option value="bsc">BNB Chain</option>
+                            <option value="polygon">Polygon</option>
+                            <option value="solana">Solana</option>
+                            <option value="tron">Tron</option>
+                        </select>
+                    </div>
+                    <input id="ev-address" type="text" placeholder="Address (optional)" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono text-xs">
+                    <input id="ev-txhash" type="text" placeholder="Transaction Hash (optional)" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono text-xs">
+                    <textarea id="ev-desc" placeholder="Description" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="hideEvidenceModal()" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">Add Evidence</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <footer class="border-t border-slate-200 dark:border-slate-800 mt-auto">
             <div class="max-w-full px-4 sm:px-6 py-4 flex justify-between items-center text-sm text-slate-400 dark:text-slate-500">
                 <span>&copy; <script>document.write(new Date().getFullYear())</script> Jackdaw Sentry</span>
@@ -534,6 +683,13 @@
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+
+        // Close any modal on backdrop click
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.add('hidden');
+            });
+        });
 
         // Tab switching
         function switchTab(tabId) {
@@ -1022,9 +1178,83 @@
             } catch(e) { container.innerHTML = '<p class="col-span-full text-slate-400">Failed to load training</p>'; }
         }
 
-        function showServiceRequestForm() { alert('Service request form - implement modal'); }
-        function showExpertForm() { alert('Expert form - implement modal'); }
-        function showTrainingForm() { alert('Training form - implement modal'); }
+        // ---- Service Request Modal ----
+        function showServiceRequestForm() {
+            document.getElementById('svc-modal').classList.remove('hidden');
+        }
+        function hideServiceModal() {
+            document.getElementById('svc-modal').classList.add('hidden');
+            document.getElementById('svc-form').reset();
+        }
+        async function submitServiceRequest(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/professional-services/services', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: document.getElementById('svc-title').value,
+                        service_type: document.getElementById('svc-type').value,
+                        priority: document.getElementById('svc-priority').value,
+                        description: document.getElementById('svc-desc').value,
+                        budget: parseFloat(document.getElementById('svc-budget').value) || undefined
+                    })
+                });
+                hideServiceModal();
+                loadServiceRequests();
+            } catch(err) { alert('Failed to create service request: ' + err); }
+        }
+
+        // ---- Expert Modal ----
+        function showExpertForm() {
+            document.getElementById('expert-modal').classList.remove('hidden');
+        }
+        function hideExpertModal() {
+            document.getElementById('expert-modal').classList.add('hidden');
+            document.getElementById('expert-form').reset();
+        }
+        async function submitExpert(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/professional-services/professionals', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('expert-name').value,
+                        expertise_level: document.getElementById('expert-level').value,
+                        specializations: (document.getElementById('expert-specs').value || '').split(',').map(s => s.trim()).filter(s => s),
+                        bio: document.getElementById('expert-bio').value,
+                        hourly_rate: parseFloat(document.getElementById('expert-rate').value) || undefined
+                    })
+                });
+                hideExpertModal();
+                loadExperts();
+            } catch(err) { alert('Failed to add expert: ' + err); }
+        }
+
+        // ---- Training Modal ----
+        function showTrainingForm() {
+            document.getElementById('training-modal').classList.remove('hidden');
+        }
+        function hideTrainingModal() {
+            document.getElementById('training-modal').classList.add('hidden');
+            document.getElementById('training-form').reset();
+        }
+        async function submitTraining(e) {
+            e.preventDefault();
+            try {
+                await Auth.fetchWithAuth('/api/v1/intelligence/professional-services/training', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: document.getElementById('tr-title').value,
+                        description: document.getElementById('tr-desc').value,
+                        level: document.getElementById('tr-level').value,
+                        duration_hours: parseInt(document.getElementById('tr-hours').value) || 8,
+                        price_per_participant: parseFloat(document.getElementById('tr-price').value) || 0
+                    })
+                });
+                hideTrainingModal();
+                loadTraining();
+            } catch(err) { alert('Failed to create training program: ' + err); }
+        }
 
         // ==================== FORENSICS ====================
         async function loadForensicCases() {
@@ -1084,8 +1314,58 @@
             } catch(err) { alert('Failed to create case: ' + err); }
         }
 
-        function viewCase(id) { alert('View case: ' + id); }
-        function addEvidence(caseId) { alert('Add evidence to case: ' + caseId); }
+        // ---- Case Detail Modal ----
+        async function viewCase(id) {
+            try {
+                const c = await Auth.fetchJSON('/api/v1/forensics/cases/' + id);
+                if (!c) return;
+                document.getElementById('case-modal-title').textContent = c.title || 'Case Details';
+                document.getElementById('case-modal-body').innerHTML =
+                    '<dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">'
+                    + '<dt class="text-slate-500">Type</dt><dd>' + esc(c.case_type) + '</dd>'
+                    + '<dt class="text-slate-500">Status</dt><dd><span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (statusColors[c.status] || '') + '">' + esc(c.status) + '</span></dd>'
+                    + '<dt class="text-slate-500">Priority</dt><dd><span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + (severityColors[c.priority] || '') + '">' + esc(c.priority) + '</span></dd>'
+                    + '<dt class="text-slate-500">Jurisdiction</dt><dd>' + esc(c.jurisdiction) + '</dd>'
+                    + '<dt class="text-slate-500">Evidence</dt><dd>' + (c.evidence_count || 0) + ' items</dd>'
+                    + '<dt class="text-slate-500">Created</dt><dd>' + (c.created_at ? new Date(c.created_at).toLocaleString() : '—') + '</dd>'
+                    + '<dt class="text-slate-500 col-span-2">Description</dt>'
+                    + '<dd class="col-span-2 text-slate-600 dark:text-slate-300">' + esc(c.description || '—') + '</dd>'
+                    + '</dl>';
+                document.getElementById('case-modal').classList.remove('hidden');
+            } catch(err) { alert('Failed to load case: ' + err); }
+        }
+        function hideCaseModal() {
+            document.getElementById('case-modal').classList.add('hidden');
+        }
+
+        // ---- Add Evidence Modal ----
+        function addEvidence(caseId) {
+            document.getElementById('ev-case-id').value = caseId;
+            document.getElementById('evidence-modal').classList.remove('hidden');
+        }
+        function hideEvidenceModal() {
+            document.getElementById('evidence-modal').classList.add('hidden');
+            document.getElementById('evidence-form').reset();
+        }
+        async function submitEvidence(e) {
+            e.preventDefault();
+            const caseId = document.getElementById('ev-case-id').value;
+            try {
+                await Auth.fetchWithAuth('/api/v1/forensics/cases/' + caseId + '/evidence', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        evidence_type: document.getElementById('ev-type').value,
+                        title: document.getElementById('ev-title').value,
+                        description: document.getElementById('ev-desc').value,
+                        blockchain: document.getElementById('ev-blockchain').value || undefined,
+                        address: document.getElementById('ev-address').value || undefined,
+                        transaction_hash: document.getElementById('ev-txhash').value || undefined
+                    })
+                });
+                hideEvidenceModal();
+                loadForensicCases();
+            } catch(err) { alert('Failed to add evidence: ' + err); }
+        }
 
         // Initial load
         loadOverviewStats();
