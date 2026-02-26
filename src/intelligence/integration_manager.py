@@ -102,8 +102,28 @@ class IntegrationManager:
         # Initialize capabilities
         self._initialize_capabilities()
 
-        # Start background tasks
-        self.background_tasks = []
+    @staticmethod
+    def detect_chain_for_address(address: str) -> Optional[str]:
+        """Detect blockchain for address using consistent heuristics"""
+        if not address:
+            return None
+            
+        # Ethereum addresses: 0x prefix + 40 hex chars (42 total)
+        if address.startswith("0x") and len(address) == 42 and all(c in "0123456789abcdefABCDEF" for c in address[2:]):
+            return "ethereum"
+        
+        # Bitcoin addresses: 
+        # - Legacy (1): starts with 1, 26-35 chars
+        # - P2SH (3): starts with 3, 33-34 chars  
+        # - Bech32 (bc1): starts with bc1, 39-89 chars
+        if address.startswith("1") and 26 <= len(address) <= 35:
+            return "bitcoin"
+        elif address.startswith("3") and 33 <= len(address) <= 34:
+            return "bitcoin"
+        elif address.startswith("bc1") and 39 <= len(address) <= 89:
+            return "bitcoin"
+            
+        return None
 
     def _initialize_capabilities(self):
         """Initialize integration capabilities"""
@@ -303,19 +323,14 @@ class IntegrationManager:
     async def _execute_osint_analysis(self, analysis: IntegratedAnalysis, target: str):
         """Execute OSINT workflows analysis"""
         try:
-            # Determine investigation type based on target
-            if target.startswith("0x") or len(target) == 42:  # Ethereum address
+            # Determine investigation type based on target using consistent detection
+            blockchain = IntegrationManager.detect_chain_for_address(target)
+            if blockchain == "ethereum":
                 investigation_type = InvestigationType.ETHEREUM_ADDRESS
-            elif (
-                target.startswith("1")
-                or target.startswith("3")
-                or target.startswith("bc1")
-            ):  # Bitcoin address
+            elif blockchain == "bitcoin":
                 investigation_type = InvestigationType.BITCOIN_ADDRESS
             else:
-                investigation_type = (
-                    InvestigationType.BITCOIN_ADDRESS
-                )  # Default to Bitcoin
+                investigation_type = InvestigationType.BITCOIN_ADDRESS  # Default to Bitcoin
 
             # Start OSINT investigation
             investigation = await self.osint_workflows.start_investigation(
@@ -830,8 +845,8 @@ law enforcement agencies, and compliance professionals.
 
         try:
             async with AnChainIntegration(api_key) as anchain:
-                # Heuristic: treat 42-char 0x strings as Ethereum addresses
-                blockchain = "ethereum" if target.startswith("0x") else "bitcoin"
+                # Use consistent blockchain detection
+                blockchain = IntegrationManager.detect_chain_for_address(target) or "bitcoin"
                 risk_result = await anchain.screen_address(target, blockchain)
                 sanctions_result = await anchain.screen_sanctions(target, blockchain)
 

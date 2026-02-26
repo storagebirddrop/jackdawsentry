@@ -24,6 +24,7 @@ from src.api.config import settings
 from src.api.database import get_neo4j_session
 from src.api.database import get_redis_connection
 from .anchain_integration import AnChainIntegration
+from .integration_manager import IntegrationManager
 
 logger = logging.getLogger(__name__)
 
@@ -558,10 +559,25 @@ class ProfessionalToolsManager:
 
                 elif tool_type == ProfessionalToolType.ANCHAIN_AI:
                     async with tool:
-                        screening = await tool.screen_address(address, "ethereum")
+                        # Detect blockchain for address
+                        blockchain = IntegrationManager.detect_chain_for_address(address) or "ethereum"
+                        screening = await tool.screen_address(address, blockchain)
+                        
+                        # Safely serialize screening result
+                        try:
+                            if hasattr(screening, '__dict__'):
+                                anchain_data = screening.__dict__
+                            elif isinstance(screening, dict):
+                                anchain_data = screening
+                            else:
+                                anchain_data = {"error": "Unexpected result type", "type": str(type(screening))}
+                        except Exception as serialize_error:
+                            anchain_data = {"error": f"Serialization failed: {serialize_error}"}
+                        
                         result = {
                             "address": address,
-                            "anchain_data": screening.__dict__,
+                            "blockchain": blockchain,
+                            "anchain_data": anchain_data,
                             "timestamp": datetime.now(timezone.utc).isoformat(),
                             "source": "anchain_ai",
                         }

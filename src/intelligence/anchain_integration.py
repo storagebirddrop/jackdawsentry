@@ -11,8 +11,10 @@ AnChain.ai covers 14+ chains including niche ones (Stellar, Algorand, Zcash, Das
 BSV) not covered by other integrated providers, and uniquely offers IP risk screening.
 """
 
-import json
+import asyncio
+import hashlib
 import logging
+import json
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
@@ -85,13 +87,15 @@ class AnChainIntegration:
     Results are cached in Redis for ``_CACHE_TTL`` seconds.
     """
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, timeout: int = 30):
         """Initialise the integration.
 
         Args:
             api_key: AnChain.ai API key. Falls back to ``settings.ANCHAIN_API_KEY``.
+            timeout: Request timeout in seconds.
         """
         self.api_key = api_key or getattr(settings, "ANCHAIN_API_KEY", None)
+        self._timeout = timeout
         self._session: Optional[aiohttp.ClientSession] = None
 
     async def __aenter__(self):
@@ -115,7 +119,19 @@ class AnChainIntegration:
             "Accept": "application/json",
         }
 
-    async def _get_cached(self, cache_key: str) -> Optional[Any]:
+    async def _deserialize_screening_cache(self, cached: Dict[str, Any]) -> AnChainScreeningResult:
+        """Deserialize cached screening result with proper timestamp handling."""
+        # Parse timestamp back to datetime if it exists
+        if "timestamp" in cached and isinstance(cached["timestamp"], str):
+            try:
+                cached["timestamp"] = datetime.fromisoformat(cached["timestamp"])
+            except (ValueError, TypeError):
+                # If timestamp parsing fails, use current time
+                cached["timestamp"] = datetime.now(timezone.utc)
+        
+        return AnChainScreeningResult(**cached)
+
+    async def _get_cached(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Return cached value from Redis, or None on miss/error."""
         try:
             async with get_redis_connection() as redis:
@@ -126,11 +142,12 @@ class AnChainIntegration:
             logger.debug("AnChain cache read error: %s", exc)
         return None
 
-    async def _set_cached(self, cache_key: str, value: Any) -> None:
-        """Store value in Redis with the standard TTL."""
+    async def _set_cached(self, cache_key: str, value: Any, ttl: Optional[int] = None) -> None:
+        """Store value in Redis with the specified TTL (default: standard TTL)."""
         try:
+            cache_ttl = ttl if ttl is not None else _CACHE_TTL
             async with get_redis_connection() as redis:
-                await redis.setex(cache_key, _CACHE_TTL, json.dumps(value, default=str))
+                await redis.setex(cache_key, cache_ttl, json.dumps(value, default=str))
         except Exception as exc:
             logger.debug("AnChain cache write error: %s", exc)
 
@@ -138,11 +155,23 @@ class AnChainIntegration:
         """POST to AnChain API; raises on non-200 status."""
         if self._session is None:
             raise RuntimeError("AnChainIntegration must be used as an async context manager")
-        async with self._session.post(url, headers=self._headers(), json=payload) as resp:
-            if resp.status == 200:
-                return await resp.json()
-            error_body = await resp.text()
-            raise Exception(f"AnChain API HTTP {resp.status}: {error_body}")
+        
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=self._timeout)
+        
+        try:
+            async with self._session.post(
+                url, 
+                headers=self._headers(), 
+                json=payload, 
+                timeout=timeout
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                error_body = await resp.text()
+                raise RuntimeError(f"AnChain API error {resp.status}: {error_body}")
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"AnChain API timeout after {self._timeout} seconds")
 
     # ------------------------------------------------------------------
     # Public screening methods
@@ -163,14 +192,16 @@ class AnChainIntegration:
         cache_key = f"anchain:address:{blockchain}:{address}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return AnChainScreeningResult(**cached)
+            return await self._deserialize_screening_cache(cached)
 
         try:
             data = await self._post(
                 f"{_INTELLIGENCE_BASE_URL}/address/risk",
                 {"address": address, "blockchain": blockchain},
             )
-            score = data.get("riskScore") or data.get("risk_score")
+            score = data.get("riskScore")
+            if score is None:
+                score = data.get("risk_score")
             result = AnChainScreeningResult(
                 subject=address,
                 subject_type="address",
@@ -182,7 +213,9 @@ class AnChainIntegration:
                 raw_data=data,
             )
         except Exception as exc:
-            logger.error("AnChain address screening failed for %s: %s", address, exc)
+            # Hash the address for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(address.encode()).hexdigest()[:8]
+            logger.error("AnChain address screening failed for %s: %s", hashed_id, exc)
             result = AnChainScreeningResult(
                 subject=address,
                 subject_type="address",
@@ -191,7 +224,7 @@ class AnChainIntegration:
                 error=str(exc),
             )
 
-        await self._set_cached(cache_key, result.__dict__)
+        await self._set_cached(cache_key, result.__dict__, ttl=30)
         return result
 
     async def screen_transaction(
@@ -209,14 +242,16 @@ class AnChainIntegration:
         cache_key = f"anchain:tx:{blockchain}:{tx_hash}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return AnChainScreeningResult(**cached)
+            return await self._deserialize_screening_cache(cached)
 
         try:
             data = await self._post(
                 f"{_INTELLIGENCE_BASE_URL}/transaction/risk",
                 {"txHash": tx_hash, "blockchain": blockchain},
             )
-            score = data.get("riskScore") or data.get("risk_score")
+            score = data.get("riskScore")
+            if score is None:
+                score = data.get("risk_score")
             result = AnChainScreeningResult(
                 subject=tx_hash,
                 subject_type="transaction",
@@ -227,7 +262,9 @@ class AnChainIntegration:
                 raw_data=data,
             )
         except Exception as exc:
-            logger.error("AnChain transaction screening failed for %s: %s", tx_hash, exc)
+            # Hash the transaction hash for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(tx_hash.encode()).hexdigest()[:8]
+            logger.error("AnChain transaction screening failed for %s: %s", hashed_id, exc)
             result = AnChainScreeningResult(
                 subject=tx_hash,
                 subject_type="transaction",
@@ -236,7 +273,7 @@ class AnChainIntegration:
                 error=str(exc),
             )
 
-        await self._set_cached(cache_key, result.__dict__)
+        await self._set_cached(cache_key, result.__dict__, ttl=30)
         return result
 
     async def screen_sanctions(
@@ -254,7 +291,7 @@ class AnChainIntegration:
         cache_key = f"anchain:sanctions:{blockchain}:{address}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return AnChainScreeningResult(**cached)
+            return await self._deserialize_screening_cache(cached)
 
         try:
             data = await self._post(
@@ -273,7 +310,9 @@ class AnChainIntegration:
                 raw_data=data,
             )
         except Exception as exc:
-            logger.error("AnChain sanctions screening failed for %s: %s", address, exc)
+            # Hash the address for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(address.encode()).hexdigest()[:8]
+            logger.error("AnChain sanctions screening failed for %s: %s", hashed_id, exc)
             result = AnChainScreeningResult(
                 subject=address,
                 subject_type="address",
@@ -282,7 +321,7 @@ class AnChainIntegration:
                 error=str(exc),
             )
 
-        await self._set_cached(cache_key, result.__dict__)
+        await self._set_cached(cache_key, result.__dict__, ttl=30)
         return result
 
     async def screen_entity(
@@ -303,10 +342,12 @@ class AnChainIntegration:
         Returns:
             AnChainScreeningResult with sanctions match status and matched lists.
         """
-        cache_key = f"anchain:entity:{entity_type}:{name}:{id_number}:{country}"
+        # Hash the name to avoid cache key collisions with colons
+        name_hash = hashlib.sha256(name.encode()).hexdigest()[:8]
+        cache_key = f"anchain:entity:{entity_type}:{name_hash}:{id_number}:{country}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return AnChainScreeningResult(**cached)
+            return await self._deserialize_screening_cache(cached)
 
         payload: Dict[str, Any] = {"name": name, "entityType": entity_type}
         if id_number:
@@ -328,7 +369,9 @@ class AnChainIntegration:
                 raw_data=data,
             )
         except Exception as exc:
-            logger.error("AnChain entity screening failed for %s: %s", name, exc)
+            # Hash the entity name for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(name.encode()).hexdigest()[:8]
+            logger.error("AnChain entity screening failed for %s: %s", hashed_id, exc)
             result = AnChainScreeningResult(
                 subject=name,
                 subject_type="entity",
@@ -337,7 +380,7 @@ class AnChainIntegration:
                 error=str(exc),
             )
 
-        await self._set_cached(cache_key, result.__dict__)
+        await self._set_cached(cache_key, result.__dict__, ttl=30)
         return result
 
     async def screen_ip(self, ip_address: str) -> AnChainScreeningResult:
@@ -354,14 +397,16 @@ class AnChainIntegration:
         cache_key = f"anchain:ip:{ip_address}"
         cached = await self._get_cached(cache_key)
         if cached:
-            return AnChainScreeningResult(**cached)
+            return await self._deserialize_screening_cache(cached)
 
         try:
             data = await self._post(
                 f"{_AML_BASE_URL}/ip/screen",
                 {"ipAddress": ip_address},
             )
-            score = data.get("riskScore") or data.get("risk_score")
+            score = data.get("riskScore")
+            if score is None:
+                score = data.get("risk_score")
             result = AnChainScreeningResult(
                 subject=ip_address,
                 subject_type="ip",
@@ -372,7 +417,9 @@ class AnChainIntegration:
                 raw_data=data,
             )
         except Exception as exc:
-            logger.error("AnChain IP screening failed for %s: %s", ip_address, exc)
+            # Hash the IP address for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(ip_address.encode()).hexdigest()[:8]
+            logger.error("AnChain IP screening failed for %s: %s", hashed_id, exc)
             result = AnChainScreeningResult(
                 subject=ip_address,
                 subject_type="ip",
@@ -381,7 +428,7 @@ class AnChainIntegration:
                 error=str(exc),
             )
 
-        await self._set_cached(cache_key, result.__dict__)
+        await self._set_cached(cache_key, result.__dict__, ttl=30)
         return result
 
     async def trace_transaction(
@@ -408,7 +455,9 @@ class AnChainIntegration:
                 {"txHash": tx_hash, "blockchain": blockchain, "maxHops": max_hops},
             )
         except Exception as exc:
-            logger.error("AnChain transaction trace failed for %s: %s", tx_hash, exc)
+            # Hash the transaction hash for logging to avoid PII exposure
+            hashed_id = hashlib.sha256(tx_hash.encode()).hexdigest()[:8]
+            logger.error("AnChain transaction trace failed for %s: %s", hashed_id, exc)
             data = {
                 "txHash": tx_hash,
                 "error": str(exc),

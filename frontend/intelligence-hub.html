@@ -687,7 +687,18 @@
         // Close any modal on backdrop click
         document.querySelectorAll('.fixed.inset-0').forEach(modal => {
             modal.addEventListener('click', function(e) {
-                if (e.target === this) this.classList.add('hidden');
+                if (e.target === this) {
+                    // Reset forms before hiding
+                    this.querySelectorAll('form').forEach(form => form.reset());
+                    
+                    // Call appropriate hide function based on modal id
+                    if (this.id === 'svc-modal') hideServiceModal();
+                    else if (this.id === 'expert-modal') hideExpertModal();
+                    else if (this.id === 'training-modal') hideTrainingModal();
+                    else if (this.id === 'case-modal') hideCaseModal();
+                    else if (this.id === 'evidence-modal') hideEvidenceModal();
+                    else this.classList.add('hidden'); // Fallback for unknown modals
+                }
             });
         });
 

@@ -23,6 +23,21 @@
 - [x] 8. Add navigation link to nav.js
 - [ ] 9. Test and validate all API integrations (requires running stack)
 
+**Test Artifacts Required:**
+- [ ] Unit test results for OverviewDashboard, VictimReportsController, ThreatFeedsManager, AttributionAnalyzer, ProfessionalServicesModule, ForensicsCaseManager
+- [ ] Integration test coverage for intelligence-hub.html components
+- [ ] E2E test screenshots showing all tabs and key workflows
+- [ ] Lint and type-check outputs (pylint, mypy, flake8)
+- [ ] API integration testing plan with test suite names
+- [ ] Performance benchmarks for dashboard loading and data rendering
+
+**Files to Reference:**
+- `frontend/intelligence-hub.html` - Main interface
+- `frontend/nav.js` - Navigation integration
+- `src/api/routers/` - API endpoints for each module
+- `src/intelligence/` - Backend services
+- `tests/test_intelligence/` - Test suites
+
 ## Files to Create/Modify
 
 **Create:**
