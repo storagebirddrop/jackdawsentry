@@ -18,8 +18,7 @@ from typing import Tuple
 
 import asyncpg
 
-from src.api.database import get_neo4j_session
-from src.api.database import get_postgres_connection
+from src.api import database as api_database
 
 from .confidence_scoring import Evidence
 from .confidence_scoring import EvidenceType
@@ -54,7 +53,12 @@ class AttributionEngine:
 
         logger.info("Initializing Attribution Engine...")
         await self.vasp_registry.initialize()
-        await self._create_attribution_tables()
+        try:
+            await self._create_attribution_tables()
+        except RuntimeError as exc:
+            if "PostgreSQL pool not initialized" not in str(exc):
+                raise
+            logger.warning("Skipping attribution table initialization; PostgreSQL is unavailable")
         self._initialized = True
         logger.info("Attribution Engine initialized successfully")
 
@@ -126,18 +130,15 @@ class AttributionEngine:
         CREATE INDEX IF NOT EXISTS idx_evidence_type ON attribution_evidence(evidence_type);
         """
 
-        conn = await get_postgres_connection()
-        try:
-            await conn.execute(create_attributions_table)
-            await conn.execute(create_evidence_table)
-            await conn.commit()
-            logger.info("Attribution tables created/verified")
-        except Exception as e:
-            logger.error(f"Error creating attribution tables: {e}")
-            await conn.rollback()
-            raise
-        finally:
-            await conn.close()
+        async with api_database.get_postgres_connection() as conn:
+            try:
+                async with conn.transaction():
+                    await conn.execute(create_attributions_table)
+                    await conn.execute(create_evidence_table)
+                    logger.info("Attribution tables created/verified")
+            except Exception as e:
+                logger.error(f"Error creating attribution tables: {e}")
+                raise
 
     async def attribute_address(
         self,
@@ -292,35 +293,34 @@ class AttributionEngine:
         ORDER BY confidence_score DESC
         """
 
-        conn = await get_postgres_connection()
         try:
-            rows = await conn.fetch(query, address.lower(), blockchain)
+            normalized_address = self._normalize_address(address, blockchain)
+            async with api_database.get_postgres_connection() as conn:
+                rows = await conn.fetch(query, normalized_address, blockchain)
 
-            attributions = []
-            for row in rows:
-                attribution = AddressAttribution(
-                    id=row["id"],
-                    address=row["address"],
-                    blockchain=row["blockchain"],
-                    vasp_id=row["vasp_id"],
-                    confidence_score=float(row["confidence_score"]),
-                    attribution_source_id=row["attribution_source_id"],
-                    verification_status=VerificationStatus(row["verification_status"]),
-                    evidence=row["evidence"],
-                    corroborating_sources=row["corroborating_sources"],
-                    first_seen=row["first_seen"],
-                    last_verified=row["last_verified"],
-                    notes=row["notes"],
-                )
-                attributions.append(attribution)
+                attributions = []
+                for row in rows:
+                    attribution = AddressAttribution(
+                        id=row["id"],
+                        address=row["address"],
+                        blockchain=row["blockchain"],
+                        vasp_id=row["vasp_id"],
+                        confidence_score=float(row["confidence_score"]),
+                        attribution_source_id=row["attribution_source_id"],
+                        verification_status=VerificationStatus(row["verification_status"]),
+                        evidence=row["evidence"],
+                        corroborating_sources=row["corroborating_sources"],
+                        first_seen=row["first_seen"],
+                        last_verified=row["last_verified"],
+                        notes=row["notes"],
+                    )
+                    attributions.append(attribution)
 
-            return attributions
+                return attributions
 
         except Exception as e:
             logger.error(f"Error finding exact matches: {e}")
             return []
-        finally:
-            await conn.close()
 
     async def _find_cluster_attributions(
         self, address: str, blockchain: str
@@ -431,33 +431,31 @@ class AttributionEngine:
         ORDER BY reliability_score DESC
         """
 
-        conn = await get_postgres_connection()
         try:
-            rows = await conn.fetch(query, *source_ids)
+            async with api_database.get_postgres_connection() as conn:
+                rows = await conn.fetch(query, *source_ids)
 
-            sources = []
-            for row in rows:
-                source = AttributionSource(
-                    id=row["id"],
-                    name=row["name"],
-                    source_type=row["source_type"],
-                    reliability_score=float(row["reliability_score"]),
-                    description=row["description"],
-                    url=row["url"],
-                    api_endpoint=row["api_endpoint"],
-                    authentication_required=row["authentication_required"],
-                    rate_limit_per_hour=row["rate_limit_per_hour"],
-                    last_updated=row["last_updated"],
-                )
-                sources.append(source)
+                sources = []
+                for row in rows:
+                    source = AttributionSource(
+                        id=row["id"],
+                        name=row["name"],
+                        source_type=row["source_type"],
+                        reliability_score=float(row["reliability_score"]),
+                        description=row["description"],
+                        url=row["url"],
+                        api_endpoint=row["api_endpoint"],
+                        authentication_required=row["authentication_required"],
+                        rate_limit_per_hour=row["rate_limit_per_hour"],
+                        last_updated=row["last_updated"],
+                    )
+                    sources.append(source)
 
-            return sources
+                return sources
 
         except Exception as e:
             logger.error(f"Error getting attribution sources: {e}")
             return []
-        finally:
-            await conn.close()
 
     async def add_attribution(
         self, attribution: AddressAttribution, evidence: List[Evidence] = None
@@ -472,54 +470,56 @@ class AttributionEngine:
         RETURNING id, created_at, updated_at
         """
 
-        conn = await get_postgres_connection()
-        try:
-            # Insert attribution
-            result = await conn.fetchrow(
-                insert_query,
-                attribution.address.lower(),  # Normalize to lowercase
-                attribution.blockchain,
-                attribution.vasp_id,
-                attribution.confidence_score,
-                attribution.attribution_source_id,
-                attribution.verification_status.value,
-                json.dumps(attribution.evidence),
-                attribution.corroborating_sources,
-                attribution.notes,
-            )
+        async with api_database.get_postgres_connection() as conn:
+            try:
+                async with conn.transaction():
+                    # Use normalized address for storage
+                    normalized_address = self._normalize_address(attribution.address, attribution.blockchain)
+                    
+                    result = await conn.fetchrow(
+                        insert_query,
+                        normalized_address,
+                        attribution.blockchain,
+                        attribution.vasp_id,
+                        attribution.confidence_score,
+                        attribution.attribution_source_id,
+                        attribution.verification_status.value,
+                        json.dumps(attribution.evidence),
+                        attribution.corroborating_sources,
+                        attribution.notes,
+                    )
 
-            attribution.id = result["id"]
-            attribution.created_at = result["created_at"]
-            attribution.updated_at = result["updated_at"]
+                    # Update attribution with returned values
+                    attribution = attribution.model_copy(
+                        update={
+                            "id": result["id"],
+                            "address": normalized_address,  # Update with normalized address
+                            "created_at": result["created_at"],
+                            "updated_at": result["updated_at"],
+                        }
+                    )
 
-            # Insert evidence if provided
-            if evidence:
-                await self._add_evidence(attribution.id, evidence, conn)
+                    # Insert evidence if provided
+                    if evidence:
+                        await self._add_evidence(attribution.id, evidence, conn)
 
-            await conn.commit()
-            logger.info(f"Added attribution for {attribution.address}")
+                    logger.info(f"Added attribution for {attribution.address}")
 
-            # Clear cache for this address (all confidence levels)
-            keys_to_remove = []
-            normalized_address = self._normalize_address(
-                attribution.address, attribution.blockchain
-            )
-            prefix = f"{normalized_address}:{attribution.blockchain}:"
-            for cache_key in self.cache:
-                if cache_key.startswith(prefix):
-                    keys_to_remove.append(cache_key)
+                    # Clear cache for this address (all confidence levels)
+                    keys_to_remove = []
+                    prefix = f"{normalized_address}:{attribution.blockchain}:"
+                    for cache_key in self.cache:
+                        if cache_key.startswith(prefix):
+                            keys_to_remove.append(cache_key)
 
-            for key in keys_to_remove:
-                del self.cache[key]
+                    for key in keys_to_remove:
+                        del self.cache[key]
 
-            return attribution
+                    return attribution
 
-        except Exception as e:
-            logger.error(f"Error adding attribution: {e}")
-            await conn.rollback()
-            raise
-        finally:
-            await conn.close()
+            except Exception as e:
+                logger.error(f"Error adding attribution: {e}")
+                raise
 
     async def _add_evidence(
         self,
@@ -536,11 +536,10 @@ class AttributionEngine:
         ) VALUES ($1, $2, $3, $4, $5, $6)
         """
 
-        # Use provided connection or create a new one
-        should_close = False
         if conn is None:
-            conn = await get_postgres_connection()
-            should_close = True
+            async with api_database.get_postgres_connection() as managed_conn:
+                await self._add_evidence(attribution_id, evidence, managed_conn)
+            return
 
         try:
             for ev in evidence:
@@ -556,9 +555,6 @@ class AttributionEngine:
         except Exception as e:
             logger.error(f"Error adding evidence: {e}")
             raise
-        finally:
-            if should_close:
-                await conn.close()
 
 
 class ConsolidatedAttribution:

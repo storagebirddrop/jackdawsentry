@@ -1,0 +1,14 @@
+publicnode.com:
+
+ethereum | wss://ethereum-rpc.publicnode.com + https://ethereum-rpc.publicnode.com
+polygon | wss://polygon-bor-rpc.publicnode.com + https://polygon-bor-rpc.publicnode.com
+base | wss://base-rpc.publicnode.com + https://base-rpc.publicnode.com
+avalanche | wss://avalanche-c-chain-rpc.publicnode.com + https://avalanche-c-chain-rpc.publicnode.com
+arbitrum | wss://arbitrum-one-rpc.publicnode.com + https://arbitrum-one-rpc.publicnode.com
+optimism | wss://optimism-rpc.publicnode.com + https://optimism-rpc.publicnode.com
+sui | wss://sui-rpc.publicnode.com + https://sui-rpc.publicnode.com
+solana | wss://solana-rpc.publicnode.com + https://solana-rpc.publicnode.com
+starknet | wss://starknet-rpc.publicnode.com + https://starknet-rpc.publicnode.com
+injective | wss://injective-rpc.publicnode.com:443/websocket + https://injective-rpc.publicnode.com:443
+bitcoin | https://bitcoin-rpc.publicnode.com
+cosmos | wss://cosmos-rpc.publicnode.com:443/websocket + https://cosmos-rpc.publicnode.com:443
