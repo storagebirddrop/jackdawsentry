@@ -42,7 +42,7 @@ class CompetitiveBenchmarkingSuite:
     and competitor products to assess market positioning and improvement areas.
     """
     
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url.rstrip('/')
         self.results: List[BenchmarkResult] = []
         self.competitive_metrics: List[CompetitiveMetric] = []

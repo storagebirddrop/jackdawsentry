@@ -6,6 +6,7 @@ Multi-route pathfinding, seed phrase analysis, and transaction fingerprinting
 from .analytics_engine import AdvancedAnalyticsEngine
 from .analytics_engine import AnalyticsRequest
 from .analytics_engine import AnalyticsResponse
+from .analytics_engine import get_analytics_engine
 from .fingerprinting import FingerprintPattern
 from .fingerprinting import FingerprintResult
 from .fingerprinting import TransactionFingerprinter
@@ -29,4 +30,5 @@ __all__ = [
     "AdvancedAnalyticsEngine",
     "AnalyticsRequest",
     "AnalyticsResponse",
+    "get_analytics_engine",
 ]

@@ -170,9 +170,16 @@ async def lifespan(app: FastAPI):
         if settings.TESTING:
             logger.info("Skipping competitive assessment startup in test mode")
         else:
-            await webhook_startup()
-            await scheduler_startup()
-            logger.info("Competitive assessment systems initialized")
+            try:
+                await webhook_startup()
+                await scheduler_startup()
+                logger.info("Competitive assessment systems initialized")
+            except Exception as exc:
+                logger.error(
+                    "Competitive assessment startup failed; continuing without it: %s",
+                    exc,
+                    exc_info=True,
+                )
 
     except Exception as e:
         logger.error(f"Failed to initialize application: {e}")
@@ -187,9 +194,16 @@ async def lifespan(app: FastAPI):
     if settings.TESTING:
         logger.info("Skipping competitive assessment shutdown in test mode")
     else:
-        await webhook_shutdown()
-        await scheduler_shutdown()
-        logger.info("Competitive assessment systems shutdown")
+        try:
+            await webhook_shutdown()
+            await scheduler_shutdown()
+            logger.info("Competitive assessment systems shutdown")
+        except Exception as exc:
+            logger.error(
+                "Competitive assessment shutdown failed; continuing shutdown: %s",
+                exc,
+                exc_info=True,
+            )
 
     from src.collectors.rpc.factory import close_all_clients
 
