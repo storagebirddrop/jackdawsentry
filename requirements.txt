@@ -17,7 +17,6 @@ alembic==1.12.1
 # Authentication & Security
 python-jose==3.4.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.18
 cryptography>=46.0.5
 
 # HTTP Client (for competitive assessment)
