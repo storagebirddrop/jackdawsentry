@@ -181,6 +181,8 @@ The file includes all runtime deps needed by the API and its routers:
 core API (`requirements.minimal.txt`), PyJWT, pandas, numpy, matplotlib, aiohttp,
 prometheus-client, schedule, and grpcio.
 
+`requirements.docker.txt` extends `requirements.minimal.txt`, so security pin updates must remain compatible with the FastAPI baseline in the minimal file. In particular, avoid bumping transitive pins like `anyio` beyond the range supported by the FastAPI version used in the image.
+
 To rebuild the image after dependency changes:
 ```bash
 docker compose build api --no-cache
@@ -197,6 +199,11 @@ curl http://localhost/health/detailed
 # Check system metrics
 curl http://localhost/metrics
 ```
+
+Runtime notes:
+- The API container healthcheck uses Python's standard library (`urllib.request`) rather than `curl`, so the runtime image does not need extra healthcheck binaries.
+- The Neo4j healthcheck uses `cypher-shell` with the configured `NEO4J_PASSWORD`, which verifies real Bolt readiness and authentication instead of process liveness alone.
+- If Neo4j reports `The client is unauthorized due to authentication failure`, the mounted Neo4j data directory was created with a different password than the current environment. Update `NEO4J_PASSWORD` to the original value or reinitialize the Neo4j volume.
 
 ### Automated Deployment Script
 ```bash

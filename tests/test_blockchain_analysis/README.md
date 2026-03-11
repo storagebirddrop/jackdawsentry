@@ -185,7 +185,7 @@ python scripts/run_blockchain_tests.py --suite address_analysis --verbose
 ### Test Isolation
 
 Tests use pytest fixtures for isolation:
-- **Client**: FastAPI TestClient with mocked databases
+- **Client**: repository test-client shim (`tests/asgi_testclient.py`) exposed through `fastapi.testclient.TestClient`
 - **Database**: In-memory or mocked database connections
 - **Blockchain**: Mocked RPC clients for unit tests
 

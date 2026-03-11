@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch, MagicMock
 from uuid import uuid4
 import json
+import os
+import tempfile
 
 from src.forensics.court_defensible import (
     CourtDefensibleEvidence,
@@ -28,13 +30,24 @@ class TestCourtDefensibleEvidence:
     @pytest.fixture
     def mock_db_pool(self):
         """Mock PostgreSQL connection pool"""
-        return AsyncMock()
+        pool = MagicMock()
+        pool.acquire.return_value.__aenter__ = AsyncMock()
+        pool.acquire.return_value.__aexit__ = AsyncMock(return_value=None)
+        return pool
 
     @pytest.fixture
     def court_defensible(self, mock_db_pool):
         """Create CourtDefensibleEvidence instance with mocked dependencies"""
+        global mock_pool
+        mock_pool = mock_db_pool
         with patch("src.forensics.court_defensible.get_postgres_connection", return_value=mock_db_pool):
             return CourtDefensibleEvidence(mock_db_pool)
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create temporary directory for file operations"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            yield temp_dir
 
     # ---- Initialization Tests ----
 

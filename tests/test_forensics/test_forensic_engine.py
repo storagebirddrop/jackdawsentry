@@ -24,11 +24,16 @@ class TestForensicEngine:
     @pytest.fixture
     def mock_db_pool(self):
         """Mock PostgreSQL connection pool"""
-        return AsyncMock()
+        pool = MagicMock()
+        pool.acquire.return_value.__aenter__ = AsyncMock()
+        pool.acquire.return_value.__aexit__ = AsyncMock(return_value=None)
+        return pool
 
     @pytest.fixture
     def forensic_engine(self, mock_db_pool):
         """Create ForensicEngine instance with mocked dependencies"""
+        global mock_pool
+        mock_pool = mock_db_pool
         with patch("src.forensics.forensic_engine.get_postgres_connection", return_value=mock_db_pool):
             return ForensicEngine(mock_db_pool)
 

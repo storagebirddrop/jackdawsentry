@@ -5,7 +5,7 @@ Tests for evidence chain management and integrity verification
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock, mock_open
 from uuid import uuid4
 import hashlib
 import json
@@ -26,11 +26,16 @@ class TestEvidenceManager:
     @pytest.fixture
     def mock_db_pool(self):
         """Mock PostgreSQL connection pool"""
-        return AsyncMock()
+        pool = MagicMock()
+        pool.acquire.return_value.__aenter__ = AsyncMock()
+        pool.acquire.return_value.__aexit__ = AsyncMock(return_value=None)
+        return pool
 
     @pytest.fixture
     def evidence_manager(self, mock_db_pool):
         """Create EvidenceManager instance with mocked dependencies"""
+        global mock_pool
+        mock_pool = mock_db_pool
         with patch("src.forensics.evidence_manager.get_postgres_connection", return_value=mock_db_pool):
             return EvidenceManager(mock_db_pool)
 

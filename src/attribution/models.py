@@ -134,6 +134,8 @@ class AddressAttribution(BaseModel):
     first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_verified: Optional[datetime] = None
     notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("address")
     @classmethod

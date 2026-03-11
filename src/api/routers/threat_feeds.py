@@ -4,6 +4,7 @@ REST endpoints for threat intelligence feed management and synchronization
 """
 
 import json as _json
+import inspect
 import logging
 import uuid
 from datetime import datetime
@@ -33,6 +34,13 @@ from src.intelligence.threat_feeds import get_threat_intelligence_manager
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _resolve_dependency(value):
+    """Resolve sync singletons and async factory calls uniformly."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 # Allowed filter values
 VALID_FEED_TYPES = {
@@ -198,7 +206,7 @@ async def list_threat_feeds(
 ):
     """List threat intelligence feeds with optional filters"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Build filters
         filters = {}
@@ -241,7 +249,7 @@ async def create_threat_feed(
 ):
     """Create a new threat intelligence feed"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         feed_data = feed.model_dump()
         feed_data["id"] = str(uuid.uuid4())
@@ -268,7 +276,7 @@ async def get_threat_feed(
 ):
     """Get a specific threat feed by ID"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         feed = await threat_manager.get_feed(feed_id)
         if not feed:
@@ -294,7 +302,7 @@ async def update_threat_feed(
 ):
     """Update a threat feed"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Check if feed exists
         existing_feed = await threat_manager.get_feed(feed_id)
@@ -327,7 +335,7 @@ async def delete_threat_feed(
 ):
     """Delete a threat feed"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Check if feed exists
         existing_feed = await threat_manager.get_feed(feed_id)
@@ -356,7 +364,7 @@ async def sync_threat_feed(
 ):
     """Manually trigger synchronization of a threat feed"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Check if feed exists
         existing_feed = await threat_manager.get_feed(feed_id)
@@ -390,7 +398,7 @@ async def get_feed_health(
 ):
     """Get health status of a threat feed"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Check if feed exists
         existing_feed = await threat_manager.get_feed(feed_id)
@@ -418,7 +426,7 @@ async def query_threat_intelligence(
 ):
     """Query threat intelligence data"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Validate query
         if query.time_range_days < 1 or query.time_range_days > 365:
@@ -452,7 +460,7 @@ async def get_feed_statistics(
 ):
     """Get threat feed statistics"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         stats = await threat_manager.get_statistics()
 
@@ -472,7 +480,7 @@ async def sync_all_feeds(
 ):
     """Trigger synchronization of all active threat feeds"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Get all active feeds
         feeds = await threat_manager.get_feeds({"enabled": True, "status": "active"})
@@ -517,7 +525,7 @@ async def get_recent_intelligence(
 ):
     """Get recent threat intelligence items"""
     try:
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
 
         # Validate filters
         if threat_type and threat_type not in VALID_FEED_TYPES:

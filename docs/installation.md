@@ -48,6 +48,13 @@ docker compose up -d
 docker compose ps
 ```
 
+If `neo4j` remains unhealthy and `api` never starts, inspect the health output before restarting the stack:
+
+```bash
+docker inspect --format '{{json .State.Health}}' jackdawsentry_neo4j
+docker compose logs neo4j
+```
+
 ### 4. Verify Services
 ```bash
 # Check all containers are healthy
@@ -256,7 +263,11 @@ sudo chmod 666 /var/run/docker.sock
 # Check Neo4j logs
 docker compose logs neo4j
 
-# Reset Neo4j data
+# If health output shows "authentication failure", the existing Neo4j data
+# volume was initialized with a different NEO4J_PASSWORD than the current .env.
+# Restore the original password or reset the Neo4j data volume.
+
+# Reset Neo4j data (destructive)
 docker compose down -v
 docker compose up -d neo4j
 ```
@@ -279,6 +290,8 @@ docker compose logs api
 # Verify environment variables
 docker compose exec api env | grep -E "(NEO4J|POSTGRES|REDIS)"
 ```
+
+The API waits for real Neo4j Bolt readiness. If `api` exits during startup with Neo4j connection errors, fix the Neo4j health/auth issue first; restarting `api` alone will not help.
 
 ## 📊 Performance Optimization
 

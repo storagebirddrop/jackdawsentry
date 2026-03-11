@@ -4,6 +4,7 @@ REST endpoints for expert support, training, and professional services managemen
 """
 
 import json as _json
+import inspect
 import logging
 import uuid
 from datetime import datetime
@@ -33,6 +34,13 @@ from src.intelligence.professional_services import get_professional_services_man
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _resolve_dependency(value):
+    """Resolve sync singletons and async factory calls uniformly."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 # Allowed filter values
 VALID_SERVICE_TYPES = {
@@ -276,7 +284,7 @@ async def list_professional_services(
 ):
     """List professional services with optional filters"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Build filters
         filters = {}
@@ -332,7 +340,7 @@ async def create_professional_service(
 ):
     """Create a new professional service request"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         service_data = service_request.model_dump()
         service_data["id"] = str(uuid.uuid4())
@@ -362,7 +370,7 @@ async def get_professional_service(
 ):
     """Get a specific professional service by ID"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         service = await services_manager.get_service(service_id)
         if not service:
@@ -390,7 +398,7 @@ async def update_professional_service(
 ):
     """Update a professional service"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Check if service exists
         existing_service = await services_manager.get_service(service_id)
@@ -432,7 +440,7 @@ async def list_professionals(
 ):
     """List available professionals"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Build filters
         filters = {}
@@ -472,7 +480,7 @@ async def create_professional_profile(
 ):
     """Create a new professional profile"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         profile_data = profile.model_dump()
         profile_data["id"] = str(uuid.uuid4())
@@ -504,7 +512,7 @@ async def get_professional_profile(
 ):
     """Get a specific professional profile by ID"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         profile = await services_manager.get_professional(professional_id)
         if not profile:
@@ -533,7 +541,7 @@ async def list_training_programs(
 ):
     """List available training programs"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Build filters
         filters = {}
@@ -575,7 +583,7 @@ async def create_training_program(
 ):
     """Create a new training program"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         program_data = program.model_dump()
         program_data["id"] = str(uuid.uuid4())
@@ -605,7 +613,7 @@ async def enroll_in_training(
 ):
     """Enroll in a training program"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Check if training program exists and has space
         program = await services_manager.get_training_program(
@@ -651,7 +659,7 @@ async def get_service_statistics(
 ):
     """Get professional services statistics"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         stats = await services_manager.get_statistics(days)
 
@@ -674,7 +682,7 @@ async def assign_professional(
 ):
     """Assign a professional to a service"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         # Check if service exists
         existing_service = await services_manager.get_service(service_id)
@@ -719,7 +727,7 @@ async def get_my_services(
 ):
     """Get services for the current user"""
     try:
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(get_professional_services_manager())
 
         filters = {"client_id": current_user.id}
         if status:

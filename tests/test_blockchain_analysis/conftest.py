@@ -11,20 +11,34 @@ from unittest.mock import AsyncMock, patch
 # ---------------------------------------------------------------------------
 # Environment overrides — must happen before any app imports
 # ---------------------------------------------------------------------------
-os.environ.setdefault("TESTING", "true")
-os.environ.setdefault("LOG_LEVEL", "WARNING")
-os.environ.setdefault("API_SECRET_KEY", "test-secret-key-for-testing-only-1234")
-os.environ.setdefault("ENCRYPTION_KEY", "test-encryption-key-32-chars-long!!")
-os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key-for-testing-ok")
-os.environ.setdefault("JWT_ALGORITHM", "HS256")
-os.environ.setdefault("JWT_EXPIRE_MINUTES", "30")
-os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
-os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
-os.environ.setdefault("API_HOST", "0.0.0.0")
-os.environ.setdefault("API_PORT", "8000")
-os.environ.setdefault("DEBUG", "true")
-os.environ.setdefault("AUDIT_LOG_DIR", "/tmp/jds_test_audit")
+os.environ.update(
+    {
+        "TESTING": "true",
+        "LOG_LEVEL": "WARNING",
+        "API_SECRET_KEY": "test-secret-key-for-testing-only-1234",
+        "ENCRYPTION_KEY": "test-encryption-key-32-chars-long!!",
+        "JWT_SECRET_KEY": "test-jwt-secret-key-for-testing-ok",
+        "JWT_ALGORITHM": "HS256",
+        "JWT_EXPIRE_MINUTES": "30",
+        "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+        "NEO4J_URI": "bolt://localhost:7687",
+        "REDIS_URL": "redis://localhost:6379/1",
+        "API_HOST": "0.0.0.0",
+        "API_PORT": "8000",
+        "DEBUG": "true",
+        "AUDIT_LOG_DIR": "/tmp/jds_test_audit",
+    }
+)
+
+from src.api.middleware import AuditMiddleware
+
+
+async def _noop_store_audit_log(self, request_log, response_log):
+    """Skip audit persistence in tests to avoid external side effects."""
+    return None
+
+
+AuditMiddleware._store_audit_log = _noop_store_audit_log
 
 
 # ---------------------------------------------------------------------------

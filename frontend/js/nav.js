@@ -44,6 +44,18 @@ const Nav = (function () {
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
+    function ensureFavicon() {
+        let icon = document.querySelector('link[rel="icon"]');
+        if (!icon) {
+            icon = document.createElement('link');
+            icon.rel = 'icon';
+            document.head.appendChild(icon);
+        }
+
+        icon.type = 'image/svg+xml';
+        icon.href = '/favicon.svg';
+    }
+
     /** Build the sidebar HTML string */
     function sidebarHTML() {
         const current = activePath();
@@ -119,6 +131,7 @@ const Nav = (function () {
     function init() {
         // Apply dark mode immediately (before paint)
         applyDark(isDark());
+        ensureFavicon();
 
         // Inject HTML at start of body
         const wrapper = document.createElement('div');

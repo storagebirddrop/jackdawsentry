@@ -7,6 +7,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch, MagicMock
 from uuid import uuid4
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -27,11 +28,16 @@ class TestReportGenerator:
     @pytest.fixture
     def mock_db_pool(self):
         """Mock PostgreSQL connection pool"""
-        return AsyncMock()
+        pool = MagicMock()
+        pool.acquire.return_value.__aenter__ = AsyncMock()
+        pool.acquire.return_value.__aexit__ = AsyncMock(return_value=None)
+        return pool
 
     @pytest.fixture
     def report_generator(self, mock_db_pool):
         """Create ReportGenerator instance with mocked dependencies"""
+        global mock_pool
+        mock_pool = mock_db_pool
         with patch("src.forensics.report_generator.get_postgres_connection", return_value=mock_db_pool):
             return ReportGenerator(mock_db_pool)
 

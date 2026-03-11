@@ -83,12 +83,13 @@ If you find my projects helpful, consider sending a Lightning tip:
    ```bash
    pip3 install -r requirements-test.txt
    ```
-   > The Docker image uses `requirements.docker.txt` (runtime deps without blockchain SDKs).
+   > The Docker image uses `requirements.docker.txt` plus `requirements.minimal.txt`. Keep those two files version-compatible when updating security pins.
 
 4. **Start services (development):**
    ```bash
    docker compose up -d
    ```
+   > If `neo4j` stays unhealthy with `The client is unauthorized due to authentication failure`, the persisted Neo4j volume was initialized with a different password than the current `.env`. Reuse the original `NEO4J_PASSWORD` or reset the Neo4j volume before expecting `api` to start.
 
 5. **Initial setup (first launch only):**
    Open http://localhost/ — you will be redirected to the setup page to create your admin account.
@@ -549,6 +550,8 @@ pytest -m "not integration"
 # Run integration tests (requires running services)
 pytest -m integration
 ```
+
+The shared test fixtures replace Starlette/FastAPI `TestClient` with [`tests/asgi_testclient.py`](tests/asgi_testclient.py) in this repository because the stock client can hang in this environment. New HTTP tests should continue using the standard `from fastapi.testclient import TestClient` import so the shim applies automatically.
 
 ## 📊 Monitoring & Logging
 

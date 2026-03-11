@@ -33,6 +33,7 @@ class EvidenceStatus(Enum):
     """Evidence processing status"""
 
     COLLECTED = "collected"
+    PROCESSED = "processed"
     PROCESSING = "processing"
     ANALYZED = "analyzed"
     VERIFIED = "verified"
@@ -992,6 +993,34 @@ class EvidenceManager:
             custody_chain_completion_rate=custody_chain_completion_rate,
         )
 
+    async def list_evidence(self, **filters: Any) -> List["Evidence"]:
+        """Backward-compatible evidence listing helper."""
+        normalized = {key: value for key, value in filters.items() if value is not None}
+        return await self.search_evidence(normalized)
+
+    async def list_evidence_by_case(self, case_id: str) -> List["Evidence"]:
+        """Return all evidence associated with a specific case."""
+        return await self.search_evidence({"case_id": str(case_id)})
+
+    async def verify_integrity(self, evidence_id: str) -> Dict[str, Any]:
+        """Backward-compatible alias for integrity verification."""
+        result = await self.verify_evidence_integrity(str(evidence_id))
+        return {
+            "verified": result["verified"],
+            "hash_matches": result["verified"],
+            "integrity_score": 1.0 if result["verified"] else 0.0,
+            "verification_time": datetime.now(timezone.utc).isoformat(),
+            **result,
+        }
+
+    async def get_chain_of_custody(self, evidence_id: str) -> List["ChainOfCustody"]:
+        """Backward-compatible alias for custody-chain retrieval."""
+        return await self.get_custody_chain(str(evidence_id))
+
+    async def get_evidence_statistics(self, days: int = 30) -> "EvidenceStatistics":
+        """Backward-compatible statistics entrypoint."""
+        return await self.get_statistics(days)
+
     async def export_evidence_manifest(self, case_id: str) -> Dict[str, Any]:
         """Export a manifest of all evidence attached to a case."""
         evidence_items = await self.search_evidence({"case_id": case_id})
@@ -1231,6 +1260,18 @@ class ChainOfCustody:
     signature: str = ""
     previous_entry_id: Optional[str] = None
     next_entry_id: Optional[str] = None
+    transferred_from: Optional[str] = None
+    transferred_to: Optional[str] = None
+    transfer_reason: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        self.id = str(self.id)
+        self.evidence_id = str(self.evidence_id)
+        if self.transferred_from or self.transferred_to:
+            self.action = self.action or (self.transfer_reason or "transfer")
+            self.performed_by = self.performed_by or (self.transferred_from or "")
+            if not self.notes and self.transferred_to:
+                self.notes = f"Transferred to {self.transferred_to}"
 
 
 @dataclass
@@ -1254,12 +1295,37 @@ class Evidence:
     created_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     notes: Optional[str] = None
+    status: EvidenceStatus = EvidenceStatus.PROCESSED
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    file_path: Optional[str] = None
+    size_bytes: Optional[int] = None
 
     def __post_init__(self) -> None:
+        self.id = str(self.id)
+        self.case_id = str(self.case_id)
         if not isinstance(self.evidence_type, EvidenceType):
             self.evidence_type = EvidenceType(self.evidence_type)
         if not isinstance(self.integrity_status, EvidenceIntegrity):
             self.integrity_status = EvidenceIntegrity(self.integrity_status)
+        if not isinstance(self.status, EvidenceStatus):
+            self.status = EvidenceStatus(self.status)
+        if self.file_path and not self.source_location:
+            self.source_location = self.file_path
+        if self.size_bytes is not None and self.file_size_bytes is None:
+            self.file_size_bytes = self.size_bytes
+        if self.created_at is not None:
+            self.created_date = self.created_at
+        if self.updated_at is not None:
+            self.last_updated = self.updated_at
+        if self.file_path is None:
+            self.file_path = self.source_location or None
+        if self.size_bytes is None:
+            self.size_bytes = self.file_size_bytes
+        if self.created_at is None:
+            self.created_at = self.created_date
+        if self.updated_at is None:
+            self.updated_at = self.last_updated
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to a JSON-friendly dictionary."""
@@ -1281,6 +1347,9 @@ class Evidence:
             "created_date": self.created_date.isoformat(),
             "last_updated": self.last_updated.isoformat(),
             "notes": self.notes,
+            "status": self.status.value,
+            "file_path": self.file_path,
+            "size_bytes": self.size_bytes,
         }
 
 
@@ -1297,6 +1366,12 @@ class EvidenceStatistics:
     evidence_with_verified_hash: int = 0
     verified_evidence: int = 0
     custody_chain_complete: int = 0
+    processed_evidence: int = 0
+    pending_evidence: int = 0
+    failed_evidence: int = 0
+    evidence_by_status: Dict[str, int] = field(default_factory=dict)
+    average_processing_time_hours: float = 0.0
+    storage_utilization_gb: float = 0.0
 
     def __post_init__(self) -> None:
         if self.total_evidence and self.verified_evidence and not self.evidence_by_integrity:
@@ -1311,6 +1386,12 @@ class EvidenceStatistics:
             self.custody_chain_completion_rate = (
                 self.custody_chain_complete / self.total_evidence
             )
+        if self.evidence_by_status:
+            self.processed_evidence = self.processed_evidence or self.evidence_by_status.get("processed", 0)
+            self.pending_evidence = self.pending_evidence or self.evidence_by_status.get("pending", 0)
+            self.failed_evidence = self.failed_evidence or self.evidence_by_status.get("failed", 0)
+        if self.storage_utilization_gb == 0.0 and self.total_file_size_mb:
+            self.storage_utilization_gb = self.total_file_size_mb / 1024
 
 
 # Global evidence manager instance

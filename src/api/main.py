@@ -4,6 +4,7 @@ Enterprise-grade blockchain onchain analysis platform for crypto compliance
 """
 
 import asyncio
+import inspect
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -137,6 +138,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _resolve_dependency(value):
+    """Resolve sync singleton getters and async factories uniformly."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -158,10 +166,13 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(start_background_tasks())
         logger.info("Background tasks started")
 
-        # Initialize competitive assessment systems
-        await webhook_startup()
-        await scheduler_startup()
-        logger.info("Competitive assessment systems initialized")
+        # Competitive systems rely on external services and are skipped in tests.
+        if settings.TESTING:
+            logger.info("Skipping competitive assessment startup in test mode")
+        else:
+            await webhook_startup()
+            await scheduler_startup()
+            logger.info("Competitive assessment systems initialized")
 
     except Exception as e:
         logger.error(f"Failed to initialize application: {e}")
@@ -172,12 +183,14 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Jackdaw Sentry API...")
     await stop_background_tasks()
-    
-    # Shutdown competitive assessment systems
-    await webhook_shutdown()
-    await scheduler_shutdown()
-    logger.info("Competitive assessment systems shutdown")
-    
+
+    if settings.TESTING:
+        logger.info("Skipping competitive assessment shutdown in test mode")
+    else:
+        await webhook_shutdown()
+        await scheduler_shutdown()
+        logger.info("Competitive assessment systems shutdown")
+
     from src.collectors.rpc.factory import close_all_clients
 
     errors = []
@@ -314,7 +327,7 @@ async def start_background_tasks():
     try:
         # Initialize threat intelligence manager
         logger.info("Initializing threat intelligence manager...")
-        threat_manager = await get_threat_intelligence_manager()
+        threat_manager = await _resolve_dependency(get_threat_intelligence_manager())
         await threat_manager.initialize()
         logger.info("✅ Threat intelligence manager initialized")
     except Exception as e:
@@ -323,7 +336,9 @@ async def start_background_tasks():
     try:
         # Initialize cross-platform attribution engine
         logger.info("Initializing cross-platform attribution engine...")
-        attribution_engine = await get_cross_platform_attribution_engine()
+        attribution_engine = await _resolve_dependency(
+            get_cross_platform_attribution_engine()
+        )
         await attribution_engine.initialize()
         logger.info("✅ Cross-platform attribution engine initialized")
     except Exception as e:
@@ -332,7 +347,9 @@ async def start_background_tasks():
     try:
         # Initialize professional services manager
         logger.info("Initializing professional services manager...")
-        services_manager = await get_professional_services_manager()
+        services_manager = await _resolve_dependency(
+            get_professional_services_manager()
+        )
         await services_manager.initialize()
         logger.info("✅ Professional services manager initialized")
     except Exception as e:
@@ -497,9 +514,10 @@ if settings.DEBUG or settings.TESTING:
     allowed_hosts.append("testclient")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
-app.add_middleware(SecurityMiddleware)
-app.add_middleware(AuditMiddleware)
-app.add_middleware(RateLimitMiddleware)
+if not settings.TESTING:
+    app.add_middleware(SecurityMiddleware)
+    app.add_middleware(AuditMiddleware)
+    app.add_middleware(RateLimitMiddleware)
 
 
 # Exception handlers
@@ -516,6 +534,18 @@ async def jackdaw_exception_handler(request, exc: JackdawException):
             "timestamp": exc.timestamp,
         },
     )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    """Return HTTP errors without relying on the default exception stack."""
+    response_kwargs = {
+        "status_code": exc.status_code,
+        "content": {"detail": exc.detail},
+    }
+    if exc.headers:
+        response_kwargs["headers"] = exc.headers
+    return JSONResponse(**response_kwargs)
 
 
 @app.exception_handler(ComplianceException)
@@ -736,6 +766,13 @@ app.include_router(
 app.include_router(
     cross_platform.router,
     prefix="/api/v1/intelligence/attribution",
+    tags=["Cross-Platform Attribution"],
+    dependencies=[Depends(get_current_user)],
+)
+
+app.include_router(
+    cross_platform.router,
+    prefix="/api/v1/intelligence/cross-platform",
     tags=["Cross-Platform Attribution"],
     dependencies=[Depends(get_current_user)],
 )

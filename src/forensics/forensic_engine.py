@@ -37,6 +37,7 @@ class ForensicCaseStatus(Enum):
 class EvidenceType(Enum):
     """Types of forensic evidence"""
 
+    DIGITAL = "digital"
     TRANSACTION_DATA = "transaction_data"
     BLOCKCHAIN_DATA = "blockchain_data"
     ADDRESS_ANALYSIS = "address_analysis"
@@ -179,6 +180,9 @@ class CaseStatistics:
     completion_rate: float = 0.0
     completed_cases: int = 0
     total_case_duration_days: float = 0.0
+    high_priority_cases: int = 0
+    medium_priority_cases: int = 0
+    low_priority_cases: int = 0
 
     def __post_init__(self) -> None:
         if (
@@ -197,6 +201,10 @@ class CaseStatistics:
             )
         if not self.average_resolution_days:
             self.average_resolution_days = self.average_case_duration_days
+        if self.cases_by_priority:
+            self.high_priority_cases = self.high_priority_cases or self.cases_by_priority.get("high", 0)
+            self.medium_priority_cases = self.medium_priority_cases or self.cases_by_priority.get("medium", 0)
+            self.low_priority_cases = self.low_priority_cases or self.cases_by_priority.get("low", 0)
 
 
 @dataclass
@@ -224,14 +232,31 @@ class ForensicCase:
     tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    assigned_to: Optional[str] = None
 
     def __post_init__(self) -> None:
+        self.id = str(self.id)
         if not isinstance(self.status, ForensicCaseStatus):
             self.status = _parse_status(self.status)
         if not isinstance(self.priority, CasePriority):
             self.priority = _parse_priority(self.priority)
         if not isinstance(self.legal_standard, LegalStandard):
             self.legal_standard = _parse_legal_standard(self.legal_standard)
+        if self.created_at is not None:
+            self.created_date = self.created_at
+        if self.updated_at is not None:
+            self.last_updated = self.updated_at
+        if self.assigned_to and not self.assigned_investigator:
+            self.assigned_investigator = self.assigned_to
+        if self.created_at is None:
+            self.created_at = self.created_date
+        if self.updated_at is None:
+            self.updated_at = self.last_updated
+        if self.assigned_to is None:
+            self.assigned_to = self.assigned_investigator
         if self.evidence_count == 0 and self.evidence_ids:
             self.evidence_count = len(self.evidence_ids)
 
@@ -241,6 +266,7 @@ class ForensicCase:
             self.evidence_ids.append(evidence_id)
             self.evidence_count += 1
             self.last_updated = datetime.now(timezone.utc)
+            self.updated_at = self.last_updated
 
     def remove_evidence(self, evidence_id: str) -> None:
         """Remove evidence from case"""
@@ -248,11 +274,13 @@ class ForensicCase:
             self.evidence_ids.remove(evidence_id)
             self.evidence_count = max(0, self.evidence_count - 1)
             self.last_updated = datetime.now(timezone.utc)
+            self.updated_at = self.last_updated
 
     def update_status(self, new_status: ForensicCaseStatus) -> None:
         """Update case status"""
         self.status = new_status
         self.last_updated = datetime.now(timezone.utc)
+        self.updated_at = self.last_updated
         if new_status in [ForensicCaseStatus.CLOSED, ForensicCaseStatus.ARCHIVED]:
             self.actual_completion_date = datetime.now(timezone.utc)
 
@@ -264,6 +292,7 @@ class ForensicCase:
     @updated_date.setter
     def updated_date(self, value: datetime) -> None:
         self.last_updated = value
+        self.updated_at = value
 
     @property
     def closed_date(self) -> Optional[datetime]:
@@ -278,6 +307,10 @@ class ForensicCase:
     def completion_date(self) -> Optional[datetime]:
         """Alias used by report-generation code paths."""
         return self.actual_completion_date
+
+    def copy(self) -> "ForensicCase":
+        """Backward-compatible shallow copy helper used by legacy tests."""
+        return ForensicCase(**self.__dict__)
 
 
 @dataclass
@@ -1002,6 +1035,27 @@ class ForensicEngine:
     async def get_case_statistics(self) -> CaseStatistics:
         """Backward-compatible statistics entrypoint."""
         return await self.get_statistics()
+
+    async def list_cases(self, **filters: Any) -> List[ForensicCase]:
+        """Backward-compatible list helper expected by the API tests."""
+        normalized = {key: value for key, value in filters.items() if value is not None}
+        if "assigned_to" in normalized and "assigned_investigator" not in normalized:
+            normalized["assigned_investigator"] = normalized.pop("assigned_to")
+        return await self.get_cases(normalized, limit=1000, offset=0)
+
+    async def delete_case(self, case_id: str) -> bool:
+        """Backward-compatible case deletion helper."""
+        case_id = str(case_id)
+        existed = self.cases.pop(case_id, None) is not None
+
+        if not self.db_pool:
+            return existed
+
+        async with self.db_pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "DELETE FROM forensic_cases WHERE id = $1 RETURNING id", case_id
+            )
+        return existed or row is not None
 
     # Database helper methods
     async def _save_case_to_db(self, case: ForensicCase) -> None:
